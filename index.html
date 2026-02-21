@@ -11,43 +11,65 @@
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; pointer-events: none; }
-        .hud { text-shadow: 2px 2px 0 #000; font-size: 12px; pointer-events: auto; }
+        .hud { text-shadow: 2px 2px 0 #000; font-size: 12px; pointer-events: auto; display: flex; justify-content: space-between; width: 100%; }
         .title { font-size: 20px; font-weight: bold; color: #ff8c00; letter-spacing: 2px; }
         .subtitle { color: #aaa; font-size: 10px; margin-top: 5px; }
         
-        .controls { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; margin-bottom: 20px; }
-        button { background: transparent; border: 2px solid #fff; color: #fff; padding: 10px 20px; font-family: 'Space Mono', monospace; font-size: 12px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; box-shadow: 4px 4px 0 rgba(255,255,255,0.2); }
-        button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(255,255,255,0.2); }
+        .hud-left { flex: 1; }
+        .hud-right { text-align: right; }
+        .score-display { font-size: 24px; color: #0f0; font-weight: bold; }
+        .multiplier { font-size: 14px; color: #ff0055; margin-top: 5px; transition: all 0.2s; }
+        .strike-text { color: #fff; font-size: 18px; position: absolute; top: 80px; right: 20px; opacity: 0; transition: opacity 0.5s; text-shadow: 0 0 10px #ff0055; }
+
+        .controls { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
+        button:active { transform: translate(2px, 2px); }
+        input[type="range"] { width: 100px; }
         
-        #btn-mic { border-color: #0f0; color: #0f0; box-shadow: 4px 4px 0 rgba(0,255,0,0.2); }
-        #btn-vision { border-color: #0ff; color: #0ff; box-shadow: 4px 4px 0 rgba(0,255,255,0.2); }
+        #btn-mic { border-color: #0f0; color: #0f0; }
+        #btn-beat { border-color: #ff0055; color: #ff0055; }
         
         #organic-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: linear-gradient(to bottom, #0a0015, #2a0845); opacity: 0; transition: opacity 0.5s; }
         
-        .hud-ratios { margin-top: 15px; font-size: 14px; }
+        .hud-ratios { margin-top: 15px; font-size: 12px; }
         .ratio-box { padding: 4px; border-left: 3px solid #fff; margin-bottom: 4px; background: rgba(0,0,0,0.5); }
+        .beat-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.1); z-index: 2; pointer-events: none; opacity: 0; transition: opacity 0.1s; }
     </style>
 </head>
 <body>
 
     <div id="organic-overlay"></div>
+    <div class="beat-flash" id="beat-flash"></div>
     <canvas id="c-main"></canvas>
 
     <div id="ui-layer">
         <div class="hud">
-            <div class="title">HARMONIC SUNRISE</div>
-            <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO...</div>
-            
-            <div class="hud-ratios">
-                <div class="ratio-box" id="hud-root">ROOT: --</div>
-                <div class="ratio-box" id="hud-lalit" style="color:#ff8c00; border-color:#ff8c00;">TENSION (Lalit): --</div>
-                <div class="ratio-box" id="hud-harris" style="color:#0f0; border-color:#0f0;">STABILITY (Harris): --</div>
-                <div class="ratio-box" id="hud-game" style="color:#0ff; border-color:#0ff; margin-top: 10px;">STATE: DUSK (Sun Falling)</div>
+            <div class="hud-left">
+                <div class="title">HARMONIC SUNRISE</div>
+                <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO...</div>
+                
+                <div class="hud-ratios">
+                    <div class="ratio-box" id="hud-root">ROOT: --</div>
+                    <div class="ratio-box" id="hud-lalit" style="color:#ff8c00; border-color:#ff8c00;">TENSION (Lalit): --</div>
+                    <div class="ratio-box" id="hud-harris" style="color:#0f0; border-color:#0f0;">STABILITY (Harris): --</div>
+                    <div class="ratio-box" id="hud-game" style="color:#0ff; border-color:#0ff; margin-top: 10px;">STATE: DUSK (Sun Falling)</div>
+                </div>
+            </div>
+            <div class="hud-right">
+                <div class="subtitle">SCORE</div>
+                <div class="score-display" id="score-text">0</div>
+                <div class="multiplier" id="multi-text">x1.0</div>
+                <div class="strike-text" id="strike-alert">PERFECT STRIKE!</div>
             </div>
         </div>
         
         <div class="controls">
             <button id="btn-mic">START MIC</button>
+            <div style="display:flex; align-items:center; gap: 5px; background: rgba(0,0,0,0.5); padding: 5px; border: 1px solid #555;">
+                <span id="bpm-val" style="font-size:10px;">120 BPM</span>
+                <input type="range" id="bpm-slider" min="60" max="200" value="120">
+                <button id="btn-beat">START BEAT</button>
+            </div>
             <button id="btn-vision">MODE: SCIENCE</button>
         </div>
     </div>
@@ -55,25 +77,92 @@
 <script>
     const canvas = document.getElementById('c-main'); const ctx = canvas.getContext('2d');
     const btnMic = document.getElementById('btn-mic'); const btnVision = document.getElementById('btn-vision');
-    const organicOverlay = document.getElementById('organic-overlay');
+    const btnBeat = document.getElementById('btn-beat'); const bpmSlider = document.getElementById('bpm-slider');
+    const organicOverlay = document.getElementById('organic-overlay'); const beatFlash = document.getElementById('beat-flash');
     
     const hRoot = document.getElementById('hud-root'); const hLalit = document.getElementById('hud-lalit');
     const hHarris = document.getElementById('hud-harris'); const hGame = document.getElementById('hud-game');
+    const scoreText = document.getElementById('score-text'); const multiText = document.getElementById('multi-text');
+    const strikeAlert = document.getElementById('strike-alert');
 
     let audioCtx, analyser, dataArray;
     let isRunning = false; let viewMode = 'SCIENCE'; 
     let sunHeight = 0; let targetSunHeight = 0;
 
-    // Music Theory Dictionaries
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const circleOfFifths = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5]; // C, G, D, A, E, B, F#, Db, Ab, Eb, Bb, F
-    const circleOfFourths = [0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7]; // C, F, Bb, Eb, Ab, Db, Gb, B, E, A, D, G
+    // SCORING
+    let score = 0; let multiplier = 1.0; let wasHarrisLastFrame = false;
 
-    let activeNotes = new Set(); // Stores currently active pitch classes
+    // THE HARDWARE METRONOME
+    let bpm = 120; let lookahead = 25.0; // ms
+    let scheduleAheadTime = 0.1; // seconds
+    let nextNoteTime = 0.0; let currentNote = 0; let isBeatRunning = false;
+    let timerID; let lastBeatTime = 0; // Timestamp of the exact metronome click
+
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const circleOfFifths = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5]; 
+    const circleOfFourths = [0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7]; 
+    let activeNotes = new Set(); 
 
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
 
+    // -- METRONOME LOGIC --
+    function nextNote() {
+        let secondsPerBeat = 60.0 / bpm;
+        nextNoteTime += secondsPerBeat;
+        currentNote++; if (currentNote === 4) currentNote = 0; 
+    }
+
+    function scheduleNote(beatNumber, time) {
+        let osc = audioCtx.createOscillator();
+        let gainNode = audioCtx.createGain();
+        osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+        
+        // High beep on 1, low on 2,3,4
+        osc.frequency.value = (beatNumber === 0) ? 880 : 440;
+        
+        // Short, punchy click
+        gainNode.gain.setValueAtTime(1, time);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+        
+        osc.start(time); osc.stop(time + 0.1);
+        
+        // Log the exact time of the beat for the scoring engine
+        lastBeatTime = time;
+        
+        // Visual flash (schedule for exact time using setTimeout as fallback for visual)
+        let timeToFlash = (time - audioCtx.currentTime) * 1000;
+        setTimeout(() => {
+            beatFlash.style.opacity = (beatNumber === 0) ? 0.3 : 0.1;
+            setTimeout(() => beatFlash.style.opacity = 0, 50);
+        }, Math.max(0, timeToFlash));
+    }
+
+    function scheduler() {
+        while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+            scheduleNote(currentNote, nextNoteTime);
+            nextNote();
+        }
+        timerID = setTimeout(scheduler, lookahead);
+    }
+
+    btnBeat.addEventListener('click', () => {
+        if(!audioCtx) return alert("Start the Mic first to initialize the Audio Engine.");
+        if(isBeatRunning) {
+            clearTimeout(timerID); isBeatRunning = false; btnBeat.innerText = "START BEAT";
+            btnBeat.style.borderColor = "#ff0055"; btnBeat.style.color = "#ff0055";
+        } else {
+            isBeatRunning = true; btnBeat.innerText = "STOP BEAT";
+            btnBeat.style.borderColor = "#fff"; btnBeat.style.color = "#fff";
+            nextNoteTime = audioCtx.currentTime + 0.05; scheduler();
+        }
+    });
+
+    bpmSlider.addEventListener('input', (e) => {
+        bpm = e.target.value; document.getElementById('bpm-val').innerText = `${bpm} BPM`;
+    });
+
+    // -- AUDIO ENGINE --
     btnMic.addEventListener('click', async () => {
         if(isRunning) return;
         try {
@@ -85,7 +174,7 @@
             source.connect(analyser);
             dataArray = new Uint8Array(analyser.frequencyBinCount);
             isRunning = true; btnMic.style.display = 'none';
-            document.getElementById('status-text').innerText = "STATUS: MAPPING GEOMETRY...";
+            document.getElementById('status-text').innerText = "STATUS: LISTENING FOR HARMONICS...";
             renderFrame();
         } catch(err) { console.error(err); }
     });
@@ -102,7 +191,6 @@
         }
     });
 
-    // Converts raw Hertz into a Pitch Class (0-11)
     function hzToPitchClass(hz) {
         if(hz < 20) return -1;
         let noteNum = Math.round(12 * Math.log2(hz / 440) + 69);
@@ -117,8 +205,7 @@
                 peaks.push({ index: i, hz: hz, amp: data[i] });
             }
         }
-        peaks.sort((a,b) => b.amp - a.amp);
-        return peaks.slice(0, 5);
+        peaks.sort((a,b) => b.amp - a.amp); return peaks.slice(0, 5);
     }
 
     function renderFrame() {
@@ -127,20 +214,15 @@
         analyser.getByteFrequencyData(dataArray);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // --- MUSIC THEORY ENGINE ---
         let peaks = getPeaks(dataArray, 90); 
         let isLalit = false; let isHarris = false; let hasFifth = false;
-        
-        activeNotes.clear(); // Reset live notes every frame
+        activeNotes.clear(); 
 
         if(peaks.length > 0) {
             let rootPeak = peaks.reduce((prev, curr) => prev.hz < curr.hz ? prev : curr);
             let rootNote = hzToPitchClass(rootPeak.hz);
             
-            if(rootNote !== -1) {
-                hRoot.innerText = `ROOT: ${notes[rootNote]} (${rootPeak.hz.toFixed(1)}Hz)`;
-                activeNotes.add(rootNote);
-            }
+            if(rootNote !== -1) { hRoot.innerText = `ROOT: ${notes[rootNote]} (${rootPeak.hz.toFixed(1)}Hz)`; activeNotes.add(rootNote); }
 
             peaks.forEach(p => {
                 let pc = hzToPitchClass(p.hz);
@@ -148,11 +230,8 @@
 
                 if(p.hz > rootPeak.hz) {
                     let ratio = p.hz / rootPeak.hz;
-                    // Lalit Detection
                     if(Math.abs(ratio - 1.333) < 0.05 || Math.abs(ratio - 1.414) < 0.05) isLalit = true;
-                    // Harris Detection
                     if(Math.abs(ratio - 1.25) < 0.05 || Math.abs(ratio - 1.666) < 0.05) isHarris = true;
-                    // 5th Detection
                     if(Math.abs(ratio - 1.5) < 0.05) hasFifth = true;
                 }
             });
@@ -163,97 +242,92 @@
             hRoot.innerText = `ROOT: --`;
         }
 
-        // --- GAME STATE PHYSICS ---
+        // --- GAME PHYSICS & RHYTHM SCORING ---
         targetSunHeight -= 1.5; 
         
         if(isLalit && !hasFifth) {
             hGame.innerText = "STATE: DAWN (Lalit Pulling)"; hGame.style.color = "#ff8c00";
-            targetSunHeight += 6; 
+            targetSunHeight += 6; score += (1 * multiplier);
+            wasHarrisLastFrame = false;
         } else if(isHarris && hasFifth) {
             hGame.innerText = "STATE: ZENITH (Harris Locked)"; hGame.style.color = "#0f0";
-            targetSunHeight += 3; 
+            targetSunHeight += 3; score += (2 * multiplier);
+
+            // RHYTHM CHECK: Did you JUST transition into Harris exactly on the beat?
+            if(!wasHarrisLastFrame && isBeatRunning) {
+                let timeSinceLastBeat = Math.abs(audioCtx.currentTime - lastBeatTime);
+                let secondsPerBeat = 60.0 / bpm;
+                let timeUntilNextBeat = Math.abs((lastBeatTime + secondsPerBeat) - audioCtx.currentTime);
+                
+                let errorWindow = Math.min(timeSinceLastBeat, timeUntilNextBeat);
+                
+                // If you hit the resolution within 100ms of the metronome click
+                if(errorWindow < 0.10) {
+                    multiplier += 0.5;
+                    score += 500;
+                    strikeAlert.style.opacity = 1;
+                    strikeAlert.innerText = `PERFECT STRIKE! (+${(errorWindow*1000).toFixed(0)}ms)`;
+                    setTimeout(() => strikeAlert.style.opacity = 0, 1000);
+                }
+            }
+            wasHarrisLastFrame = true;
         } else {
             hGame.innerText = "STATE: DUSK (Decay / No Fifth)"; hGame.style.color = "#0ff";
+            wasHarrisLastFrame = false;
+            if(multiplier > 1.0) multiplier -= 0.01; // Multiplier decays when sun falls
         }
+
+        scoreText.innerText = Math.floor(score);
+        multiText.innerText = `x${multiplier.toFixed(1)}`;
+        if(multiplier > 2.0) { multiText.style.color = "#0f0"; multiText.style.fontSize = "18px"; }
+        else { multiText.style.color = "#ff0055"; multiText.style.fontSize = "14px"; }
 
         let maxSunHeight = canvas.height * 0.6;
         if(targetSunHeight < 0) targetSunHeight = 0;
         if(targetSunHeight > maxSunHeight) targetSunHeight = maxSunHeight;
         sunHeight += (targetSunHeight - sunHeight) * 0.05;
 
-        // --- VISUAL RENDERING ---
+        // --- VISUAL RENDERING (Kept exactly the same) ---
         if(viewMode === 'SCIENCE') {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
             let cx = canvas.width / 2; let cy = canvas.height / 2.2;
-            let rOuter = Math.min(canvas.width, canvas.height) * 0.35;
-            let rInner = rOuter * 0.65;
+            let rOuter = Math.min(canvas.width, canvas.height) * 0.35; let rInner = rOuter * 0.65;
 
-            // DRAW CIRCLE GUIDES
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.arc(cx, cy, rOuter, 0, Math.PI*2); ctx.stroke();
             ctx.beginPath(); ctx.arc(cx, cy, rInner, 0, Math.PI*2); ctx.stroke();
 
-            // PLOT THE DUAL CIRCLES
             let activePointsOuter = []; let activePointsInner = [];
 
             for(let i=0; i<12; i++) {
-                let angle = (i * Math.PI / 6) - (Math.PI / 2); // Start at 12 o'clock
-                
-                // Outer Circle (Fifths)
-                let note5 = circleOfFifths[i];
-                let ox = cx + Math.cos(angle) * rOuter; let oy = cy + Math.sin(angle) * rOuter;
-                
-                // Inner Circle (Fourths)
-                let note4 = circleOfFourths[i];
-                let ix = cx + Math.cos(angle) * rInner; let iy = cy + Math.sin(angle) * rInner;
-
-                // Check active notes
-                let oActive = activeNotes.has(note5);
-                let iActive = activeNotes.has(note4);
-
+                let angle = (i * Math.PI / 6) - (Math.PI / 2);
+                let note5 = circleOfFifths[i]; let ox = cx + Math.cos(angle) * rOuter; let oy = cy + Math.sin(angle) * rOuter;
+                let note4 = circleOfFourths[i]; let ix = cx + Math.cos(angle) * rInner; let iy = cy + Math.sin(angle) * rInner;
+                let oActive = activeNotes.has(note5); let iActive = activeNotes.has(note4);
                 if(oActive) activePointsOuter.push({x: ox, y: oy});
                 if(iActive) activePointsInner.push({x: ix, y: iy});
 
-                // Draw Outer Nodes
                 ctx.fillStyle = oActive ? (isHarris ? '#0f0' : (isLalit ? '#ff8c00' : '#0ff')) : '#333';
                 ctx.beginPath(); ctx.arc(ox, oy, oActive ? 8 : 3, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = oActive ? '#fff' : '#666'; ctx.font = '12px monospace';
-                ctx.fillText(notes[note5], ox - 5, oy - 15);
+                ctx.fillStyle = oActive ? '#fff' : '#666'; ctx.font = '12px monospace'; ctx.fillText(notes[note5], ox - 5, oy - 15);
 
-                // Draw Inner Nodes
                 ctx.fillStyle = iActive ? (isHarris ? '#0f0' : (isLalit ? '#ff8c00' : '#0ff')) : '#333';
                 ctx.beginPath(); ctx.arc(ix, iy, iActive ? 6 : 2, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = iActive ? '#fff' : '#666'; ctx.font = '10px monospace';
-                ctx.fillText(notes[note4], ix - 5, iy + 15);
+                ctx.fillStyle = iActive ? '#fff' : '#666'; ctx.font = '10px monospace'; ctx.fillText(notes[note4], ix - 5, iy + 15);
             }
 
-            // DRAW THE CHORD GEOMETRY (POLYGONS)
             let polyColor = isHarris ? 'rgba(0, 255, 0, 0.4)' : (isLalit ? 'rgba(255, 140, 0, 0.4)' : 'rgba(0, 255, 255, 0.2)');
             ctx.strokeStyle = polyColor; ctx.lineWidth = 2; ctx.fillStyle = polyColor.replace('0.4', '0.1');
-            
             if(activePointsOuter.length > 1) {
                 ctx.beginPath(); ctx.moveTo(activePointsOuter[0].x, activePointsOuter[0].y);
                 for(let p of activePointsOuter) ctx.lineTo(p.x, p.y);
                 ctx.closePath(); ctx.stroke(); ctx.fill();
             }
-
-            // Draw FFT at the bottom
-            let barWidth = (canvas.width / 300); let px = 0;
-            for(let i = 0; i < 300; i++) {
-                let barHeight = dataArray[i] * 0.8;
-                ctx.fillStyle = `rgb(${barHeight}, ${150 * (i/300)}, 255)`;
-                ctx.fillRect(px, canvas.height - barHeight, barWidth, barHeight);
-                px += barWidth + 1;
-            }
-
         } else if(viewMode === 'ORGANIC') {
-            let sunY = canvas.height - 100 - sunHeight;
-            let sunSize = 50 + (sunHeight * 0.1);
+            let sunY = canvas.height - 100 - sunHeight; let sunSize = 50 + (sunHeight * 0.1);
             let sColor = isHarris ? '#0f0' : (isLalit ? '#ff4500' : '#ffcc00');
             ctx.shadowBlur = 60; ctx.shadowColor = sColor; ctx.fillStyle = sColor;
-            ctx.beginPath(); ctx.arc(canvas.width / 2, sunY, sunSize, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(canvas.width / 2, sunY, sunSize, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
             ctx.fillStyle = '#050111'; ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
             ctx.strokeStyle = '#ff8c00'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(0, canvas.height - 100); ctx.lineTo(canvas.width, canvas.height - 100); ctx.stroke();
