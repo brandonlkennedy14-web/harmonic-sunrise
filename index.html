@@ -39,7 +39,7 @@
             <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO...</div>
             
             <div class="hud-ratios">
-                <div class="ratio-box" id="hud-root">ROOT Hz: --</div>
+                <div class="ratio-box" id="hud-root">ROOT: --</div>
                 <div class="ratio-box" id="hud-lalit" style="color:#ff8c00; border-color:#ff8c00;">TENSION (Lalit): --</div>
                 <div class="ratio-box" id="hud-harris" style="color:#0f0; border-color:#0f0;">STABILITY (Harris): --</div>
                 <div class="ratio-box" id="hud-game" style="color:#0ff; border-color:#0ff; margin-top: 10px;">STATE: DUSK (Sun Falling)</div>
@@ -57,13 +57,19 @@
     const btnMic = document.getElementById('btn-mic'); const btnVision = document.getElementById('btn-vision');
     const organicOverlay = document.getElementById('organic-overlay');
     
-    // HUD Elements
     const hRoot = document.getElementById('hud-root'); const hLalit = document.getElementById('hud-lalit');
     const hHarris = document.getElementById('hud-harris'); const hGame = document.getElementById('hud-game');
 
     let audioCtx, analyser, dataArray;
     let isRunning = false; let viewMode = 'SCIENCE'; 
     let sunHeight = 0; let targetSunHeight = 0;
+
+    // Music Theory Dictionaries
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const circleOfFifths = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5]; // C, G, D, A, E, B, F#, Db, Ab, Eb, Bb, F
+    const circleOfFourths = [0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7]; // C, F, Bb, Eb, Ab, Db, Gb, B, E, A, D, G
+
+    let activeNotes = new Set(); // Stores currently active pitch classes
 
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
@@ -75,11 +81,11 @@
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const source = audioCtx.createMediaStreamSource(stream);
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 8192; // High Definition for ratio accuracy
+            analyser.fftSize = 8192; 
             source.connect(analyser);
             dataArray = new Uint8Array(analyser.frequencyBinCount);
             isRunning = true; btnMic.style.display = 'none';
-            document.getElementById('status-text').innerText = "STATUS: TRACKING HARMONICS...";
+            document.getElementById('status-text').innerText = "STATUS: MAPPING GEOMETRY...";
             renderFrame();
         } catch(err) { console.error(err); }
     });
@@ -96,7 +102,13 @@
         }
     });
 
-    // Detect Top Frequency Peaks
+    // Converts raw Hertz into a Pitch Class (0-11)
+    function hzToPitchClass(hz) {
+        if(hz < 20) return -1;
+        let noteNum = Math.round(12 * Math.log2(hz / 440) + 69);
+        return noteNum % 12;
+    }
+
     function getPeaks(data, threshold) {
         let peaks = [];
         for(let i = 2; i < data.length - 2; i++) {
@@ -105,7 +117,6 @@
                 peaks.push({ index: i, hz: hz, amp: data[i] });
             }
         }
-        // Sort by amplitude (loudest first) and grab top 5
         peaks.sort((a,b) => b.amp - a.amp);
         return peaks.slice(0, 5);
     }
@@ -117,95 +128,132 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // --- MUSIC THEORY ENGINE ---
-        let peaks = getPeaks(dataArray, 80); // 80 is the noise floor threshold
+        let peaks = getPeaks(dataArray, 90); 
         let isLalit = false; let isHarris = false; let hasFifth = false;
         
+        activeNotes.clear(); // Reset live notes every frame
+
         if(peaks.length > 0) {
-            // Assume the lowest Hz among the loud peaks is the Root Note
             let rootPeak = peaks.reduce((prev, curr) => prev.hz < curr.hz ? prev : curr);
-            hRoot.innerText = `ROOT Hz: ${rootPeak.hz.toFixed(1)}`;
+            let rootNote = hzToPitchClass(rootPeak.hz);
             
-            let detectedRatios = [];
-            
-            // Calculate ratios of all other peaks to the Root
+            if(rootNote !== -1) {
+                hRoot.innerText = `ROOT: ${notes[rootNote]} (${rootPeak.hz.toFixed(1)}Hz)`;
+                activeNotes.add(rootNote);
+            }
+
             peaks.forEach(p => {
+                let pc = hzToPitchClass(p.hz);
+                if(pc !== -1) activeNotes.add(pc);
+
                 if(p.hz > rootPeak.hz) {
                     let ratio = p.hz / rootPeak.hz;
-                    detectedRatios.push(ratio);
-                    
-                    // Lalit Detection (Tension: Nat 4th or Sharp 4th)
+                    // Lalit Detection
                     if(Math.abs(ratio - 1.333) < 0.05 || Math.abs(ratio - 1.414) < 0.05) isLalit = true;
-                    
-                    // Harris 6th Detection (Stability: Maj 3rd or Maj 6th)
+                    // Harris Detection
                     if(Math.abs(ratio - 1.25) < 0.05 || Math.abs(ratio - 1.666) < 0.05) isHarris = true;
-                    
-                    // Perfect 5th Detection
+                    // 5th Detection
                     if(Math.abs(ratio - 1.5) < 0.05) hasFifth = true;
                 }
             });
 
             hLalit.innerText = `TENSION (Lalit): ${isLalit ? "DETECTED" : "--"}`;
             hHarris.innerText = `STABILITY (Harris): ${isHarris ? "DETECTED" : "--"}`;
+        } else {
+            hRoot.innerText = `ROOT: --`;
         }
 
         // --- GAME STATE PHYSICS ---
-        // Sun naturally falls
-        targetSunHeight -= 1; 
+        targetSunHeight -= 1.5; 
         
         if(isLalit && !hasFifth) {
-            hGame.innerText = "STATE: DAWN (Lalit Pulling)";
-            hGame.style.color = "#ff8c00";
-            targetSunHeight += 5; // Lalit pulls it up
+            hGame.innerText = "STATE: DAWN (Lalit Pulling)"; hGame.style.color = "#ff8c00";
+            targetSunHeight += 6; 
         } else if(isHarris && hasFifth) {
-            hGame.innerText = "STATE: ZENITH (Harris Locked)";
-            hGame.style.color = "#0f0";
-            targetSunHeight += 2; // Holds it high
+            hGame.innerText = "STATE: ZENITH (Harris Locked)"; hGame.style.color = "#0f0";
+            targetSunHeight += 3; 
         } else {
-            hGame.innerText = "STATE: DUSK (Decay / No Fifth)";
-            hGame.style.color = "#0ff";
+            hGame.innerText = "STATE: DUSK (Decay / No Fifth)"; hGame.style.color = "#0ff";
         }
 
-        // Cap Sun Height
         let maxSunHeight = canvas.height * 0.6;
         if(targetSunHeight < 0) targetSunHeight = 0;
         if(targetSunHeight > maxSunHeight) targetSunHeight = maxSunHeight;
-
-        // Smooth physics interpolation
         sunHeight += (targetSunHeight - sunHeight) * 0.05;
 
         // --- VISUAL RENDERING ---
         if(viewMode === 'SCIENCE') {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            let barWidth = (canvas.width / 500); 
-            let x = 0;
-            for(let i = 0; i < 500; i++) {
-                let barHeight = dataArray[i] * 1.5;
-                ctx.fillStyle = `rgb(${barHeight}, ${250 * (i/500)}, 255)`;
-                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-                x += barWidth + 1;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            let cx = canvas.width / 2; let cy = canvas.height / 2.2;
+            let rOuter = Math.min(canvas.width, canvas.height) * 0.35;
+            let rInner = rOuter * 0.65;
+
+            // DRAW CIRCLE GUIDES
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(cx, cy, rOuter, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, rInner, 0, Math.PI*2); ctx.stroke();
+
+            // PLOT THE DUAL CIRCLES
+            let activePointsOuter = []; let activePointsInner = [];
+
+            for(let i=0; i<12; i++) {
+                let angle = (i * Math.PI / 6) - (Math.PI / 2); // Start at 12 o'clock
+                
+                // Outer Circle (Fifths)
+                let note5 = circleOfFifths[i];
+                let ox = cx + Math.cos(angle) * rOuter; let oy = cy + Math.sin(angle) * rOuter;
+                
+                // Inner Circle (Fourths)
+                let note4 = circleOfFourths[i];
+                let ix = cx + Math.cos(angle) * rInner; let iy = cy + Math.sin(angle) * rInner;
+
+                // Check active notes
+                let oActive = activeNotes.has(note5);
+                let iActive = activeNotes.has(note4);
+
+                if(oActive) activePointsOuter.push({x: ox, y: oy});
+                if(iActive) activePointsInner.push({x: ix, y: iy});
+
+                // Draw Outer Nodes
+                ctx.fillStyle = oActive ? (isHarris ? '#0f0' : (isLalit ? '#ff8c00' : '#0ff')) : '#333';
+                ctx.beginPath(); ctx.arc(ox, oy, oActive ? 8 : 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = oActive ? '#fff' : '#666'; ctx.font = '12px monospace';
+                ctx.fillText(notes[note5], ox - 5, oy - 15);
+
+                // Draw Inner Nodes
+                ctx.fillStyle = iActive ? (isHarris ? '#0f0' : (isLalit ? '#ff8c00' : '#0ff')) : '#333';
+                ctx.beginPath(); ctx.arc(ix, iy, iActive ? 6 : 2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = iActive ? '#fff' : '#666'; ctx.font = '10px monospace';
+                ctx.fillText(notes[note4], ix - 5, iy + 15);
             }
-            // Draw Target Indicators for Ratios
-            if(peaks.length > 0) {
-                let rootPeak = peaks.reduce((prev, curr) => prev.hz < curr.hz ? prev : curr);
-                let rootIndex = rootPeak.index;
-                let fifthIndex = Math.floor(rootIndex * 1.5);
-                if(fifthIndex < 500) {
-                    let px = fifthIndex * (barWidth + 1);
-                    ctx.fillStyle = '#0f0'; ctx.fillRect(px, canvas.height - 200, 2, 200); // 5th Target Line
-                    ctx.fillText("TARGET: 1.5x (5th)", px + 5, canvas.height - 180);
-                }
+
+            // DRAW THE CHORD GEOMETRY (POLYGONS)
+            let polyColor = isHarris ? 'rgba(0, 255, 0, 0.4)' : (isLalit ? 'rgba(255, 140, 0, 0.4)' : 'rgba(0, 255, 255, 0.2)');
+            ctx.strokeStyle = polyColor; ctx.lineWidth = 2; ctx.fillStyle = polyColor.replace('0.4', '0.1');
+            
+            if(activePointsOuter.length > 1) {
+                ctx.beginPath(); ctx.moveTo(activePointsOuter[0].x, activePointsOuter[0].y);
+                for(let p of activePointsOuter) ctx.lineTo(p.x, p.y);
+                ctx.closePath(); ctx.stroke(); ctx.fill();
             }
+
+            // Draw FFT at the bottom
+            let barWidth = (canvas.width / 300); let px = 0;
+            for(let i = 0; i < 300; i++) {
+                let barHeight = dataArray[i] * 0.8;
+                ctx.fillStyle = `rgb(${barHeight}, ${150 * (i/300)}, 255)`;
+                ctx.fillRect(px, canvas.height - barHeight, barWidth, barHeight);
+                px += barWidth + 1;
+            }
+
         } else if(viewMode === 'ORGANIC') {
             let sunY = canvas.height - 100 - sunHeight;
             let sunSize = 50 + (sunHeight * 0.1);
-
-            // Sun color changes based on state
             let sColor = isHarris ? '#0f0' : (isLalit ? '#ff4500' : '#ffcc00');
-            
             ctx.shadowBlur = 60; ctx.shadowColor = sColor; ctx.fillStyle = sColor;
             ctx.beginPath(); ctx.arc(canvas.width / 2, sunY, sunSize, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
-
             ctx.fillStyle = '#050111'; ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
             ctx.strokeStyle = '#ff8c00'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(0, canvas.height - 100); ctx.lineTo(canvas.width, canvas.height - 100); ctx.stroke();
