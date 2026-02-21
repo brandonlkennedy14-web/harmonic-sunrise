@@ -1,1 +1,202 @@
-n
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Harmonic Sunrise</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
+        
+        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
+        
+        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; pointer-events: none; }
+        
+        .hud { text-shadow: 2px 2px 0 #000; font-size: 12px; pointer-events: auto; }
+        
+        .title { font-size: 20px; font-weight: bold; color: #ff8c00; letter-spacing: 2px; }
+        .subtitle { color: #aaa; font-size: 10px; margin-top: 5px; }
+        
+        .controls { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; margin-bottom: 20px; }
+        
+        button { background: transparent; border: 2px solid #fff; color: #fff; padding: 10px 20px; font-family: 'Space Mono', monospace; font-size: 12px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; box-shadow: 4px 4px 0 rgba(255,255,255,0.2); }
+        button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(255,255,255,0.2); }
+        
+        #btn-mic { border-color: #0f0; color: #0f0; box-shadow: 4px 4px 0 rgba(0,255,0,0.2); }
+        #btn-vision { border-color: #0ff; color: #0ff; box-shadow: 4px 4px 0 rgba(0,255,255,0.2); }
+        
+        /* The specific overlay for the Organic Mode */
+        #organic-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: linear-gradient(to bottom, #0a0015, #2a0845); opacity: 0; transition: opacity 0.5s; }
+    </style>
+</head>
+<body>
+
+    <div id="organic-overlay"></div>
+    <canvas id="c-main"></canvas>
+
+    <div id="ui-layer">
+        <div class="hud">
+            <div class="title">HARMONIC SUNRISE</div>
+            <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO INPUT...</div>
+            <div class="subtitle" style="color:#0ff; margin-top:15px;" id="data-text">DOMINANT Hz: 0.00</div>
+        </div>
+        
+        <div class="controls">
+            <button id="btn-mic">START MIC</button>
+            <button id="btn-vision">MODE: SCIENCE</button>
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('c-main');
+    const ctx = canvas.getContext('2d');
+    const btnMic = document.getElementById('btn-mic');
+    const btnVision = document.getElementById('btn-vision');
+    const statusText = document.getElementById('status-text');
+    const dataText = document.getElementById('data-text');
+    const organicOverlay = document.getElementById('organic-overlay');
+
+    let audioCtx, analyser, dataArray;
+    let isRunning = false;
+    let viewMode = 'SCIENCE'; // 'SCIENCE' or 'ORGANIC'
+    
+    // Physics variable for the Sun
+    let sunHeight = 0; 
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize); resize();
+
+    // The Browser Mic Request
+    btnMic.addEventListener('click', async () => {
+        if(isRunning) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaStreamSource(stream);
+            
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 2048; // High resolution frequency slicing
+            source.connect(analyser);
+            
+            const bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+            
+            isRunning = true;
+            statusText.innerText = "STATUS: LISTENING TO STRINGS...";
+            statusText.style.color = "#0f0";
+            btnMic.style.display = 'none'; // Hide button once connected
+            
+            renderFrame();
+        } catch(err) {
+            statusText.innerText = "ERROR: MIC PERMISSION DENIED.";
+            statusText.style.color = "#f00";
+            console.error(err);
+        }
+    });
+
+    // The Visual Toggle
+    btnVision.addEventListener('click', () => {
+        if(viewMode === 'SCIENCE') {
+            viewMode = 'ORGANIC';
+            btnVision.innerText = 'MODE: ORGANIC';
+            btnVision.style.borderColor = '#ff8c00';
+            btnVision.style.color = '#ff8c00';
+            organicOverlay.style.opacity = 1;
+        } else {
+            viewMode = 'SCIENCE';
+            btnVision.innerText = 'MODE: SCIENCE';
+            btnVision.style.borderColor = '#0ff';
+            btnVision.style.color = '#0ff';
+            organicOverlay.style.opacity = 0;
+        }
+    });
+
+    // Find the loudest specific frequency (Just a diagnostic for now)
+    function getDominantFrequency(data) {
+        let maxVal = -1; let maxIndex = -1;
+        for(let i = 0; i < data.length; i++) {
+            if(data[i] > maxVal) { maxVal = data[i]; maxIndex = i; }
+        }
+        // Convert index back to Hertz
+        let hz = maxIndex * (audioCtx.sampleRate / analyser.fftSize);
+        return { hz: hz, amplitude: maxVal };
+    }
+
+    function renderFrame() {
+        if(!isRunning) return;
+        requestAnimationFrame(renderFrame);
+
+        // Get the live acoustic math from the microphone
+        analyser.getByteFrequencyData(dataArray);
+        
+        let dom = getDominantFrequency(dataArray);
+        if(dom.amplitude > 50) {
+            dataText.innerText = `DOMINANT Hz: ${dom.hz.toFixed(2)}`;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // --- MODE 0: SCIENTIFIC OSCILLOSCOPE ---
+        if(viewMode === 'SCIENCE') {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            let barWidth = (canvas.width / 250); // Only draw the useful lower frequencies (Music)
+            let x = 0;
+            
+            for(let i = 0; i < 250; i++) {
+                let barHeight = dataArray[i] * 1.5;
+                
+                // Color mapping: Bass = Red, Mids = Green, Treble = Cyan
+                let r = barHeight + (25 * (i/250));
+                let g = 250 * (i/250);
+                let b = 250;
+                
+                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        } 
+        
+        // --- MODE 1: THE ORGANIC SUNRISE ---
+        else if(viewMode === 'ORGANIC') {
+            // For this test build, let's just make the Sun rise based on raw volume.
+            // We will inject the Raag Lalit math here next!
+            let totalVolume = 0;
+            for(let i = 0; i < 250; i++) totalVolume += dataArray[i];
+            let avgVolume = totalVolume / 250;
+            
+            // Physics: Sun wants to fall, volume pushes it up
+            sunHeight = sunHeight * 0.95 + (avgVolume * 2); 
+            if(sunHeight > canvas.height * 0.6) sunHeight = canvas.height * 0.6; // Cap height
+
+            let sunY = canvas.height - 100 - sunHeight;
+            let sunSize = 40 + (avgVolume / 2);
+
+            // Draw the Sun
+            ctx.shadowBlur = 50 + (avgVolume);
+            ctx.shadowColor = '#ff4500';
+            ctx.fillStyle = '#ffcc00';
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, sunY, sunSize, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Draw the Horizon Line
+            ctx.fillStyle = '#050111';
+            ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
+            ctx.strokeStyle = '#ff8c00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - 100);
+            ctx.lineTo(canvas.width, canvas.height - 100);
+            ctx.stroke();
+        }
+    }
+</script>
+</body>
+</html>
