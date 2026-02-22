@@ -6,34 +6,35 @@
     <title>The Harmonic Sunrise</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-        
+
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        
+
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; pointer-events: none; }
         .hud { text-shadow: 2px 2px 0 #000; font-size: 12px; pointer-events: auto; display: flex; justify-content: space-between; width: 100%; }
-        .title { font-size: 20px; font-weight: bold; color: #ff8c00; letter-spacing: 2px; }
+        .title { font-size: 20px; font-weight: bold; color: #ff8c00; letter-spacing: 2px; transition: color 0.5s; }
         .subtitle { color: #aaa; font-size: 10px; margin-top: 5px; }
-        
+
         .hud-left { flex: 1; }
         .hud-right { text-align: right; }
-        .score-display { font-size: 24px; color: #0f0; font-weight: bold; }
+        .score-display { font-size: 24px; color: #0f0; font-weight: bold; transition: color 0.5s; }
         .multiplier { font-size: 14px; color: #ff0055; margin-top: 5px; transition: all 0.2s; }
-        .strike-text { color: #fff; font-size: 18px; position: absolute; top: 80px; right: 20px; opacity: 0; transition: opacity 0.5s; text-shadow: 0 0 10px #ff0055; }
+        .strike-text { color: #fff; font-size: 18px; position: absolute; top: 80px; right: 20px; opacity: 0; transition: opacity 0.3s; text-shadow: 0 0 10px #ff0055; font-weight: bold; }
 
         .controls { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
         button:active { transform: translate(2px, 2px); }
         input[type="range"] { width: 100px; }
-        
+
         #btn-mic { border-color: #0f0; color: #0f0; }
         #btn-beat { border-color: #ff0055; color: #ff0055; }
         #btn-inst { border-color: #ffcc00; color: #ffcc00; }
-        
+        #btn-coffee { border-color: #ffd700; color: #ffd700; }
+
         #organic-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: linear-gradient(to bottom, #0a0015, #2a0845); opacity: 0; transition: opacity 0.5s; }
-        
+
         .hud-ratios { margin-top: 15px; font-size: 12px; }
-        .ratio-box { padding: 4px; border-left: 3px solid #fff; margin-bottom: 4px; background: rgba(0,0,0,0.5); }
+        .ratio-box { padding: 4px; border-left: 3px solid #fff; margin-bottom: 4px; background: rgba(0,0,0,0.5); transition: border-color 0.5s, color 0.5s; }
         .beat-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.1); z-index: 2; pointer-events: none; opacity: 0; transition: opacity 0.1s; }
 
         /* THE CODEX PANEL */
@@ -53,36 +54,36 @@
     <div id="ui-layer">
         <div class="hud">
             <div class="hud-left">
-                <div class="title">HARMONIC SUNRISE</div>
+                <div class="title" id="main-title">HARMONIC SUNRISE</div>
                 <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO...</div>
-                
+
                 <div class="hud-ratios">
                     <div class="ratio-box" id="hud-root">ROOT: --</div>
-                    <div class="ratio-box" id="hud-lalit" style="color:#ff8c00; border-color:#ff8c00;">TENSION (Lalit): --</div>
-                    <div class="ratio-box" id="hud-harris" style="color:#0f0; border-color:#0f0;">STABILITY (Harris): --</div>
-                    <div class="ratio-box" id="hud-game" style="color:#0ff; border-color:#0ff; margin-top: 10px;">STATE: DUSK (Sun Falling)</div>
+                    <div class="ratio-box" id="hud-lalit">TENSION (Fourth): --</div>
+                    <div class="ratio-box" id="hud-harris">STABILITY (Fifth): --</div>
+                    <div class="ratio-box" id="hud-game" style="color:#0ff; border-color:#0ff; margin-top: 10px;">PHASE: GROUNDED</div>
                 </div>
             </div>
             <div class="hud-right">
                 <div class="subtitle">SCORE</div>
                 <div class="score-display" id="score-text">0</div>
                 <div class="multiplier" id="multi-text">x1.0</div>
-                <div class="strike-text" id="strike-alert">PERFECT STRIKE!</div>
+                <div class="strike-text" id="strike-alert">CRASH!</div>
             </div>
         </div>
 
         <div id="codex-panel">
             <div class="codex-title" id="codex-title">INSTRUMENT CODEX</div>
             <div class="codex-section">
-                <div class="codex-label" style="color:#ff8c00;">LALIT TENSION PULL:</div>
+                <div class="codex-label" style="color:#ff8c00;">FOURTH TENSION:</div>
                 <div class="chord-diagram" id="codex-lalit">Awaiting Root...</div>
             </div>
             <div class="codex-section">
-                <div class="codex-label" style="color:#0f0;">HARRIS STABILITY LOCK:</div>
+                <div class="codex-label" style="color:#0f0;">FIFTH STABILITY:</div>
                 <div class="chord-diagram" id="codex-harris">Awaiting Root...</div>
             </div>
         </div>
-        
+
         <div class="controls">
             <button id="btn-mic">START MIC</button>
             <div style="display:flex; align-items:center; gap: 5px; background: rgba(0,0,0,0.5); padding: 5px; border: 1px solid #555;">
@@ -92,6 +93,7 @@
             </div>
             <button id="btn-inst">INST: NONE</button>
             <button id="btn-vision">MODE: SCIENCE</button>
+            <button id="btn-coffee">BUY ME A COFFEE</button>
         </div>
     </div>
 
@@ -100,20 +102,31 @@
     const btnMic = document.getElementById('btn-mic'); const btnVision = document.getElementById('btn-vision');
     const btnBeat = document.getElementById('btn-beat'); const bpmSlider = document.getElementById('bpm-slider');
     const btnInst = document.getElementById('btn-inst'); const codexPanel = document.getElementById('codex-panel');
+    const btnCoffee = document.getElementById('btn-coffee');
     const codexLalit = document.getElementById('codex-lalit'); const codexHarris = document.getElementById('codex-harris');
     const organicOverlay = document.getElementById('organic-overlay'); const beatFlash = document.getElementById('beat-flash');
-    
+
     const hRoot = document.getElementById('hud-root'); const hLalit = document.getElementById('hud-lalit');
     const hHarris = document.getElementById('hud-harris'); const hGame = document.getElementById('hud-game');
     const scoreText = document.getElementById('score-text'); const multiText = document.getElementById('multi-text');
-    const strikeAlert = document.getElementById('strike-alert');
+    const strikeAlert = document.getElementById('strike-alert'); const mainTitle = document.getElementById('main-title');
 
     let audioCtx, analyser, dataArray;
     let isRunning = false; let viewMode = 'SCIENCE'; 
-    let sunHeight = 0; let targetSunHeight = 0;
-    let score = 0; let multiplier = 1.0; let wasHarrisLastFrame = false;
+    let score = 0; let multiplier = 1.0; 
 
-    // METRONOME
+    // GAME PHYSICS & ORBIT STATE
+    let gamePhase = 'SUNRISE'; // Can be 'SUNRISE' or 'ORBIT'
+    let sunHeight = 0; let targetSunHeight = 0;
+    let orbitAngle = 0;
+    let lastPenaltyTime = 0;
+
+    // DYNAMIC COLOR GROUPS (3 groups of 4 notes)
+    // Group 1: C, C#, D, D# | Group 2: E, F, F#, G | Group 3: G#, A, A#, B
+    const colorPalettes = ['#ff8c00', '#00ffcc', '#ff00ff'];
+    let activeColor = '#ff8c00';
+
+    // METRONOME (Visual Only)
     let bpm = 120; let lookahead = 25.0; let scheduleAheadTime = 0.1; 
     let nextNoteTime = 0.0; let currentNote = 0; let isBeatRunning = false;
     let timerID; let lastBeatTime = 0; 
@@ -129,43 +142,25 @@
     const instruments = ['NONE', 'PIANO', 'GUITAR', 'UKULELE', 'VIOLIN'];
     let instIndex = 0;
 
-    // Simple dictionary mapped by root note index (0 = C). 
-    // Shows standard voicings for the tension and stability chords.
     const dict = {
         'PIANO': {
-            0: { lalit: "[C]  [F#] [G#]", harris: "[C]  [E]  [G]  [A]" },
-            2: { lalit: "[D]  [G#] [A#]", harris: "[D]  [F#] [A]  [B]" },
-            4: { lalit: "[E]  [A#] [C]",  harris: "[E]  [G#] [B]  [C#]" },
-            7: { lalit: "[G]  [C#] [D#]", harris: "[G]  [B]  [D]  [E]" },
-            9: { lalit: "[A]  [D#] [F]",  harris: "[A]  [C#] [E]  [F#]" },
-            'default': { lalit: "Root + #4 + #5", harris: "Root + 3 + 5 + 6" }
+            0: { lalit: "[C]  [F] [G#]", harris: "[C]  [E]  [G]  [A]" },
+            2: { lalit: "[D]  [G] [A#]", harris: "[D]  [F#] [A]  [B]" },
+            4: { lalit: "[E]  [A] [C]",  harris: "[E]  [G#] [B]  [C#]" },
+            7: { lalit: "[G]  [C] [D#]", harris: "[G]  [B]  [D]  [E]" },
+            9: { lalit: "[A]  [D] [F]",  harris: "[A]  [C#] [E]  [F#]" },
+            'default': { lalit: "Root + 4th + #5", harris: "Root + 3 + 5 + 6" }
         },
-        'GUITAR': {
-            0: { lalit: "E|--2-(F#)\nB|--1-(C)\nG|--1-(G#)\nD|--X\nA|--3-(C)\nE|--X", harris: "E|--5-(A)\nB|--5-(E)\nG|--5-(C)\nD|--5-(G)\nA|--3-(C)\nE|--X" },
-            2: { lalit: "E|--4-(G#)\nB|--3-(D)\nG|--3-(A#)\nD|--0-(D)\nA|--X\nE|--X", harris: "E|--7-(B)\nB|--7-(F#)\nG|--7-(D)\nD|--0-(D)\nA|--X\nE|--X" },
-            7: { lalit: "E|--X\nB|--2-(C#)\nG|--0-(G)\nD|--1-(D#)\nA|--X\nE|--3-(G)", harris: "E|--X\nB|--5-(E)\nG|--4-(B)\nD|--5-(G)\nA|--X\nE|--3-(G)" },
-            'default': { lalit: "Play Drop-2 \nwith #4", harris: "Play Maj6 \nDrop-2" }
-        },
-        'UKULELE': {
-            0: { lalit: "A|-1-(C#)\nE|-2-(F#)\nC|-0-(C)\nG|-0-(G)", harris: "A|-0-(A)\nE|-0-(E)\nC|-0-(C)\nG|-0-(G)" },
-            7: { lalit: "A|-4-(C#)\nE|-3-(G)\nC|-3-(D#)\nG|-0-(G)", harris: "A|-2-(B)\nE|-0-(E)\nC|-2-(D)\nG|-0-(G)" },
-            'default': { lalit: "Root + #4", harris: "Play Maj6" }
-        },
-        'VIOLIN': {
-            7: { lalit: "E|--X\nA|--4-(C#)\nD|--1-(D#)\nG|--0-(G)", harris: "E|--0-(E)\nA|--2-(B)\nD|--5-(G)\nG|--0-(G)" },
-            2: { lalit: "E|--4-(G#)\nA|--1-(A#)\nD|--0-(D)\nG|--X", harris: "E|--7-(B)\nA|--5-(D)\nD|--4-(F#)\nG|--X" },
-            'default': { lalit: "Double Stop\nRoot + #4", harris: "Arpeggiate\nMaj6" }
-        }
+        'GUITAR': { 'default': { lalit: "Play 4th\nVoicing", harris: "Play 5th\nPower/Maj" } },
+        'UKULELE': { 'default': { lalit: "Root + 4th", harris: "Play 5th" } },
+        'VIOLIN': { 'default': { lalit: "Double Stop\nRoot + 4th", harris: "Double Stop\nRoot + 5th" } }
     };
 
     function updateCodex(rootIdx) {
         let inst = instruments[instIndex];
-        if(inst === 'NONE' || rootIdx === -1) {
-            codexLalit.innerText = "Awaiting Root..."; codexHarris.innerText = "Awaiting Root..."; return;
-        }
+        if(inst === 'NONE' || rootIdx === -1) return;
         let data = dict[inst][rootIdx] || dict[inst]['default'];
-        codexLalit.innerText = data.lalit;
-        codexHarris.innerText = data.harris;
+        codexLalit.innerText = data.lalit; codexHarris.innerText = data.harris;
     }
 
     btnInst.addEventListener('click', () => {
@@ -177,19 +172,22 @@
         updateCodex(currentRootIndex);
     });
 
+    btnCoffee.addEventListener('click', () => {
+        window.open('https://buymeacoffee.com/brandonkennedy', '_blank');
+    });
+
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
 
+    // SILENT METRONOME
     function nextNote() { let secondsPerBeat = 60.0 / bpm; nextNoteTime += secondsPerBeat; currentNote++; if (currentNote === 4) currentNote = 0; }
     function scheduleNote(beatNumber, time) {
-        let osc = audioCtx.createOscillator(); let gainNode = audioCtx.createGain();
-        osc.connect(gainNode); gainNode.connect(audioCtx.destination);
-        osc.frequency.value = (beatNumber === 0) ? 880 : 440;
-        gainNode.gain.setValueAtTime(1, time); gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-        osc.start(time); osc.stop(time + 0.1);
         lastBeatTime = time;
         let timeToFlash = (time - audioCtx.currentTime) * 1000;
-        setTimeout(() => { beatFlash.style.opacity = (beatNumber === 0) ? 0.3 : 0.1; setTimeout(() => beatFlash.style.opacity = 0, 50); }, Math.max(0, timeToFlash));
+        setTimeout(() => { 
+            beatFlash.style.opacity = (beatNumber === 0) ? 0.3 : 0.1; 
+            setTimeout(() => beatFlash.style.opacity = 0, 50); 
+        }, Math.max(0, timeToFlash));
     }
     function scheduler() {
         while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) { scheduleNote(currentNote, nextNoteTime); nextNote(); }
@@ -223,7 +221,7 @@
     });
 
     btnVision.addEventListener('click', () => {
-        if(viewMode === 'SCIENCE') { viewMode = 'ORGANIC'; btnVision.innerText = 'MODE: ORGANIC'; btnVision.style.borderColor = '#ff8c00'; btnVision.style.color = '#ff8c00'; organicOverlay.style.opacity = 1; } 
+        if(viewMode === 'SCIENCE') { viewMode = 'ORGANIC'; btnVision.innerText = 'MODE: ORGANIC'; btnVision.style.borderColor = activeColor; btnVision.style.color = activeColor; organicOverlay.style.opacity = 1; } 
         else { viewMode = 'SCIENCE'; btnVision.innerText = 'MODE: SCIENCE'; btnVision.style.borderColor = '#0ff'; btnVision.style.color = '#0ff'; organicOverlay.style.opacity = 0; }
     });
 
@@ -238,60 +236,96 @@
         peaks.sort((a,b) => b.amp - a.amp); return peaks.slice(0, 5);
     }
 
+    function triggerAlert(msg, color) {
+        strikeAlert.innerText = msg;
+        strikeAlert.style.color = color;
+        strikeAlert.style.textShadow = `0 0 10px ${color}`;
+        strikeAlert.style.opacity = 1;
+        setTimeout(() => strikeAlert.style.opacity = 0, 800);
+    }
+
     function renderFrame() {
         if(!isRunning) return;
         requestAnimationFrame(renderFrame); analyser.getByteFrequencyData(dataArray); ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         let peaks = getPeaks(dataArray, 90); 
-        let isLalit = false; let isHarris = false; let hasFifth = false; activeNotes.clear(); 
+        let hasFourth = false; let hasFifth = false; activeNotes.clear(); 
 
         if(peaks.length > 0) {
             let rootPeak = peaks.reduce((prev, curr) => prev.hz < curr.hz ? prev : curr);
             let rootNote = hzToPitchClass(rootPeak.hz);
-            
+
             if(rootNote !== -1) { 
                 hRoot.innerText = `ROOT: ${notes[rootNote]} (${rootPeak.hz.toFixed(1)}Hz)`; 
                 activeNotes.add(rootNote); 
-                if(rootNote !== currentRootIndex) { currentRootIndex = rootNote; updateCodex(currentRootIndex); }
+                
+                // DYNAMIC COLOR LOGIC
+                if(rootNote !== currentRootIndex) { 
+                    currentRootIndex = rootNote; 
+                    let colorGroupIndex = Math.floor(rootNote / 4); // 0, 1, or 2
+                    activeColor = colorPalettes[colorGroupIndex];
+                    mainTitle.style.color = activeColor;
+                    hRoot.style.borderColor = activeColor;
+                    hRoot.style.color = activeColor;
+                    updateCodex(currentRootIndex); 
+                }
             }
 
             peaks.forEach(p => {
                 let pc = hzToPitchClass(p.hz); if(pc !== -1) activeNotes.add(pc);
                 if(p.hz > rootPeak.hz) {
                     let ratio = p.hz / rootPeak.hz;
-                    if(Math.abs(ratio - 1.333) < 0.05 || Math.abs(ratio - 1.414) < 0.05) isLalit = true;
-                    if(Math.abs(ratio - 1.25) < 0.05 || Math.abs(ratio - 1.666) < 0.05) isHarris = true;
+                    if(Math.abs(ratio - 1.333) < 0.05) hasFourth = true;
                     if(Math.abs(ratio - 1.5) < 0.05) hasFifth = true;
                 }
             });
 
-            hLalit.innerText = `TENSION (Lalit): ${isLalit ? "DETECTED" : "--"}`; hHarris.innerText = `STABILITY (Harris): ${isHarris ? "DETECTED" : "--"}`;
+            hLalit.innerText = `TENSION (Fourth): ${hasFourth ? "DETECTED" : "--"}`; hHarris.innerText = `STABILITY (Fifth): ${hasFifth ? "DETECTED" : "--"}`;
         }
 
-        // --- GAME PHYSICS & RHYTHM SCORING ---
-        targetSunHeight -= 1.5; 
-        if(isLalit && !hasFifth) { hGame.innerText = "STATE: DAWN (Lalit Pulling)"; hGame.style.color = "#ff8c00"; targetSunHeight += 6; score += (1 * multiplier); wasHarrisLastFrame = false; } 
-        else if(isHarris && hasFifth) {
-            hGame.innerText = "STATE: ZENITH (Harris Locked)"; hGame.style.color = "#0f0"; targetSunHeight += 3; score += (2 * multiplier);
-            if(!wasHarrisLastFrame && isBeatRunning) {
-                let timeSinceLastBeat = Math.abs(audioCtx.currentTime - lastBeatTime); let secondsPerBeat = 60.0 / bpm;
-                let timeUntilNextBeat = Math.abs((lastBeatTime + secondsPerBeat) - audioCtx.currentTime); let errorWindow = Math.min(timeSinceLastBeat, timeUntilNextBeat);
-                if(errorWindow < 0.10) {
-                    multiplier += 0.5; score += 500; strikeAlert.style.opacity = 1;
-                    strikeAlert.innerText = `PERFECT STRIKE! (+${(errorWindow*1000).toFixed(0)}ms)`; setTimeout(() => strikeAlert.style.opacity = 0, 1000);
-                }
+        // --- SLOWED PHYSICS & ORBITAL SCORING ---
+        let orbitThreshold = canvas.height * 0.4;
+        let now = audioCtx.currentTime;
+        targetSunHeight -= 0.5; // Slow orbital decay
+
+        if (gamePhase === 'SUNRISE') {
+            hGame.innerText = "PHASE: SUNRISE (Play Fourths)";
+            if (hasFourth) { targetSunHeight += 3; score += (1 * multiplier); }
+            
+            // Penalty for playing a 5th during sunrise
+            if (hasFifth && !hasFourth && (now - lastPenaltyTime > 1.0)) {
+                score = Math.max(0, score - 5);
+                targetSunHeight -= 10;
+                lastPenaltyTime = now;
+                triggerAlert("WRONG INTERVAL! (-5)", "#ff0000");
             }
-            wasHarrisLastFrame = true;
-        } else {
-            hGame.innerText = "STATE: DUSK (Decay / No Fifth)"; hGame.style.color = "#0ff"; wasHarrisLastFrame = false;
-            if(multiplier > 1.0) multiplier -= 0.01; 
+
+            // Transition to Orbit
+            if (sunHeight > orbitThreshold) {
+                gamePhase = 'ORBIT';
+                targetSunHeight = orbitThreshold;
+                triggerAlert("ORBIT ACHIEVED!", "#00ff00");
+            }
+
+        } else if (gamePhase === 'ORBIT') {
+            hGame.innerText = "PHASE: ORBIT (Play Fifths)";
+            if (hasFifth) { targetSunHeight += 1.5; score += (2 * multiplier); }
+            
+            // Penalty for playing a 4th during Orbit (Crash)
+            if (hasFourth && !hasFifth && (now - lastPenaltyTime > 1.0)) {
+                score = Math.max(0, score - 5);
+                gamePhase = 'SUNRISE';
+                targetSunHeight = 0;
+                lastPenaltyTime = now;
+                triggerAlert("CRASH! (-5)", "#ff0000");
+            }
         }
 
         scoreText.innerText = Math.floor(score); multiText.innerText = `x${multiplier.toFixed(1)}`;
         if(multiplier > 2.0) { multiText.style.color = "#0f0"; multiText.style.fontSize = "18px"; } else { multiText.style.color = "#ff0055"; multiText.style.fontSize = "14px"; }
 
-        let maxSunHeight = canvas.height * 0.6; if(targetSunHeight < 0) targetSunHeight = 0; if(targetSunHeight > maxSunHeight) targetSunHeight = maxSunHeight;
-        sunHeight += (targetSunHeight - sunHeight) * 0.05;
+        if(targetSunHeight < 0) targetSunHeight = 0; if(targetSunHeight > canvas.height * 0.7) targetSunHeight = canvas.height * 0.7;
+        sunHeight += (targetSunHeight - sunHeight) * 0.02; // Very slow, floaty physics
 
         // --- VISUAL RENDERING ---
         if(viewMode === 'SCIENCE') {
@@ -311,21 +345,42 @@
                 let oActive = activeNotes.has(note5); let iActive = activeNotes.has(note4);
                 if(oActive) activePointsOuter.push({x: ox, y: oy}); if(iActive) activePointsInner.push({x: ix, y: iy});
 
-                ctx.fillStyle = oActive ? (isHarris ? '#0f0' : (isLalit ? '#ff8c00' : '#0ff')) : '#333'; ctx.beginPath(); ctx.arc(ox, oy, oActive ? 8 : 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = oActive ? (hasFifth ? '#0f0' : activeColor) : '#333'; ctx.beginPath(); ctx.arc(ox, oy, oActive ? 8 : 3, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = oActive ? '#fff' : '#666'; ctx.font = '12px monospace'; ctx.fillText(notes[note5], ox - 5, oy - 15);
 
-                ctx.fillStyle = iActive ? (isHarris ? '#0f0' : (isLalit ? '#ff8c00' : '#0ff')) : '#333'; ctx.beginPath(); ctx.arc(ix, iy, iActive ? 6 : 2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = iActive ? (hasFourth ? activeColor : '#0ff') : '#333'; ctx.beginPath(); ctx.arc(ix, iy, iActive ? 6 : 2, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = iActive ? '#fff' : '#666'; ctx.font = '10px monospace'; ctx.fillText(notes[note4], ix - 5, iy + 15);
             }
-
-            let polyColor = isHarris ? 'rgba(0, 255, 0, 0.4)' : (isLalit ? 'rgba(255, 140, 0, 0.4)' : 'rgba(0, 255, 255, 0.2)');
-            ctx.strokeStyle = polyColor; ctx.lineWidth = 2; ctx.fillStyle = polyColor.replace('0.4', '0.1');
+            
+            let hexColor = gamePhase === 'ORBIT' ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 140, 0, 0.2)';
+            ctx.strokeStyle = hexColor; ctx.lineWidth = 2; ctx.fillStyle = hexColor.replace('0.2', '0.05');
             if(activePointsOuter.length > 1) { ctx.beginPath(); ctx.moveTo(activePointsOuter[0].x, activePointsOuter[0].y); for(let p of activePointsOuter) ctx.lineTo(p.x, p.y); ctx.closePath(); ctx.stroke(); ctx.fill(); }
+        
         } else if(viewMode === 'ORGANIC') {
-            let sunY = canvas.height - 100 - sunHeight; let sunSize = 50 + (sunHeight * 0.1);
-            let sColor = isHarris ? '#0f0' : (isLalit ? '#ff4500' : '#ffcc00');
-            ctx.shadowBlur = 60; ctx.shadowColor = sColor; ctx.fillStyle = sColor; ctx.beginPath(); ctx.arc(canvas.width / 2, sunY, sunSize, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
-            ctx.fillStyle = '#050111'; ctx.fillRect(0, canvas.height - 100, canvas.width, 100); ctx.strokeStyle = '#ff8c00'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, canvas.height - 100); ctx.lineTo(canvas.width, canvas.height - 100); ctx.stroke();
+            let cx = canvas.width / 2; let cy = canvas.height / 2;
+            
+            // Draw Earth
+            ctx.shadowBlur = 20; ctx.shadowColor = '#4169e1'; ctx.fillStyle = '#1e90ff'; 
+            ctx.beginPath(); ctx.arc(cx, cy, 50, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+
+            if (gamePhase === 'SUNRISE') {
+                // Sun rising from the bottom edge
+                let sunY = canvas.height - 50 - sunHeight; 
+                ctx.shadowBlur = 60; ctx.shadowColor = activeColor; ctx.fillStyle = activeColor; 
+                ctx.beginPath(); ctx.arc(cx, sunY, 40, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+            } else {
+                // Sun in Orbit around Earth
+                orbitAngle += 0.02; // Slow orbital speed
+                let orbitRadius = 150 + (orbitThreshold - sunHeight); // Radius fluctuates slightly based on decay
+                let sunX = cx + Math.cos(orbitAngle) * orbitRadius;
+                let sunY = cy + Math.sin(orbitAngle) * orbitRadius;
+                
+                // Draw Orbit Path
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.beginPath(); ctx.arc(cx, cy, orbitRadius, 0, Math.PI * 2); ctx.stroke();
+                
+                ctx.shadowBlur = 60; ctx.shadowColor = '#0f0'; ctx.fillStyle = activeColor; 
+                ctx.beginPath(); ctx.arc(sunX, sunY, 40, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+            }
         }
     }
 </script>
