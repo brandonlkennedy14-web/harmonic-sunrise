@@ -9,16 +9,15 @@
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 60px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
-        
-        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; pointer-events: auto; }
-        .data-text { font-size: 10px; color: #00ffcc; margin-top: 5px; }
-        
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
+        .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
+        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        .data-text { font-size: 12px; color: #00ffcc; margin-top: 5px; }
+        .score-text { font-size: 24px; color: #ff8c00; font-weight: bold; text-align: right; }
+        .high-score { font-size: 14px; color: #ff00ff; text-align: right; margin-bottom: 5px; }
         .controls { display: flex; gap: 10px; pointer-events: auto; margin-bottom: 20px; }
         button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono'; cursor: pointer; text-transform: uppercase; font-size: 10px; }
-        
-        #result-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff00ff; }
+        #result-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.95); padding: 40px; border: 2px solid #ff00ff; box-shadow: 0 0 30px rgba(255,0,255,0.4); }
     </style>
 </head>
 <body>
@@ -35,21 +34,28 @@
     <canvas id="c-billiards"></canvas>
 
     <div id="ui-layer">
-        <div class="hud-box">
-            <div style="color:#ff00ff; font-weight: bold;">THE WINDING ROOM</div>
-            <div id="hud-ratio" class="data-text">RATIO: --</div>
-            <div id="hud-bounces" class="data-text" style="color: #ff8c00;">BOUNCES: 0</div>
+        <div class="hud">
+            <div class="hud-box">
+                <div style="color:#ff00ff; font-weight: bold; font-size: 16px;">THE WINDING ROOM</div>
+                <div id="hud-ratio" class="data-text">WAVE RATIO: --</div>
+                <div id="launch-warn" style="color: #ff0055; font-size: 10px; margin-top: 10px;">PLAY 2 QUICK NOTES TO LAUNCH</div>
+            </div>
+            <div>
+                <div class="high-score">BEST: <span id="high-score-text">0</span></div>
+                <div style="font-size: 10px; color: #aaa; text-align: right;">BOUNCES</div>
+                <div id="score-text" class="score-text">0</div>
+            </div>
         </div>
 
         <div class="controls">
             <button id="btn-mic">START MIC</button>
-            <button id="btn-shoot" style="display:none; border-color:#ff8c00; color:#ff8c00;">FIRE BALL</button>
+            <button id="btn-shoot" style="display:none; border-color:#ff8c00; color:#ff8c00;">MANUAL LAUNCH</button>
         </div>
     </div>
 
     <div id="result-panel">
         <h1 style="color: #ff00ff;">CORNER STRIKE!</h1>
-        <p>Bounces (Winding Number): <span id="res-winding" style="color:#0f0;">0</span></p>
+        <p>You survived <span id="res-winding" style="color:#0f0; font-weight:bold; font-size: 20px;">0</span> bounces.</p>
         <button id="btn-reset" style="border-color:#fff; color:#fff; margin-top:20px;">RESET ARENA</button>
     </div>
 
@@ -62,65 +68,123 @@
     const btnMic = document.getElementById('btn-mic');
     const btnShoot = document.getElementById('btn-shoot');
     const btnReset = document.getElementById('btn-reset');
-    const hudRatio = document.getElementById('hud-ratio');
-    const hudBounces = document.getElementById('hud-bounces');
     const resultPanel = document.getElementById('result-panel');
+    const highScoreText = document.getElementById('high-score-text');
 
-    let sqSize, sqX, sqY, ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 6, active: false };
-    let bounces = 0, pathHistory = [], currentRatio = 1.0;
+    let sqSize, sqX, sqY;
+    let ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 6, active: false };
+    let bounces = 0, pathHistory = [];
+    
+    // Double Stop & Steering Variables
+    let lastHz = 0;
+    let lastTime = 0;
+    let launchHz = 261.63; // Default baseline
+    let currentRatio = 1.0;
+
+    let highScore = 0;
+    try { highScore = localStorage.getItem('windingHighScore') || 0; } catch(e) {}
+    highScoreText.innerText = highScore;
 
     function resize() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        sqSize = Math.min(canvas.width, canvas.height) * 0.6;
-        sqX = (canvas.width - sqSize) / 2; sqY = (canvas.height - sqSize) / 2 + 30;
-        resetBall();
+        // Massively increased square size
+        sqSize = Math.min(canvas.width, canvas.height) * 0.85;
+        sqX = (canvas.width - sqSize) / 2; 
+        sqY = (canvas.height - sqSize) / 2 + 30;
+        if(!ball.active) resetBall();
     }
     window.addEventListener('resize', resize); resize();
 
     function resetBall() {
-        ball.active = false;
-        ball.x = sqX + 10; 
-        ball.y = sqY + sqSize - 10;
+        ball.active = false; 
+        ball.x = sqX + 20; 
+        ball.y = sqY + sqSize - 20;
         pathHistory = []; bounces = 0;
-        resultPanel.style.display = 'none';
-        btnShoot.style.display = 'none';
+        currentRatio = 1.0;
+        resultPanel.style.display = 'none'; 
+        btnShoot.style.display = 'block'; 
+        document.getElementById('launch-warn').style.display = 'block';
+        document.getElementById('score-text').innerText = bounces;
     }
 
     btnReset.addEventListener('click', resetBall);
 
-    btnMic.addEventListener('click', async () => {
-        if (await audio.startMic()) btnMic.style.display = 'none';
+    btnMic.addEventListener('click', async (e) => {
+        if (await audio.startMic()) {
+            e.target.style.display = 'none';
+            resetBall();
+        }
     });
 
-    btnShoot.addEventListener('click', () => {
+    function fireBall() {
         ball.active = true;
-        let speed = 7;
-        let angle = Math.atan(currentRatio);
+        let speed = 6;
+        let angle = Math.atan(1.0); // Start with a perfect diagonal
         ball.vx = speed * Math.cos(angle);
         ball.vy = -speed * Math.sin(angle);
         btnShoot.style.display = 'none';
-    });
+        document.getElementById('launch-warn').style.display = 'none';
+    }
+
+    btnShoot.addEventListener('click', fireBall);
 
     function render() {
         requestAnimationFrame(render);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Draw Arena
         ctx.strokeStyle = '#444'; ctx.lineWidth = 3; ctx.strokeRect(sqX, sqY, sqSize, sqSize);
+        // Highlight Corners (Danger Zones)
+        ctx.fillStyle = 'rgba(255, 0, 85, 0.5)';
+        let corners = [[sqX, sqY], [sqX+sqSize, sqY], [sqX, sqY+sqSize], [sqX+sqSize, sqY+sqSize]];
+        corners.forEach(c => { ctx.beginPath(); ctx.arc(c[0], c[1], 20, 0, Math.PI*2); ctx.fill(); });
+
+        let now = Date.now();
 
         if (audio.isRunning) {
             let peaks = audio.getPeaks(85);
-            if (peaks.length >= 2) {
-                let f1 = Math.min(peaks[0].hz, peaks[1].hz);
-                let f2 = Math.max(peaks[0].hz, peaks[1].hz);
-                currentRatio = f2 / f1;
-                hudRatio.innerText = `RATIO: ${currentRatio.toFixed(4)}`;
-                if (!ball.active) btnShoot.style.display = 'block';
+            if (peaks.length > 0) {
+                let currentHz = peaks[0].hz;
+
+                if (!ball.active) {
+                    // Successive Note (Double Stop) Detection for Launch
+                    let centsDiff = 1200 * Math.log2(currentHz / lastHz);
+                    if (Math.abs(centsDiff) < 50 && (now - lastTime > 150 && now - lastTime < 800)) {
+                        launchHz = currentHz;
+                        fireBall();
+                    } else if (now - lastTime > 100) {
+                        lastHz = currentHz;
+                        lastTime = now;
+                    }
+                } else {
+                    // In-Flight Steering via Standing Wave
+                    currentRatio = currentHz / launchHz;
+                    // Normalize ratio to prevent extreme numbers
+                    if (currentRatio > 2.0) currentRatio = currentRatio % 2.0 + 1.0;
+                    if (currentRatio < 0.5) currentRatio = currentRatio * 2.0;
+                    
+                    document.getElementById('hud-ratio').innerText = `WAVE RATIO: ${currentRatio.toFixed(3)}`;
+
+                    // Gently bend trajectory based on the ratio's angle
+                    let forceAngle = Math.atan(currentRatio);
+                    ball.vx += Math.cos(forceAngle) * 0.15;
+                    ball.vy -= Math.sin(forceAngle) * 0.15;
+
+                    // Normalize speed so it doesn't accelerate infinitely
+                    let speed = 6;
+                    let currentSpeed = Math.hypot(ball.vx, ball.vy);
+                    ball.vx = (ball.vx / currentSpeed) * speed;
+                    ball.vy = (ball.vy / currentSpeed) * speed;
+                }
+            } else {
+                document.getElementById('hud-ratio').innerText = `WAVE RATIO: --`;
+                currentRatio = 1.0; // Decay wave when silent
             }
         }
 
-        // Restore Lissajous Standing Wave before firing
-        if (!ball.active && currentRatio > 1.0) {
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 0, 255, 0.4)'; ctx.lineWidth = 1;
+        // Draw In-Flight Standing Wave (Lissajous)
+        if (ball.active && currentRatio !== 1.0) {
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(0, 255, 204, 0.3)'; ctx.lineWidth = 2;
             for (let t = 0; t < 100; t += 0.1) {
                 let lx = sqX + (0.5 + 0.5 * Math.sin(t)) * sqSize;
                 let ly = sqY + (0.5 + 0.5 * Math.sin(t * currentRatio)) * sqSize;
@@ -132,30 +196,45 @@
         if (ball.active) {
             ball.x += ball.vx; ball.y += ball.vy;
 
-            if (ball.x <= sqX || ball.x >= sqX + sqSize) { ball.vx *= -1; bounces++; }
-            if (ball.y <= sqY || ball.y >= sqY + sqSize) { ball.vy *= -1; bounces++; }
+            // Wall Collisions
+            if (ball.x <= sqX + ball.radius || ball.x >= sqX + sqSize - ball.radius) { 
+                ball.vx *= -1; bounces++; 
+                ball.x = Math.max(sqX + ball.radius, Math.min(sqX + sqSize - ball.radius, ball.x));
+            }
+            if (ball.y <= sqY + ball.radius || ball.y >= sqY + sqSize - ball.radius) { 
+                ball.vy *= -1; bounces++; 
+                ball.y = Math.max(sqY + ball.radius, Math.min(sqY + sqSize - ball.radius, ball.y));
+            }
 
-            let corners = [[sqX, sqY], [sqX+sqSize, sqY], [sqX, sqY+sqSize], [sqX+sqSize, sqY+sqSize]];
+            document.getElementById('score-text').innerText = bounces;
+
+            // Check Corner Death
             corners.forEach(c => {
-                if (Math.hypot(ball.x - c[0], ball.y - c[1]) < 15 && bounces > 1) {
+                if (Math.hypot(ball.x - c[0], ball.y - c[1]) < 25 && bounces > 2) {
                     ball.active = false;
-                    resultPanel.style.display = 'block';
                     document.getElementById('res-winding').innerText = bounces;
+                    if (bounces > highScore) {
+                        highScore = bounces;
+                        try { localStorage.setItem('windingHighScore', highScore); } catch(e) {}
+                        highScoreText.innerText = highScore;
+                    }
+                    resultPanel.style.display = 'block';
                 }
             });
 
             pathHistory.push({x: ball.x, y: ball.y});
-            hudBounces.innerText = `BOUNCES: ${bounces}`;
-            if (bounces > 150) resetBall();
+            if (pathHistory.length > 200) pathHistory.shift(); // Keep path trail from lagging phone
         }
 
+        // Draw Path Trail
         if (pathHistory.length > 1) {
-            ctx.beginPath(); ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 0, 255, 0.8)'; ctx.lineWidth = 2;
             ctx.moveTo(pathHistory[0].x, pathHistory[0].y);
             pathHistory.forEach(p => ctx.lineTo(p.x, p.y));
             ctx.stroke();
         }
 
+        // Draw Ball
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); ctx.fill();
     }
     render();
