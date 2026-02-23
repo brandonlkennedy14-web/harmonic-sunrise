@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Simon Sequence</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
+
+        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
+        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 70px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
+        .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
+        .title { font-size: 20px; font-weight: bold; color: #fff; letter-spacing: 2px; text-shadow: 0 0 10px #fff; }
+        .score-display { font-size: 24px; color: #00ffcc; font-weight: bold; }
+        
+        .hud-box { background: rgba(0,0,0,0.7); padding: 15px; border: 1px solid #555; margin-top: 10px; width: fit-content; border-radius: 5px; text-align: center;}
+        .status-text { font-size: 16px; font-weight: bold; letter-spacing: 1px; color: #ff8c00; }
+        .sequence-text { font-size: 12px; color: #aaa; margin-top: 5px; }
+
+        .controls { display: flex; gap: 10px; pointer-events: auto; justify-content: center; width: 100%; }
+        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 20px; font-family: 'Space Mono', monospace; font-size: 12px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; font-weight: bold;}
+        button:active { transform: translate(2px, 2px); }
+
+        #btn-start { border-color: #0f0; color: #0f0; }
+        
+        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.95); padding: 40px; border: 2px solid #ff0055; box-shadow: 0 0 30px rgba(255, 0, 85, 0.5); }
+        #game-over h1 { color: #ff0055; margin: 0 0 10px 0; }
+        .stat-row { font-size: 18px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
+        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold; transition: color 0.2s;">[1] SUNRISE</a>
+        <span style="color: #555;">|</span>
+        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold; transition: color 0.2s;">[2] FLAPPY</a>
+        <span style="color: #555;">|</span>
+        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[3] WINDING</a>
+        <span style="color: #555;">|</span>
+        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold; transition: color 0.2s;">[4] INVADERS</a>
+        <span style="color: #555;">|</span>
+        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[5] WEAVER</a>
+        <span style="color: #555;">|</span>
+        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold; transition: color 0.2s; text-shadow: 0 0 5px #fff;">[6] SIMON</a>
+    </div>
+
+    <canvas id="c-simon"></canvas>
+
+    <div id="ui-layer">
+        <div class="hud">
+            <div>
+                <div class="title" id="main-title">THE SIMON SEQUENCE</div>
+                <div class="hud-box">
+                    <div id="status-text" class="status-text">AWAITING COMMENCEMENT</div>
+                    <div id="sequence-text" class="sequence-text">SEQUENCE LENGTH: 0</div>
+                </div>
+            </div>
+            <div class="score-display">STAGE: <span id="score-text">1</span></div>
+        </div>
+
+        <div class="controls">
+            <button id="btn-start">INITIALIZE UPLINK (START)</button>
+        </div>
+    </div>
+
+    <div id="game-over">
+        <h1>CONNECTION LOST</h1>
+        <div class="stat-row">YOU REACHED STAGE: <span id="final-score" style="color:#00ffcc;">1</span></div>
+        <div class="stat-row" style="font-size: 12px; color: #aaa;">THE MONOLITH DEMANDS PERFECTION.</div>
+        <button id="btn-restart" style="border-color:#fff; color:#fff;">RETRY SEQUENCE</button>
+    </div>
+
+<script type="module">
+    import { AudioEngine } from './audio.js';
+    import { notes, hzToPitchClass, colorPalettes } from './theory.js';
+
+    const canvas = document.getElementById('c-simon');
+    const ctx = canvas.getContext('2d');
+    const audio = new AudioEngine();
+
+    // Independent AudioContext for Synthesizer Output
+    const synthCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // UI Elements
+    const btnStart = document.getElementById('btn-start');
+    const btnRestart = document.getElementById('btn-restart');
+    const scoreText = document.getElementById('score-text');
+    const statusText = document.getElementById('status-text');
+    const sequenceText = document.getElementById('sequence-text');
+    const gameOverPanel = document.getElementById('game-over');
+    const finalScore = document.getElementById('final-score');
+    const mainTitle = document.getElementById('main-title');
+
+    // Game States: IDLE, PLAYING, LISTENING, SUCCESS, GAMEOVER
+    let gameState = 'IDLE'; 
+    let sequence = [];
+    let playerIndex = 0;
+    let score = 1;
+    
+    // Anti-spam & visual states
+    let hitCooldown = 0;
+    let visualMonolithColor = '#333';
+    let visualMonolithGlow = 0;
+    let activeRuneIndex = -1;
+
+    function resize() { 
+        canvas.width = window.innerWidth; 
+        canvas.height = window.innerHeight; 
+    }
+    window.addEventListener('resize', resize); resize();
+
+    function getNoteFrequency(noteIdx) {
+        // Base C4 is ~261.63 Hz. Calculate frequencies based on standard equal temperament.
+        return 261.63 * Math.pow(2, noteIdx / 12);
+    }
+
+    // A simple synthesizer function to let the game "speak"
+    function playSynthNote(noteIdx, durationMs) {
+        const osc = synthCtx.createOscillator();
+        const gainNode = synthCtx.createGain();
+        
+        osc.type = 'sine'; // Smooth, pure tone
+        osc.frequency.value = getNoteFrequency(noteIdx);
+        
+        osc.connect(gainNode);
+        gainNode.connect(synthCtx.destination);
+        
+        // Envelope to prevent audio clicking
+        gainNode.gain.setValueAtTime(0.01, synthCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(1, synthCtx.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, synthCtx.currentTime + (durationMs / 1000) - 0.05);
+        
+        osc.start(synthCtx.currentTime);
+        osc.stop(synthCtx.currentTime + (durationMs / 1000));
+        
+        // Visual effects linked to the synth
+        visualMonolithColor = colorPalettes[Math.floor(noteIdx / 4)];
+        visualMonolithGlow = 1.0;
+        activeRuneIndex = noteIdx;
+        
+        setTimeout(() => {
+            activeRuneIndex = -1;
+        }, durationMs - 50);
+    }
+
+    async function playSequence() {
+        gameState = 'PLAYING';
+        statusText.innerText = "THE MONOLITH IS SPEAKING...";
+        statusText.style.color = "#00ffcc";
+        playerIndex = 0;
+        
+        // Wait 1 second before starting the sequence playback
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        for (let i = 0; i < sequence.length; i++) {
+            let noteIdx = sequence[i];
+            playSynthNote(noteIdx, 600); // Play for 600ms
+            await new Promise(resolve => setTimeout(resolve, 800)); // 200ms gap between notes
+        }
+        
+        gameState = 'LISTENING';
+        statusText.innerText = "YOUR TURN: PLAY THE SEQUENCE";
+        statusText.style.color = "#ff8c00";
+        visualMonolithColor = '#333';
+    }
+
+    function addNoteToSequence() {
+        let newNote = Math.floor(Math.random() * 12);
+        sequence.push(newNote);
+        sequenceText.innerText = `SEQUENCE LENGTH: ${sequence.length}`;
+        playSequence();
+    }
+
+    function resetGame() {
+        sequence = [];
+        playerIndex = 0;
+        score = 1;
+        scoreText.innerText = score;
+        gameOverPanel.style.display = 'none';
+        addNoteToSequence();
+    }
+
+    btnStart.addEventListener('click', async () => {
+        const started = await audio.startMic();
+        if (started) {
+            // Resume synth context in case browser paused it
+            if (synthCtx.state === 'suspended') synthCtx.resume();
+            btnStart.style.display = 'none';
+            resetGame();
+            renderFrame();
+        }
+    });
+
+    btnRestart.addEventListener('click', resetGame);
+
+    function triggerSuccess() {
+        gameState = 'SUCCESS';
+        statusText.innerText = "PATTERN ACCEPTED.";
+        statusText.style.color = "#0f0";
+        visualMonolithColor = '#0f0';
+        visualMonolithGlow = 1.0;
+        score++;
+        scoreText.innerText = score;
+        
+        setTimeout(() => {
+            addNoteToSequence();
+        }, 1500);
+    }
+
+    function triggerGameOver() {
+        gameState = 'GAMEOVER';
+        statusText.innerText = "PATTERN REJECTED.";
+        statusText.style.color = "#ff0055";
+        visualMonolithColor = '#ff0055';
+        visualMonolithGlow = 1.0;
+        
+        setTimeout(() => {
+            finalScore.innerText = score;
+            gameOverPanel.style.display = 'block';
+        }, 1000);
+    }
+
+    function renderFrame() {
+        if (!audio.isRunning) return;
+        requestAnimationFrame(renderFrame);
+        
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        let cx = canvas.width / 2;
+        let cy = canvas.height / 2;
+
+        // --- AUDIO INPUT PROCESSING (Only active when LISTENING) ---
+        if (hitCooldown > 0) hitCooldown--;
+
+        if (gameState === 'LISTENING' && hitCooldown === 0) {
+            let peaks = audio.getPeaks(100); // Strict threshold for ear training
+            
+            if (peaks.length > 0) {
+                let playedNoteIdx = hzToPitchClass(peaks[0].hz);
+                
+                if (playedNoteIdx !== -1) {
+                    let expectedNoteIdx = sequence[playerIndex];
+                    
+                    // Visual feedback for the note played
+                    visualMonolithColor = colorPalettes[Math.floor(playedNoteIdx / 4)];
+                    visualMonolithGlow = 0.8;
+                    activeRuneIndex = playedNoteIdx;
+                    
+                    if (playedNoteIdx === expectedNoteIdx) {
+                        // Correct Note Played!
+                        playerIndex++;
+                        hitCooldown = 45; // Prevent note doubling
+                        
+                        setTimeout(() => { activeRuneIndex = -1; }, 400);
+
+                        if (playerIndex >= sequence.length) {
+                            triggerSuccess();
+                        }
+                    } else {
+                        // Wrong Note Played!
+                        triggerGameOver();
+                    }
+                }
+            }
+        }
+
+        // --- DRAW MONOLITH & RUNES ---
+        
+        // Decay Monolith glow smoothly
+        visualMonolithGlow = Math.max(0, visualMonolithGlow - 0.02);
+
+        // Draw 12 Orbital Runes (representing the 12 chromatic notes)
+        let radius = Math.min(canvas.width, canvas.height) * 0.35;
+        
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 12; i++) {
+            let angle = (i * Math.PI / 6) - (Math.PI / 2);
+            let rx = cx + Math.cos(angle) * radius;
+            let ry = cy + Math.sin(angle) * radius;
+            
+            if (i === activeRuneIndex) {
+                ctx.fillStyle = visualMonolithColor;
+                ctx.shadowBlur = 20; ctx.shadowColor = visualMonolithColor;
+            } else {
+                ctx.fillStyle = '#222';
+                ctx.shadowBlur = 0;
+            }
+            
+            ctx.beginPath();
+            // Draw diamond shapes for runes
+            ctx.moveTo(rx, ry - 10);
+            ctx.lineTo(rx + 10, ry);
+            ctx.lineTo(rx, ry + 10);
+            ctx.lineTo(rx - 10, ry);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw note text slightly outside the rune
+            ctx.fillStyle = (i === activeRuneIndex) ? '#fff' : '#444';
+            ctx.font = '12px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(notes[i], cx + Math.cos(angle) * (radius + 25), cy + Math.sin(angle) * (radius + 25));
+        }
+
+        // Draw Central Monolith (Crystal Shape)
+        ctx.shadowBlur = visualMonolithGlow * 50;
+        ctx.shadowColor = visualMonolithColor;
+        
+        let mWidth = 60;
+        let mHeight = 180;
+        
+        // Calculate a color mix between base dark grey and the active color based on glow
+        ctx.fillStyle = visualMonolithGlow > 0.1 ? visualMonolithColor : '#111';
+        ctx.strokeStyle = visualMonolithColor;
+        ctx.lineWidth = 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - mHeight/2 - 30); // Top point
+        ctx.lineTo(cx + mWidth/2, cy - mHeight/2); // Top right
+        ctx.lineTo(cx + mWidth/2, cy + mHeight/2); // Bottom right
+        ctx.lineTo(cx, cy + mHeight/2 + 30); // Bottom point
+        ctx.lineTo(cx - mWidth/2, cy + mHeight/2); // Bottom left
+        ctx.lineTo(cx - mWidth/2, cy - mHeight/2); // Top left
+        ctx.closePath();
+        
+        ctx.fill();
+        if (visualMonolithGlow > 0) ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Draw pulsing energy line inside monolith
+        if (visualMonolithGlow > 0.1) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - mHeight/2 - 20);
+            ctx.lineTo(cx, cy + mHeight/2 + 20);
+            ctx.stroke();
+        }
+    }
+</script>
+</body>
+</html>
