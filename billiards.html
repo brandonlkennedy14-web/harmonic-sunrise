@@ -4,308 +4,151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Winding Room</title>
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Harmonics">
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker registered!', reg))
-                    .catch(err => console.error('Service Worker failed!', err));
-            });
-        }
-    </script>
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 60px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 100px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
         .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
         .title { font-size: 20px; font-weight: bold; color: #ff00ff; letter-spacing: 2px; }
-        
         .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; margin-top: 10px; width: fit-content; font-size: 12px;}
         .data-text { color: #00ffcc; margin-top: 5px; }
         .highlight { color: #ff8c00; font-weight: bold; }
-
         .controls { display: flex; gap: 10px; pointer-events: auto; }
         button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
         button:active { transform: translate(2px, 2px); }
-
         #btn-mic { border-color: #0f0; color: #0f0; }
-        #btn-mode { border-color: #ff00ff; color: #ff00ff; }
-        
         #result-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff00ff; box-shadow: 0 0 30px rgba(255, 0, 255, 0.4); }
         #result-panel h1 { color: #ff00ff; margin: 0 0 10px 0; }
-        .stat-row { font-size: 16px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-
-        <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
-        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold; transition: color 0.2s;">[1] SUNRISE</a>
-        <span style="color: #555;">|</span>
-        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold; transition: color 0.2s;">[2] FLAPPY</a>
-        <span style="color: #555;">|</span>
-        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[3] WINDING</a>
-        <span style="color: #555;">|</span>
-        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold; transition: color 0.2s;">[4] INVADERS</a>
-        <span style="color: #555;">|</span>
-        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[5] WEAVER</a>
-        <span style="color: #555;">|</span>
-        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold; transition: color 0.2s; text-shadow: 0 0 5px #fff;">[6] SIMON</a>
+    <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
+        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold;">[1] SUNRISE</a> <span style="color: #555;">|</span>
+        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold;">[2] FLAPPY</a> <span style="color: #555;">|</span>
+        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold;">[3] WINDING</a> <span style="color: #555;">|</span>
+        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold;">[4] INVADERS</a> <span style="color: #555;">|</span>
+        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold;">[5] WEAVER</a> <span style="color: #555;">|</span>
+        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold;">[6] SIMON</a>
     </div>
 
     <canvas id="c-billiards"></canvas>
-
     <div id="ui-layer">
         <div class="hud">
             <div>
                 <div class="title">THE WINDING ROOM</div>
                 <div class="hud-box">
-                    <div id="status-mode" style="color:#ff00ff;">MODE: ZEN (Tuner)</div>
-                    <div class="data-text" id="hud-freqs">F1: -- Hz | F2: -- Hz</div>
+                    <div id="status-mode" style="color:#ff00ff;">ZEN MODE (Awaiting Double-Stop)</div>
                     <div class="data-text" id="hud-ratio">RATIO: --</div>
                     <div class="data-text highlight" id="hud-bounces">BOUNCES: 0</div>
                 </div>
             </div>
         </div>
-
         <div class="controls">
             <button id="btn-mic">START MIC</button>
-            <button id="btn-mode">MODE: ZEN</button>
             <button id="btn-shoot" style="display:none; border-color:#ff8c00; color:#ff8c00;">FIRE BALL</button>
         </div>
     </div>
 
     <div id="result-panel">
         <h1>CORNER STRIKE!</h1>
-        <div class="stat-row">WINDING NUMBER: <span id="res-winding" style="color:#0f0;">0</span></div>
-        <div class="stat-row">PRECISION: <span id="res-precision" style="color:#00ffcc;">0%</span></div>
+        <div class="stat-row">BOUNCES: <span id="res-winding" style="color:#0f0;">0</span></div>
         <button id="btn-reset" style="border-color:#fff; color:#fff; margin-top:20px;">RESET ARENA</button>
     </div>
 
 <script type="module">
     import { AudioEngine } from './audio.js';
-    import { notes, hzToPitchClass } from './theory.js';
-
     const canvas = document.getElementById('c-billiards');
     const ctx = canvas.getContext('2d');
     const audio = new AudioEngine();
-
-    // UI Elements
     const btnMic = document.getElementById('btn-mic');
-    const btnMode = document.getElementById('btn-mode');
     const btnShoot = document.getElementById('btn-shoot');
     const btnReset = document.getElementById('btn-reset');
-    
-    const hudFreqs = document.getElementById('hud-freqs');
     const hudRatio = document.getElementById('hud-ratio');
     const hudBounces = document.getElementById('hud-bounces');
-    
     const resultPanel = document.getElementById('result-panel');
-    const resWinding = document.getElementById('res-winding');
-    const resPrecision = document.getElementById('res-precision');
 
-    let mode = 'ZEN'; // 'ZEN' or 'TARGET'
-    
-    // Arena Dimensions
-    let sqSize = 0;
-    let sqX = 0;
-    let sqY = 0;
+    let sqSize, sqX, sqY, ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 6, active: false };
+    let bounces = 0, pathHistory = [], currentRatio = 1.0, baseSpeed = 5;
 
-    // Ball State
-    let ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 4, active: false };
-    let pathHistory = [];
-    let bounces = 0;
-    let baseSpeed = 8;
-    
-    // Frequencies
-    let rootHz = 0;
-    let intervalHz = 0;
-    let currentRatio = 1.0;
-
-    function resize() { 
-        canvas.width = window.innerWidth; 
-        canvas.height = window.innerHeight; 
-        // Create the Square Arena [cite: 2026-02-21]
-        sqSize = Math.min(canvas.width, canvas.height) * 0.7;
-        sqX = (canvas.width - sqSize) / 2;
-        sqY = (canvas.height - sqSize) / 2 + 20; // offset slightly for nav bar
+    function resize() {
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        sqSize = Math.min(canvas.width, canvas.height) * 0.65;
+        sqX = (canvas.width - sqSize) / 2; sqY = (canvas.height - sqSize) / 2 + 40;
         resetBall();
     }
     window.addEventListener('resize', resize); resize();
 
     function resetBall() {
-        ball.active = false;
-        // Start bottom-left corner
-        ball.x = sqX;
-        ball.y = sqY + sqSize;
-        ball.vx = 0;
-        ball.vy = 0;
-        pathHistory = [{x: ball.x, y: ball.y}];
-        bounces = 0;
-        hudBounces.innerText = `BOUNCES: 0`;
-        resultPanel.style.display = 'none';
-        
-        if (mode === 'TARGET') {
-            btnShoot.style.display = 'block';
-        } else {
-            btnShoot.style.display = 'none';
-        }
+        ball.active = false; ball.x = sqX; ball.y = sqY + sqSize;
+        pathHistory = []; bounces = 0; resultPanel.style.display = 'none';
     }
-
     btnReset.addEventListener('click', resetBall);
 
-    btnMode.addEventListener('click', () => {
-        mode = mode === 'ZEN' ? 'TARGET' : 'ZEN';
-        btnMode.innerText = `MODE: ${mode}`;
-        document.getElementById('status-mode').innerText = `MODE: ${mode} ${mode === 'ZEN' ? '(Tuner)' : '(Precision Strike)'}`;
-        resetBall();
-    });
-
     btnMic.addEventListener('click', async () => {
-        const started = await audio.startMic();
-        if (started) {
-            btnMic.style.display = 'none';
-            renderFrame();
-        }
+        if (await audio.startMic()) { btnMic.style.display = 'none'; renderFrame(); }
     });
 
-    btnShoot.addEventListener('click', () => {
-        if (!ball.active && currentRatio > 0) {
-            fireBall();
-        }
-    });
-
-    function fireBall() {
-        // Normalizing vector based on frequency ratio
-        ball.vx = baseSpeed;
-        ball.vy = -baseSpeed * currentRatio; // Negative because canvas Y is inverted
-        ball.active = true;
-        btnShoot.style.display = 'none';
-    }
+    btnShoot.addEventListener('click', () => { if (!ball.active) { ball.active = true; btnShoot.style.display = 'none'; } });
 
     function renderFrame() {
-        if (!audio.isRunning) return;
         requestAnimationFrame(renderFrame);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Creates a trailing effect
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Analyze Audio
-        let peaks = audio.getPeaks(80);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        if (peaks.length >= 2 && !ball.active) {
-            // Find the two loudest distinct notes
-            let p1 = peaks[0];
-            let p2 = peaks.find(p => Math.abs(p.hz - p1.hz) > 20); // ensure distinct frequency
-            
-            if (p2) {
-                // Ensure root is the lower frequency
-                rootHz = Math.min(p1.hz, p2.hz);
-                intervalHz = Math.max(p1.hz, p2.hz);
-                currentRatio = intervalHz / rootHz;
-                
-                hudFreqs.innerText = `F1: ${rootHz.toFixed(1)} Hz | F2: ${intervalHz.toFixed(1)} Hz`;
-                hudRatio.innerText = `RATIO: ${currentRatio.toFixed(4)}`;
-
-                // In Zen mode, fire automatically when a steady double-stop is played
-                if (mode === 'ZEN' && pathHistory.length < 2) {
-                    fireBall();
-                }
+        let peaks = audio.getPeaks(85);
+        if (peaks.length >= 2) {
+            let f1 = Math.min(peaks[0].hz, peaks[1].hz);
+            let f2 = Math.max(peaks[0].hz, peaks[1].hz);
+            currentRatio = f2 / f1;
+            hudRatio.innerText = `RATIO: ${currentRatio.toFixed(4)}`;
+            if (!ball.active) btnShoot.style.display = 'block';
+            else { // Sound Steering: Update velocity mid-flight based on current live ratio
+                ball.vx = baseSpeed;
+                ball.vy = -baseSpeed * currentRatio;
             }
         }
 
-        // Draw Square Arena [cite: 2026-02-21]
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(sqX, sqY, sqSize, sqSize);
+        // Draw Square
+        ctx.strokeStyle = '#444'; ctx.lineWidth = 3; ctx.strokeRect(sqX, sqY, sqSize, sqSize);
 
-        // Highlight Corners
-        ctx.fillStyle = '#ff00ff';
-        let cr = 8;
-        ctx.fillRect(sqX - cr, sqY - cr, cr*2, cr*2); // Top Left
-        ctx.fillRect(sqX + sqSize - cr, sqY - cr, cr*2, cr*2); // Top Right
-        ctx.fillRect(sqX - cr, sqY + sqSize - cr, cr*2, cr*2); // Bottom Left
-        ctx.fillRect(sqX + sqSize - cr, sqY + sqSize - cr, cr*2, cr*2); // Bottom Right
-
-        // Physics Engine
-        if (ball.active) {
-            ball.x += ball.vx;
-            ball.y += ball.vy;
-
-            let bounced = false;
-
-            // Wall Collisions
-            if (ball.x <= sqX) { ball.x = sqX; ball.vx *= -1; bounced = true; }
-            if (ball.x >= sqX + sqSize) { ball.x = sqX + sqSize; ball.vx *= -1; bounced = true; }
-            if (ball.y <= sqY) { ball.y = sqY; ball.vy *= -1; bounced = true; }
-            if (ball.y >= sqY + sqSize) { ball.y = sqY + sqSize; ball.vy *= -1; bounced = true; }
-
-            if (bounced) {
-                bounces++;
-                hudBounces.innerText = `BOUNCES: ${bounces}`;
-                pathHistory.push({x: ball.x, y: ball.y});
-
-                // Detect Corner Hits [cite: 2026-02-21]
-                let cornerDistances = [
-                    Math.hypot(ball.x - sqX, ball.y - sqY), // TL
-                    Math.hypot(ball.x - (sqX + sqSize), ball.y - sqY), // TR
-                    Math.hypot(ball.x - sqX, ball.y - (sqY + sqSize)), // BL
-                    Math.hypot(ball.x - (sqX + sqSize), ball.y - (sqY + sqSize)) // BR
-                ];
-
-                let closestCorner = Math.min(...cornerDistances);
-                let hitThreshold = 15; // Pixel radius for a "pocket"
-
-                if (closestCorner < hitThreshold && bounces > 1) { // Ignore spawn bounce
-                    ball.active = false;
-                    
-                    // Calculate Precision and Winding Number [cite: 2026-02-21]
-                    let precision = Math.max(0, 100 - ((closestCorner / hitThreshold) * 100));
-                    
-                    resWinding.innerText = bounces;
-                    resPrecision.innerText = `${precision.toFixed(1)}%`;
-                    resultPanel.style.display = 'block';
-                }
+        // Pre-launch Standing Wave (Lissajous)
+        if (!ball.active && peaks.length >= 2) {
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 0, 255, 0.4)';
+            for (let t = 0; t < 100; t += 0.5) {
+                let lx = sqX + (0.5 + 0.5 * Math.sin(t)) * sqSize;
+                let ly = sqY + (0.5 + 0.5 * Math.sin(t * currentRatio)) * sqSize;
+                t === 0 ? ctx.moveTo(lx, ly) : ctx.lineTo(lx, ly);
             }
-
-            // Failsafe: if it bounces too much without hitting a corner, kill the run
-            if (bounces > 150) {
-                ball.active = false;
-                resWinding.innerText = "OVERLOAD";
-                resWinding.style.color = "#ff0055";
-                resPrecision.innerText = "0% (Poor Intonation)";
-                resultPanel.style.display = 'block';
-            }
-        }
-
-        // Draw Path History
-        if (pathHistory.length > 1) {
-            ctx.beginPath();
-            ctx.moveTo(pathHistory[0].x, pathHistory[0].y);
-            for (let i = 1; i < pathHistory.length; i++) {
-                ctx.lineTo(pathHistory[i].x, pathHistory[i].y);
-            }
-            ctx.lineTo(ball.x, ball.y);
-            ctx.strokeStyle = 'rgba(0, 255, 204, 0.5)';
-            ctx.lineWidth = 1;
             ctx.stroke();
         }
 
-        // Draw Ball
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff';
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#00ffcc';
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        if (ball.active) {
+            ball.x += ball.vx; ball.y += ball.vy;
+            if (ball.x <= sqX || ball.x >= sqX + sqSize) { ball.vx *= -1; bounces++; }
+            if (ball.y <= sqY || ball.y >= sqY + sqSize) { ball.vy *= -1; bounces++; }
+            ball.x = Math.max(sqX, Math.min(sqX + sqSize, ball.x));
+            ball.y = Math.max(sqY, Math.min(sqY + sqSize, ball.y));
+            pathHistory.push({x: ball.x, y: ball.y});
+            hudBounces.innerText = `BOUNCES: ${bounces}`;
+
+            // Check Corners
+            let corners = [[sqX, sqY], [sqX+sqSize, sqY], [sqX, sqY+sqSize], [sqX+sqSize, sqY+sqSize]];
+            corners.forEach(c => {
+                if (Math.hypot(ball.x - c[0], ball.y - c[1]) < 15 && bounces > 2) {
+                    ball.active = false; resultPanel.style.display = 'block';
+                    document.getElementById('res-winding').innerText = bounces;
+                }
+            });
+            if (bounces > 200) resetBall();
+        }
+
+        // Draw Path & Ball
+        if (pathHistory.length > 1) {
+            ctx.beginPath(); ctx.strokeStyle = '#00ffcc'; ctx.moveTo(pathHistory[0].x, pathHistory[0].y);
+            pathHistory.forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
+        }
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); ctx.fill();
     }
 </script>
 </body>
