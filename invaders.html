@@ -17,7 +17,7 @@
         .score-display { font-size: 24px; color: #0f0; font-weight: bold; text-align: right; }
         
         .hud-box { background: rgba(0,0,0,0.8); padding: 10px; border: 2px solid #333; margin-top: 10px; width: fit-content; }
-        .power-text { color: #ff8c00; font-size: 12px; font-weight: bold; margin-top: 5px; }
+        .power-text { color: #ff8c00; font-size: 12px; font-weight: bold; margin-top: 5px; transition: all 0.3s; }
 
         .controls { display: flex; gap: 10px; pointer-events: auto; justify-content: center; }
         button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 15px 25px; font-family: 'Space Mono'; cursor: pointer; text-transform: uppercase; font-size: 14px; font-weight: bold;}
@@ -67,14 +67,21 @@
 
 <script type="module">
     import { AudioEngine } from './audio.js';
-    import { notes, hzToPitchClass, colorPalettes } from './theory.js';
+    import { notes, hzToPitchClass } from './theory.js';
 
     const canvas = document.getElementById('c-invaders');
     const ctx = canvas.getContext('2d');
     const audio = new AudioEngine();
 
+    // 12 Distinct colors for the 12 note lanes
+    const laneColors = [
+        '#FF0055', '#FF3300', '#FF6600', '#FF9900', // C to D#
+        '#FFCC00', '#FFFF00', '#CCFF00', '#00FF00', // E to F#
+        '#00FFCC', '#00CCFF', '#0055FF', '#B366FF'  // G to B
+    ];
+
     // Game Variables
-    let gameState = 'IDLE'; // IDLE, PLAYING, GAMEOVER
+    let gameState = 'IDLE'; 
     let score = 0;
     let frames = 0;
     let laneWidth = 0;
@@ -85,6 +92,7 @@
     let particles = [];
     let cityBlocks = [];
     let cityHealth = 100;
+    let cannon = { x: 0, y: 0 };
     
     // Power Up
     let powerMeter = 0;
@@ -103,7 +111,9 @@
         canvas.width = window.innerWidth; 
         canvas.height = window.innerHeight; 
         laneWidth = canvas.width / 12;
-        initCity();
+        cannon.x = canvas.width / 2;
+        cannon.y = canvas.height - 80;
+        if (gameState === 'IDLE') initCity();
     }
     window.addEventListener('resize', resize); resize();
 
@@ -113,17 +123,15 @@
         cityHealth = 100;
         let cols = Math.floor(canvas.width / 8);
         let rows = 6;
-        let startY = canvas.height - (rows * 8);
 
         for (let c = 0; c < cols; c++) {
-            // Generate simple skyline shapes
             let heightLimit = Math.floor(Math.random() * rows) + 2; 
             for (let r = 0; r < heightLimit; r++) {
                 cityBlocks.push({
                     x: c * 8,
                     y: canvas.height - (r * 8) - 8,
                     w: 8, h: 8,
-                    color: (Math.random() > 0.8) ? '#00ffcc' : '#0055aa' // Randomly light up windows
+                    color: (Math.random() > 0.8) ? '#00ffcc' : '#0055aa'
                 });
             }
         }
@@ -209,14 +217,14 @@
     }
 
     function spawnEnemy() {
-        if (boss) return; // Don't spawn basic enemies during boss fight
+        if (boss) return; 
         let note = Math.floor(Math.random() * 12);
         enemies.push({
             x: (note * laneWidth) + (laneWidth / 2),
             y: -30,
             note: note,
-            color: colorPalettes[Math.floor(note / 4)],
-            speed: 1 + (score / 200) // Gradually speed up
+            color: laneColors[note],
+            speed: 1 + (score / 200) 
         });
     }
 
@@ -233,15 +241,13 @@
 
     function triggerPowerChord() {
         powerMeter = 0;
-        flashTimer = 20; // Flash screen white
+        flashTimer = 20; 
         updateHUD();
 
-        // Nuke all normal enemies
         enemies.forEach(e => spawnParticleExplosion(e.x, e.y, e.color, 10));
         score += enemies.length * 10;
         enemies = [];
 
-        // Damage Boss heavily
         if (boss) {
             spawnParticleExplosion(canvas.width/2, boss.y, '#fff', 30);
             boss.hp -= 3;
@@ -254,16 +260,13 @@
         spawnParticleExplosion(canvas.width/2, boss.y, '#ff00ff', 50);
         boss = null;
         score += 50;
-        bossSpawnScore = score + 100; // Schedule next boss
+        bossSpawnScore = score + 100; 
         updateHUD();
     }
 
-    // --- RENDER LOOP ---
     function renderFrame() {
         requestAnimationFrame(renderFrame);
-        if (gameState !== 'PLAYING') return;
 
-        // Screen Flash for Power Up
         if (flashTimer > 0) {
             ctx.fillStyle = `rgba(255, 255, 255, ${flashTimer / 20})`;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -273,14 +276,24 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        frames++;
-
-        // Draw Lanes (Faint Grid)
+        // Draw Lanes
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.lineWidth = 1;
         for (let i = 1; i < 12; i++) {
             ctx.beginPath(); ctx.moveTo(i * laneWidth, 0); ctx.lineTo(i * laneWidth, canvas.height); ctx.stroke();
         }
+
+        // DRAW CITY (Always visible)
+        cityBlocks.forEach(b => {
+            ctx.fillStyle = b.color;
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+        });
+
+        // DRAW CANNON (Always visible)
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(cannon.x, cannon.y, 20, Math.PI, 0); ctx.fill();
+
+        if (gameState !== 'PLAYING') return;
+        frames++;
 
         // --- AUDIO INPUT PROCESSING ---
         if (audio.isRunning) {
@@ -288,33 +301,32 @@
             
             if (peaks.length === 0) {
                 silentFrames++;
-                if (silentFrames > 10) lastPlayedNote = -1; // Reset trigger
+                if (silentFrames > 10) lastPlayedNote = -1;
             } else {
                 silentFrames = 0;
                 
-                // Double Stop Power-Chord Detection
+                // Double Stop Power-Chord
                 if (peaks.length >= 2 && powerMeter >= POWER_MAX) {
                     let n1 = hzToPitchClass(peaks[0].hz);
                     let n2 = hzToPitchClass(peaks[1].hz);
                     if (n1 !== -1 && n2 !== -1) {
                         let interval = Math.abs(n1 - n2);
-                        if (interval === 7 || interval === 5) { // Perfect 5th or 4th
+                        if (interval === 7 || interval === 5) {
                             triggerPowerChord();
-                            lastPlayedNote = -2; // Prevent firing single laser
+                            lastPlayedNote = -2; 
                         }
                     }
                 } 
                 
-                // Standard Single Shot
-                if (peaks.length > 0) {
+                // Single Shot
+                if (peaks.length > 0 && lastPlayedNote !== -2) {
                     let currentNote = hzToPitchClass(peaks[0].hz);
                     if (currentNote !== -1 && currentNote !== lastPlayedNote) {
-                        // Fire Laser in Note Lane
                         lasers.push({
                             x: (currentNote * laneWidth) + (laneWidth / 2),
-                            y: canvas.height - 80,
+                            y: cannon.y,
                             note: currentNote,
-                            color: colorPalettes[Math.floor(currentNote / 4)]
+                            color: laneColors[currentNote]
                         });
                         lastPlayedNote = currentNote;
                     }
@@ -322,10 +334,10 @@
             }
         }
 
-        // --- UPDATE & DRAW LASERS ---
+        // --- LASERS ---
         for (let i = lasers.length - 1; i >= 0; i--) {
             let l = lasers[i];
-            l.y -= 15; // Fast laser speed
+            l.y -= 15; 
 
             ctx.fillStyle = l.color;
             ctx.shadowBlur = 10; ctx.shadowColor = l.color;
@@ -334,7 +346,6 @@
 
             let hit = false;
 
-            // Collision with Boss
             if (boss && Math.abs(l.note - boss.note) === 0 && l.y < boss.y + 40 && l.y > boss.y - 40) {
                 hit = true;
                 if (boss.shieldOpen) {
@@ -342,11 +353,10 @@
                     spawnParticleExplosion(l.x, l.y, l.color, 15);
                     if (boss.hp <= 0) killBoss();
                 } else {
-                    spawnParticleExplosion(l.x, l.y, '#555', 5); // Absorbed
+                    spawnParticleExplosion(l.x, l.y, '#555', 5);
                 }
             }
 
-            // Collision with normal enemies
             if (!hit) {
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     let e = enemies[j];
@@ -365,7 +375,7 @@
             if (hit || l.y < 0) lasers.splice(i, 1);
         }
 
-        // --- UPDATE & DRAW ENEMIES ---
+        // --- ENEMIES & BOSS ---
         if (!boss && score >= bossSpawnScore) spawnBoss();
         if (!boss && frames % Math.max(40, 120 - Math.floor(score/10)) === 0) spawnEnemy();
 
@@ -373,15 +383,13 @@
             let e = enemies[i];
             e.y += e.speed;
             
-            // Draw Retro Alien (Pixelated)
             ctx.fillStyle = e.color;
-            let s = 4; // Pixel size
+            let s = 4; 
             ctx.fillRect(e.x - s*2, e.y - s*2, s*5, s);
             ctx.fillRect(e.x - s*3, e.y - s, s*7, s);
             ctx.fillRect(e.x - s*3, e.y, s*2, s); ctx.fillRect(e.x + s, e.y, s*2, s);
             ctx.fillRect(e.x - s*2, e.y + s, s*5, s);
 
-            // Draw Target Note
             ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
             ctx.fillText(notes[e.note], e.x, e.y - 15);
 
@@ -392,57 +400,49 @@
             }
         }
 
-        // --- UPDATE & DRAW BOSS ---
         if (boss) {
             let bx = (boss.note * laneWidth) + (laneWidth / 2);
             
             boss.shieldTimer++;
-            if (boss.shieldTimer > 120) { // Toggle shield every 2 seconds
+            if (boss.shieldTimer > 120) { 
                 boss.shieldOpen = !boss.shieldOpen;
                 boss.shieldTimer = 0;
-                if(boss.shieldOpen) boss.note = Math.floor(Math.random() * 12); // Change target when opening
+                if(boss.shieldOpen) boss.note = Math.floor(Math.random() * 12); 
             }
 
-            // Draw Boss Body
             ctx.fillStyle = '#ff00ff';
             ctx.fillRect(bx - 30, boss.y - 20, 60, 40);
             ctx.fillStyle = '#000'; ctx.font = 'bold 20px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(notes[boss.note], bx, boss.y);
 
-            // Draw Boss Health
             ctx.fillStyle = '#ff0055'; ctx.fillRect(bx - 30, boss.y - 30, 60, 5);
             ctx.fillStyle = '#0f0'; ctx.fillRect(bx - 30, boss.y - 30, 60 * (boss.hp/boss.maxHp), 5);
 
-            // Draw Shield
             if (!boss.shieldOpen) {
                 ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.arc(bx, boss.y, 50, 0, Math.PI*2); ctx.stroke();
             } else {
-                // Warning brackets
                 ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.arc(bx, boss.y, 50, -0.5, 0.5); ctx.stroke();
                 ctx.beginPath(); ctx.arc(bx, boss.y, 50, Math.PI-0.5, Math.PI+0.5); ctx.stroke();
             }
         }
 
-        // --- DRAW CITY ---
-        cityBlocks.forEach(b => {
-            ctx.fillStyle = b.color;
-            ctx.fillRect(b.x, b.y, b.w, b.h);
-        });
-
-        // --- UPDATE & DRAW PARTICLES ---
+        // --- PARTICLES ---
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i];
             p.x += p.vx; p.y += p.vy;
             p.life -= 0.05;
             ctx.fillStyle = p.color;
             ctx.globalAlpha = Math.max(0, p.life);
-            ctx.fillRect(p.x, p.y, p.size, p.size); // Blocky particles
+            ctx.fillRect(p.x, p.y, p.size, p.size); 
             ctx.globalAlpha = 1.0;
             if (p.life <= 0) particles.splice(i, 1);
         }
     }
+
+    // THIS IS THE LINE I FORGOT!
+    renderFrame();
 </script>
 </body>
 </html>
