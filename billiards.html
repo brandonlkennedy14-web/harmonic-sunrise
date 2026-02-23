@@ -4,152 +4,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Winding Room</title>
-    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 100px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
-        .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
-        .title { font-size: 20px; font-weight: bold; color: #ff00ff; letter-spacing: 2px; }
-        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; margin-top: 10px; width: fit-content; font-size: 12px;}
-        .data-text { color: #00ffcc; margin-top: 5px; }
-        .highlight { color: #ff8c00; font-weight: bold; }
-        .controls { display: flex; gap: 10px; pointer-events: auto; }
-        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
-        button:active { transform: translate(2px, 2px); }
-        #btn-mic { border-color: #0f0; color: #0f0; }
-        #result-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff00ff; box-shadow: 0 0 30px rgba(255, 0, 255, 0.4); }
-        #result-panel h1 { color: #ff00ff; margin: 0 0 10px 0; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
+        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; pointer-events: auto; }
+        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px; cursor: pointer; pointer-events: auto; }
     </style>
 </head>
 <body>
-    <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
-        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold;">[1] SUNRISE</a> <span style="color: #555;">|</span>
-        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold;">[2] FLAPPY</a> <span style="color: #555;">|</span>
-        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold;">[3] WINDING</a> <span style="color: #555;">|</span>
-        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold;">[4] INVADERS</a> <span style="color: #555;">|</span>
-        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold;">[5] WEAVER</a> <span style="color: #555;">|</span>
-        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold;">[6] SIMON</a>
-    </div>
-
     <canvas id="c-billiards"></canvas>
     <div id="ui-layer">
-        <div class="hud">
-            <div>
-                <div class="title">THE WINDING ROOM</div>
-                <div class="hud-box">
-                    <div id="status-mode" style="color:#ff00ff;">ZEN MODE (Awaiting Double-Stop)</div>
-                    <div class="data-text" id="hud-ratio">RATIO: --</div>
-                    <div class="data-text highlight" id="hud-bounces">BOUNCES: 0</div>
-                </div>
-            </div>
+        <div class="hud-box">
+            <div style="color:#ff00ff;">WINDING ROOM</div>
+            <div id="hud-ratio" style="font-size:10px; color:#00ffcc;">RATIO: --</div>
         </div>
-        <div class="controls">
+        <div style="display:flex; gap:10px;">
             <button id="btn-mic">START MIC</button>
-            <button id="btn-shoot" style="display:none; border-color:#ff8c00; color:#ff8c00;">FIRE BALL</button>
+            <button id="btn-shoot" style="display:none; border-color:#ff8c00;">FIRE</button>
         </div>
-    </div>
-
-    <div id="result-panel">
-        <h1>CORNER STRIKE!</h1>
-        <div class="stat-row">BOUNCES: <span id="res-winding" style="color:#0f0;">0</span></div>
-        <button id="btn-reset" style="border-color:#fff; color:#fff; margin-top:20px;">RESET ARENA</button>
     </div>
 
 <script type="module">
     import { AudioEngine } from './audio.js';
+    const audio = new AudioEngine();
     const canvas = document.getElementById('c-billiards');
     const ctx = canvas.getContext('2d');
-    const audio = new AudioEngine();
-    const btnMic = document.getElementById('btn-mic');
-    const btnShoot = document.getElementById('btn-shoot');
-    const btnReset = document.getElementById('btn-reset');
-    const hudRatio = document.getElementById('hud-ratio');
-    const hudBounces = document.getElementById('hud-bounces');
-    const resultPanel = document.getElementById('result-panel');
 
-    let sqSize, sqX, sqY, ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 6, active: false };
-    let bounces = 0, pathHistory = [], currentRatio = 1.0, baseSpeed = 5;
+    let sqSize, sqX, sqY, ball = { x: 0, y: 0, vx: 0, vy: 0, active: false }, ratio = 1.0;
 
     function resize() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        sqSize = Math.min(canvas.width, canvas.height) * 0.65;
-        sqX = (canvas.width - sqSize) / 2; sqY = (canvas.height - sqSize) / 2 + 40;
+        sqSize = Math.min(canvas.width, canvas.height) * 0.6;
+        sqX = (canvas.width - sqSize)/2; sqY = (canvas.height - sqSize)/2 + 40;
         resetBall();
     }
     window.addEventListener('resize', resize); resize();
 
-    function resetBall() {
-        ball.active = false; ball.x = sqX; ball.y = sqY + sqSize;
-        pathHistory = []; bounces = 0; resultPanel.style.display = 'none';
-    }
-    btnReset.addEventListener('click', resetBall);
+    function resetBall() { ball.active = false; ball.x = sqX; ball.y = sqY + sqSize; }
 
-    btnMic.addEventListener('click', async () => {
-        if (await audio.startMic()) { btnMic.style.display = 'none'; renderFrame(); }
+    document.getElementById('btn-mic').addEventListener('click', async (e) => {
+        if (await audio.startMic()) e.target.style.display = 'none';
     });
 
-    btnShoot.addEventListener('click', () => { if (!ball.active) { ball.active = true; btnShoot.style.display = 'none'; } });
+    document.getElementById('btn-shoot').addEventListener('click', () => {
+        ball.active = true;
+        // Fix: Use trigonometry for launch angle based on ratio
+        let angle = Math.atan(ratio);
+        ball.vx = Math.cos(angle) * 6;
+        ball.vy = -Math.sin(angle) * 6;
+        document.getElementById('btn-shoot').style.display = 'none';
+    });
 
-    function renderFrame() {
-        requestAnimationFrame(renderFrame);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function render() {
+        requestAnimationFrame(render);
+        ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         let peaks = audio.getPeaks(85);
         if (peaks.length >= 2) {
-            let f1 = Math.min(peaks[0].hz, peaks[1].hz);
-            let f2 = Math.max(peaks[0].hz, peaks[1].hz);
-            currentRatio = f2 / f1;
-            hudRatio.innerText = `RATIO: ${currentRatio.toFixed(4)}`;
-            if (!ball.active) btnShoot.style.display = 'block';
-            else { // Sound Steering: Update velocity mid-flight based on current live ratio
-                ball.vx = baseSpeed;
-                ball.vy = -baseSpeed * currentRatio;
-            }
+            ratio = Math.max(peaks[0].hz, peaks[1].hz) / Math.min(peaks[0].hz, peaks[1].hz);
+            document.getElementById('hud-ratio').innerText = `RATIO: ${ratio.toFixed(4)}`;
+            if (!ball.active) document.getElementById('btn-shoot').style.display = 'block';
         }
 
-        // Draw Square
-        ctx.strokeStyle = '#444'; ctx.lineWidth = 3; ctx.strokeRect(sqX, sqY, sqSize, sqSize);
-
-        // Pre-launch Standing Wave (Lissajous)
-        if (!ball.active && peaks.length >= 2) {
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 0, 255, 0.4)';
-            for (let t = 0; t < 100; t += 0.5) {
-                let lx = sqX + (0.5 + 0.5 * Math.sin(t)) * sqSize;
-                let ly = sqY + (0.5 + 0.5 * Math.sin(t * currentRatio)) * sqSize;
-                t === 0 ? ctx.moveTo(lx, ly) : ctx.lineTo(lx, ly);
-            }
-            ctx.stroke();
-        }
+        ctx.strokeStyle = '#444'; ctx.strokeRect(sqX, sqY, sqSize, sqSize);
 
         if (ball.active) {
             ball.x += ball.vx; ball.y += ball.vy;
-            if (ball.x <= sqX || ball.x >= sqX + sqSize) { ball.vx *= -1; bounces++; }
-            if (ball.y <= sqY || ball.y >= sqY + sqSize) { ball.vy *= -1; bounces++; }
-            ball.x = Math.max(sqX, Math.min(sqX + sqSize, ball.x));
-            ball.y = Math.max(sqY, Math.min(sqY + sqSize, ball.y));
-            pathHistory.push({x: ball.x, y: ball.y});
-            hudBounces.innerText = `BOUNCES: ${bounces}`;
-
-            // Check Corners
-            let corners = [[sqX, sqY], [sqX+sqSize, sqY], [sqX, sqY+sqSize], [sqX+sqSize, sqY+sqSize]];
-            corners.forEach(c => {
-                if (Math.hypot(ball.x - c[0], ball.y - c[1]) < 15 && bounces > 2) {
-                    ball.active = false; resultPanel.style.display = 'block';
-                    document.getElementById('res-winding').innerText = bounces;
-                }
-            });
-            if (bounces > 200) resetBall();
+            if (ball.x <= sqX || ball.x >= sqX + sqSize) ball.vx *= -1;
+            if (ball.y <= sqY || ball.y >= sqY + sqSize) ball.vy *= -1;
         }
 
-        // Draw Path & Ball
-        if (pathHistory.length > 1) {
-            ctx.beginPath(); ctx.strokeStyle = '#00ffcc'; ctx.moveTo(pathHistory[0].x, pathHistory[0].y);
-            pathHistory.forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
-        }
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, 6, 0, Math.PI*2); ctx.fill();
     }
+    render();
 </script>
 </body>
 </html>
