@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Harmonic Sunrise</title>
-    
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,24 +13,17 @@
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
-        
         .hud { text-shadow: 2px 2px 0 #000; font-size: 12px; pointer-events: auto; display: flex; justify-content: space-between; width: 100%; }
         .title { font-size: 20px; font-weight: bold; color: #ff8c00; letter-spacing: 2px; }
         .subtitle { color: #aaa; font-size: 10px; margin-top: 5px; }
-
         .score-display { font-size: 24px; color: #0f0; font-weight: bold; text-align: right; }
-        
         .controls { display: flex; justify-content: flex-start; width: 100%; pointer-events: auto; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         button, .btn-link { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; text-decoration: none; display: inline-block; box-sizing: border-box; }
         button:active, .btn-link:active { transform: translate(2px, 2px); }
-
         #btn-mic { border-color: #0f0; color: #0f0; }
-
         .hud-ratios { margin-top: 15px; font-size: 12px; }
         .ratio-box { padding: 8px; border-left: 3px solid #fff; margin-bottom: 8px; background: rgba(0,0,0,0.7); }
-
         #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff0055; box-shadow: 0 0 30px rgba(255,0,85,0.4); }
         #game-over h1 { color: #ff0055; margin: 0 0 10px 0; font-size: 24px;}
     </style>
@@ -54,11 +46,10 @@
             <div>
                 <div class="title">HARMONIC SUNRISE</div>
                 <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO...</div>
-
                 <div class="hud-ratios">
                     <div class="ratio-box" id="hud-last" style="border-color: #fff;">LAST NOTE: --</div>
-                    <div class="ratio-box" id="hud-rise" style="border-color: #0f0; color: #0f0;">BOOST ALTITUDE (P5): --</div>
-                    <div class="ratio-box" id="hud-dawn" style="border-color: #ff0055; color: #ff0055;">DROP ALTITUDE (P4/TT): --</div>
+                    <div class="ratio-box" id="hud-rise" style="border-color: #0f0; color: #0f0;">BOOST THRUST (P5): --</div>
+                    <div class="ratio-box" id="hud-dawn" style="border-color: #ff0055; color: #ff0055;">DIVE THRUST (P4/TT): --</div>
                 </div>
             </div>
             <div>
@@ -67,7 +58,6 @@
                 <div class="score-display" id="score-text">0</div>
             </div>
         </div>
-
         <div class="controls">
             <button id="btn-mic">START MIC</button>
         </div>
@@ -96,48 +86,39 @@
     try { highScore = localStorage.getItem('sunriseHighScore') || 0; } catch(e) {}
     highScoreText.innerText = highScore;
 
-    // Game State
-    let state = 'IDLE'; // IDLE, ORBITING, DEAD
+    let state = 'IDLE'; 
     let days = 0;
-    
-    // Interval Tracking
     let lastPlayedNote = -1;
-    let targetRise = -1;
-    let targetDawn1 = -1; // Perfect 4th
-    let targetDawn2 = -1; // Tritone
+    let targetRise = -1; let targetDawn1 = -1; let targetDawn2 = -1; 
     
-    // Physics Variables
+    // Continuous Physics Variables
     let cx, cy;
     let earthRadius = 25;
     let sunRadius = 12;
     
-    let orbitRadius = 120; // Starting distance
+    let orbitRadius = 120;
+    let radialVelocity = 0; // The momentum pulling the sun in or out
+    let gravity = 0.05;     // Constant pull toward earth
+    
     let orbitAngle = 0;
     let orbitSpeed = 0.02;
-    let gravity = 0.2; // Pixels per frame pulled toward Earth
     
-    let minRadius = earthRadius + sunRadius + 5; // Crash limit
-    let maxRadius = 0; // Escape limit (calculated on resize)
+    let minRadius = earthRadius + sunRadius + 5; 
+    let maxRadius = 0; 
 
     function resize() { 
-        canvas.width = window.innerWidth; 
-        canvas.height = window.innerHeight; 
-        cx = canvas.width / 2;
-        cy = canvas.height / 2;
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
+        cx = canvas.width / 2; cy = canvas.height / 2;
         maxRadius = Math.min(canvas.width, canvas.height) / 2 - 20;
     }
     window.addEventListener('resize', resize); resize();
 
     function resetGame() {
-        orbitRadius = (maxRadius + minRadius) / 2; // Start perfectly in the middle
-        orbitAngle = 0;
-        days = 0;
-        lastPlayedNote = -1;
-        targetRise = -1;
-        targetDawn1 = -1;
-        targetDawn2 = -1;
-        state = 'IDLE';
-        gameOverPanel.style.display = 'none';
+        orbitRadius = (maxRadius + minRadius) / 2; 
+        radialVelocity = 0;
+        orbitAngle = 0; gravity = 0.05; orbitSpeed = 0.02;
+        days = 0; lastPlayedNote = -1; targetRise = -1; targetDawn1 = -1; targetDawn2 = -1;
+        state = 'IDLE'; gameOverPanel.style.display = 'none';
         document.getElementById('score-text').innerText = days;
         document.getElementById('status-text').innerText = "STATUS: PLAY A BASELINE NOTE TO START";
         updateHUD();
@@ -146,63 +127,48 @@
     btnRestart.addEventListener('click', resetGame);
 
     btnMic.addEventListener('click', async () => {
-        if (await audio.startMic()) {
-            btnMic.style.display = 'none';
-            resetGame();
-        }
+        if (await audio.startMic()) { btnMic.style.display = 'none'; resetGame(); }
     });
 
     function triggerGameOver(reason) {
         state = 'DEAD';
         document.getElementById('death-reason').innerText = reason;
         document.getElementById('final-score').innerText = days;
-        
-        if (days > highScore) {
-            highScore = days;
-            try { localStorage.setItem('sunriseHighScore', highScore); } catch(e) {}
-            highScoreText.innerText = highScore;
-        }
-        
+        if (days > highScore) { highScore = days; try { localStorage.setItem('sunriseHighScore', highScore); } catch(e) {} highScoreText.innerText = highScore; }
         gameOverPanel.style.display = 'block';
     }
 
     function updateHUD() {
         document.getElementById('score-text').innerText = days;
-
         if (lastPlayedNote === -1) {
             document.getElementById('hud-last').innerText = "LAST NOTE: --";
-            document.getElementById('hud-rise').innerText = "BOOST ALTITUDE (P5): --";
-            document.getElementById('hud-dawn').innerText = "DROP ALTITUDE (P4/TT): --";
+            document.getElementById('hud-rise').innerText = "BOOST THRUST (P5): --";
+            document.getElementById('hud-dawn').innerText = "DIVE THRUST (P4/TT): --";
         } else {
             document.getElementById('hud-last').innerText = `LAST NOTE: ${notes[lastPlayedNote]}`;
-            document.getElementById('hud-rise').innerText = `BOOST ALTITUDE (P5): ${notes[targetRise]}`;
-            document.getElementById('hud-dawn').innerText = `DROP ALTITUDE (P4/TT): ${notes[targetDawn1]} or ${notes[targetDawn2]}`;
+            document.getElementById('hud-rise').innerText = `BOOST THRUST (P5): ${notes[targetRise]}`;
+            document.getElementById('hud-dawn').innerText = `DIVE THRUST (P4/TT): ${notes[targetDawn1]} or ${notes[targetDawn2]}`;
         }
     }
 
     function renderFrame() {
         requestAnimationFrame(renderFrame); 
+        ctx.fillStyle = '#05050a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Deep Space Background
-        ctx.fillStyle = '#05050a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // --- AUDIO & PHYSICS LOGIC ---
+        // --- CONTINUOUS PHYSICS LOGIC ---
         if (state === 'ORBITING') {
-            orbitRadius -= gravity; // Constant decay toward earth
+            radialVelocity -= gravity; // Gravity pulls velocity down
+            radialVelocity *= 0.95;    // Friction/Drag so inertia doesn't go to infinity
+            orbitRadius += radialVelocity; // Apply velocity to actual radius
             
             let previousAngle = orbitAngle;
             orbitAngle += orbitSpeed;
             
-            // Check if we completed a full lap (crossed the 2*PI threshold)
             if (previousAngle % (Math.PI * 2) > orbitAngle % (Math.PI * 2)) {
-                days++;
-                document.getElementById('score-text').innerText = days;
-                orbitSpeed += 0.001; // Gets slightly faster each day
-                gravity += 0.02; // Gravity pulls slightly harder each day
+                days++; document.getElementById('score-text').innerText = days;
+                orbitSpeed += 0.001; gravity += 0.005; // Gets harder over time
             }
 
-            // Death Conditions
             if (orbitRadius <= minRadius) triggerGameOver("CRASHED INTO EARTH!");
             if (orbitRadius >= maxRadius) triggerGameOver("LOST IN DEEP SPACE!");
         }
@@ -218,8 +184,9 @@
                         document.getElementById('status-text').innerText = "STATUS: MAINTAIN HABITABLE ORBIT"; 
                     } else {
                         let diff = (currentNote - lastPlayedNote + 12) % 12;
-                        if (diff === 7) orbitRadius += 35; // Boost
-                        else if (diff === 5 || diff === 6) orbitRadius -= 35; // Drop
+                        // Apply instant massive acceleration thrust instead of teleporting
+                        if (diff === 7) radialVelocity += 12; 
+                        else if (diff === 5 || diff === 6) radialVelocity -= 12; 
                     }
 
                     lastPlayedNote = currentNote;
@@ -231,36 +198,21 @@
             }
         }
 
-        // --- VISUAL RENDERING ---
-        
-        // Habitable Zone Bounds (Faint Rings)
-        ctx.strokeStyle = 'rgba(255, 0, 85, 0.2)'; // Inner danger ring
-        ctx.beginPath(); ctx.arc(cx, cy, minRadius + 10, 0, Math.PI*2); ctx.stroke();
-        
-        ctx.strokeStyle = 'rgba(0, 255, 204, 0.2)'; // Outer danger ring
-        ctx.beginPath(); ctx.arc(cx, cy, maxRadius - 10, 0, Math.PI*2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 0, 85, 0.2)'; ctx.beginPath(); ctx.arc(cx, cy, minRadius + 10, 0, Math.PI*2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(0, 255, 204, 0.2)'; ctx.beginPath(); ctx.arc(cx, cy, maxRadius - 10, 0, Math.PI*2); ctx.stroke();
 
-        // Draw Earth
         ctx.shadowBlur = 20; ctx.shadowColor = '#0055ff'; ctx.fillStyle = '#1e90ff';
         ctx.beginPath(); ctx.arc(cx, cy, earthRadius, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
 
-        // Draw Sun
-        let sunX = cx + Math.cos(orbitAngle) * orbitRadius;
-        let sunY = cy + Math.sin(orbitAngle) * orbitRadius;
-
+        let sunX = cx + Math.cos(orbitAngle) * orbitRadius; let sunY = cy + Math.sin(orbitAngle) * orbitRadius;
         ctx.shadowBlur = 40; ctx.shadowColor = '#ff8c00'; ctx.fillStyle = '#ffaa00'; 
         ctx.beginPath(); ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
         
-        // Draw orbital trail
         if (state === 'ORBITING') {
-            ctx.strokeStyle = 'rgba(255, 170, 0, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(cx, cy, orbitRadius, orbitAngle - 0.5, orbitAngle, false);
-            ctx.stroke();
+            ctx.strokeStyle = 'rgba(255, 170, 0, 0.3)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(cx, cy, orbitRadius, orbitAngle - 0.5, orbitAngle, false); ctx.stroke();
         }
     }
-    
     renderFrame();
 </script>
 </body>
