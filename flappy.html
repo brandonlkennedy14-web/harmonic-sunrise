@@ -1,0 +1,56 @@
+class FlappyEngine {
+    constructor() {
+        this.mode = 'EASY'; // 'EASY' or 'HARD'
+        this.birdY = 500;
+        this.velocity = 0;
+        this.gravity = 0.5;
+        this.flapPower = -10;
+        
+        // Memory for Hard Mode
+        this.lastPlayedNote = -1; 
+    }
+
+    updatePhysics(currentNote, hasFifth) {
+        if (this.mode === 'EASY') {
+            // Hover Mode: Map the 12 pitch classes (0-11) to screen height
+            if (currentNote !== -1) {
+                // Example: C (0) is bottom, B (11) is top
+                let targetY = canvas.height - ((currentNote / 11) * canvas.height);
+                this.birdY += (targetY - this.birdY) * 0.1; // Smooth lerp
+            }
+        } 
+        else if (this.mode === 'HARD') {
+            // Standard Flappy Gravity
+            this.velocity += this.gravity;
+            this.birdY += this.velocity;
+
+            if (currentNote !== -1) {
+                // If it's the first note they play, just set it and give them a free flap
+                if (this.lastPlayedNote === -1) {
+                    this.flap();
+                    this.lastPlayedNote = currentNote;
+                } 
+                // Otherwise, check if the current note is a 5th above the LAST note
+                else if (currentNote !== this.lastPlayedNote) {
+                    let isValidFifth = this.checkIfFifth(this.lastPlayedNote, currentNote);
+                    
+                    if (isValidFifth) {
+                        this.flap();
+                    }
+                    // Update memory for the next flap
+                    this.lastPlayedNote = currentNote;
+                }
+            }
+        }
+    }
+
+    flap() {
+        this.velocity = this.flapPower;
+    }
+
+    checkIfFifth(lastNote, newNote) {
+        // A perfect fifth is 7 semitones up (modulo 12 to wrap around the octave)
+        let expectedFifth = (lastNote + 7) % 12;
+        return newNote === expectedFifth;
+    }
+}
