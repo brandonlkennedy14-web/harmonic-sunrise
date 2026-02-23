@@ -25,12 +25,13 @@
         .hud-left { flex: 1; }
         .hud-right { text-align: right; }
         .score-display { font-size: 24px; color: #0f0; font-weight: bold; transition: color 0.5s; }
+        .high-score { font-size: 14px; color: #ff8c00; font-weight: bold; margin-bottom: 5px; }
         .multiplier { font-size: 14px; color: #ff0055; margin-top: 5px; transition: all 0.2s; }
         .strike-text { color: #fff; font-size: 18px; position: absolute; top: 80px; right: 20px; opacity: 0; transition: opacity 0.3s; text-shadow: 0 0 10px #ff0055; font-weight: bold; }
 
         .controls { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
-        button:active { transform: translate(2px, 2px); }
+        button, .btn-link { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; text-decoration: none; display: inline-block; box-sizing: border-box; }
+        button:active, .btn-link:active { transform: translate(2px, 2px); }
         input[type="range"] { width: 100px; }
 
         #btn-mic { border-color: #0f0; color: #0f0; }
@@ -84,6 +85,7 @@
                 </div>
             </div>
             <div class="hud-right">
+                <div class="high-score">BEST: <span id="high-score-text">0</span></div>
                 <div class="subtitle">SCORE</div>
                 <div class="score-display" id="score-text">0</div>
                 <div class="multiplier" id="multi-text">x1.0</div>
@@ -113,7 +115,7 @@
             <button id="btn-timing">MODE: STANDARD</button>
             <button id="btn-vision">VISUAL: ORGANIC</button>
             <button id="btn-inst">INST: NONE</button>
-            <button id="btn-coffee">BUY ME A COFFEE</button>
+            <a href="https://buymeacoffee.com/brandonkennedy" target="_blank" id="btn-coffee" class="btn-link">BUY ME A COFFEE</a>
         </div>
     </div>
 
@@ -125,7 +127,6 @@
         instruments, chordDictionary, hzToPitchClass, getColorGroup, detectIntervals 
     } from './theory.js';
 
-    // Service Worker Registration for PWA
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
@@ -139,7 +140,7 @@
     const btnMic = document.getElementById('btn-mic'); const btnVision = document.getElementById('btn-vision');
     const btnBeat = document.getElementById('btn-beat'); const bpmSlider = document.getElementById('bpm-slider');
     const btnTiming = document.getElementById('btn-timing'); const codexPanel = document.getElementById('codex-panel');
-    const btnCoffee = document.getElementById('btn-coffee'); const btnInst = document.getElementById('btn-inst');
+    const btnInst = document.getElementById('btn-inst');
     const codexLalit = document.getElementById('codex-lalit'); const codexHarris = document.getElementById('codex-harris');
     const organicOverlay = document.getElementById('organic-overlay'); 
 
@@ -148,6 +149,7 @@
     const hAccuracy = document.getElementById('hud-accuracy');
     const scoreText = document.getElementById('score-text'); const multiText = document.getElementById('multi-text');
     const strikeAlert = document.getElementById('strike-alert'); const mainTitle = document.getElementById('main-title');
+    const highScoreText = document.getElementById('high-score-text');
 
     let viewMode = 'ORGANIC'; organicOverlay.style.opacity = 1; btnVision.style.borderColor = '#ff8c00'; btnVision.style.color = '#ff8c00';
     let timingMode = 'STANDARD';
@@ -163,7 +165,9 @@
     let nextNoteTime = 0.0; let currentNote = 0; let isBeatRunning = false;
     let timerID; let lastBeatTime = 0; let lastBeatDuration = 0;
 
-    btnCoffee.addEventListener('click', () => { window.open('https://buymeacoffee.com/brandonkennedy', '_blank'); });
+    // Local Leaderboard
+    let highScore = localStorage.getItem('sunriseHighScore') || 0;
+    highScoreText.innerText = Math.floor(highScore);
 
     function resize() { 
         canvas.width = window.innerWidth; 
@@ -266,7 +270,7 @@
         let intervalPlayedThisFrame = false;
 
         // ONLY RUN AUDIO LOGIC IF MIC IS STARTED
-        if(audio.isRunning) {
+        if (audio.isRunning) {
             let peaks = audio.getPeaks(90);
 
             if (peaks.length > 0) {
@@ -308,12 +312,20 @@
 
             hGame.innerText = game.phase === 'SUNRISE' ? "PHASE: LIFT OFF (Play Fourths)" : "PHASE: ORBIT (Maintain with Fifths)";
             hGame.style.color = game.phase === 'SUNRISE' ? "#ff8c00" : "#0f0";
+            
+            // Handle Leaderboard
             scoreText.innerText = Math.floor(game.score); 
+            if (game.score > highScore) {
+                highScore = game.score;
+                localStorage.setItem('sunriseHighScore', highScore);
+                highScoreText.innerText = Math.floor(highScore);
+            }
+
             multiText.innerText = `x${game.multiplier.toFixed(1)}`;
             multiText.style.color = game.multiplier > 2.0 ? "#0f0" : "#ff0055";
         }
 
-        // --- VISUAL RENDERING (Runs even if audio isn't started yet) ---
+        // --- VISUAL RENDERING (Runs instantly on load) ---
         let cx = canvas.width / 2; 
         let cy = canvas.height / 2;
 
@@ -393,8 +405,8 @@
             }
         }
     }
-
-    // Call renderFrame immediately so the world draws before mic starts
+    
+    // Kickstart the rendering loop instantly
     renderFrame();
 </script>
 </body>
