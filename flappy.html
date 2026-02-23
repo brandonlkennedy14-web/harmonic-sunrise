@@ -207,7 +207,6 @@
         isGameOver = true;
         finalScore.innerText = score;
         
-        // Save Local High Score
         if (score > highScore) {
             highScore = score;
             localStorage.setItem('flappyHighScore', highScore);
@@ -225,6 +224,20 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         frames++;
+
+        // --- DRAW BACKGROUND MUSICAL STAVE ---
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 2;
+        let staveSpacing = 40;
+        let startY = canvas.height / 2 - (staveSpacing * 2);
+        
+        ctx.beginPath();
+        for(let i=0; i<5; i++) {
+            let y = startY + (i * staveSpacing);
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+        }
+        ctx.stroke();
 
         let peaks = audio.getPeaks(100); 
         let currentNote = -1;
@@ -260,6 +273,7 @@
             }
         }
 
+        // --- DRAW BACKGROUND SUN ---
         let sunColor = mode === 'EASY' ? '#00ffcc' : (targetNote !== -1 ? '#ff8c00' : '#333');
         ctx.shadowBlur = 50; ctx.shadowColor = sunColor; ctx.fillStyle = sunColor;
         ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height / 2, 80, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
@@ -269,7 +283,6 @@
             ctx.fillText(notes[targetNote], canvas.width / 2, canvas.height / 2);
         }
 
-        // Apply Speed Multiplier to pipe generation
         let currentSpawnRate = Math.floor(baseSpawnRate / speedMultiplier);
         let currentPipeSpeed = basePipeSpeed * speedMultiplier;
 
@@ -289,12 +302,16 @@
             ctx.fillRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - p.top - pipeGap);
             ctx.strokeRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - p.top - pipeGap);
 
-            if (checkCollision(p)) {
-                handleGameOver();
+            // --- TARGET NOTE IN PIPE GAP ---
+            if (mode === 'HARD' && targetNote !== -1) {
+                ctx.fillStyle = 'rgba(255, 140, 0, 0.6)'; 
+                ctx.font = 'bold 24px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(notes[targetNote], p.x + pipeWidth/2, p.top + pipeGap/2);
             }
 
+            if (checkCollision(p)) { handleGameOver(); }
+
             if (p.x + pipeWidth < bird.x && !p.passed) {
-                // Higher speed gives more points
                 score += (1 * speedMultiplier);
                 scoreText.innerText = score;
                 p.passed = true;
@@ -303,8 +320,16 @@
             if (p.x + pipeWidth < 0) pipes.splice(i, 1);
         }
 
+        // --- DRAW BIRD ---
         ctx.fillStyle = mode === 'EASY' ? '#fff' : '#ff0055';
         ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2); ctx.fill();
+        
+        // --- CURRENT NOTE IN BIRD ---
+        if (currentNote !== -1) {
+            ctx.fillStyle = '#000'; ctx.font = 'bold 12px monospace'; 
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(notes[currentNote], bird.x, bird.y);
+        }
     }
 </script>
 </body>
