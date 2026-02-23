@@ -4,56 +4,154 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Harmonic Sunrise</title>
+    
+    <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
+
+        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
-        .hud { text-shadow: 2px 2px 0 #000; display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
-        .title { font-size: 20px; font-weight: bold; color: #ff8c00; letter-spacing: 2px; }
-        .score-display { font-size: 24px; color: #0f0; font-weight: bold; }
+
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 60px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
+        .hud { text-shadow: 2px 2px 0 #000; font-size: 12px; pointer-events: auto; display: flex; justify-content: space-between; width: 100%; }
+        .title { font-size: 20px; font-weight: bold; color: #ff8c00; letter-spacing: 2px; transition: color 0.5s; }
+        .subtitle { color: #aaa; font-size: 10px; margin-top: 5px; }
+
+        .hud-left { flex: 1; }
+        .hud-right { text-align: right; }
+        .score-display { font-size: 24px; color: #0f0; font-weight: bold; transition: color 0.5s; }
+        .high-score { font-size: 14px; color: #ff8c00; font-weight: bold; margin-bottom: 5px; }
+        .multiplier { font-size: 14px; color: #ff0055; margin-top: 5px; transition: all 0.2s; }
+        .strike-text { color: #fff; font-size: 18px; position: absolute; top: 80px; right: 20px; opacity: 0; transition: opacity 0.3s; text-shadow: 0 0 10px #ff0055; font-weight: bold; }
+
         .controls { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        button, .btn-link { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; text-decoration: none; }
+        button, .btn-link { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; text-decoration: none; display: inline-block; box-sizing: border-box; }
+        button:active, .btn-link:active { transform: translate(2px, 2px); }
+        input[type="range"] { width: 100px; }
+
         #btn-mic { border-color: #0f0; color: #0f0; }
+        #btn-beat { border-color: #ff0055; color: #ff0055; }
+        #btn-timing { border-color: #00ffcc; color: #00ffcc; }
+
+        #organic-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: linear-gradient(to bottom, #0a0015, #2a0845); opacity: 0; transition: opacity 0.5s; }
+
+        .hud-ratios { margin-top: 15px; font-size: 12px; }
+        .ratio-box { padding: 4px; border-left: 3px solid #fff; margin-bottom: 4px; background: rgba(0,0,0,0.5); transition: border-color 0.5s, color 0.5s; }
+
+        #codex-panel { position: absolute; top: 120px; right: 20px; width: 220px; background: rgba(0,0,0,0.8); border: 2px solid #ffcc00; padding: 10px; box-sizing: border-box; pointer-events: auto; display: none; }
+        .codex-title { color: #ffcc00; font-size: 12px; text-align: center; border-bottom: 1px solid #ffcc00; padding-bottom: 5px; margin-bottom: 10px; }
+        .codex-section { margin-bottom: 10px; }
+        .codex-label { font-size: 10px; color: #aaa; margin-bottom: 5px; }
+        .chord-diagram { font-family: monospace; font-size: 12px; white-space: pre; color: #fff; background: #111; padding: 5px; border: 1px solid #333; }
     </style>
 </head>
 <body>
+
     <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
-        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold;">[1] SUNRISE</a> <span style="color: #555;">|</span>
-        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold;">[2] FLAPPY</a> <span style="color: #555;">|</span>
-        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold;">[3] WINDING</a> <span style="color: #555;">|</span>
-        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold;">[4] INVADERS</a> <span style="color: #555;">|</span>
-        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold;">[5] WEAVER</a> <span style="color: #555;">|</span>
+        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold;">[1] SUNRISE</a>
+        <span style="color: #555;">|</span>
+        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold;">[2] FLAPPY</a>
+        <span style="color: #555;">|</span>
+        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold;">[3] WINDING</a>
+        <span style="color: #555;">|</span>
+        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold;">[4] INVADERS</a>
+        <span style="color: #555;">|</span>
+        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold;">[5] WEAVER</a>
+        <span style="color: #555;">|</span>
         <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold;">[6] SIMON</a>
     </div>
 
+    <div id="organic-overlay"></div>
     <canvas id="c-main"></canvas>
+
     <div id="ui-layer">
         <div class="hud">
-            <div>
-                <div class="title">HARMONIC SUNRISE</div>
-                <div id="status-text" style="font-size:10px; color:#aaa;">AWAITING SIGNAL...</div>
-                <div id="hud-phase" style="color:#0ff; margin-top:10px;">PHASE: GROUNDED</div>
+            <div class="hud-left">
+                <div class="title" id="main-title">HARMONIC SUNRISE</div>
+                <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO...</div>
+
+                <div class="hud-ratios">
+                    <div class="ratio-box" id="hud-root">ROOT: --</div>
+                    <div class="ratio-box" id="hud-lalit">TENSION (Fourth): --</div>
+                    <div class="ratio-box" id="hud-harris">STABILITY (Fifth): --</div>
+                    <div class="ratio-box" id="hud-game" style="color:#0ff; border-color:#0ff; margin-top: 10px;">PHASE: GROUNDED</div>
+                    <div class="ratio-box" id="hud-accuracy" style="color:#fff; border-color:#fff; display:none;">TIMING: --</div>
+                </div>
             </div>
-            <div class="score-display" id="score-text">0</div>
+            <div class="hud-right">
+                <div class="high-score">BEST: <span id="high-score-text">0</span></div>
+                <div class="subtitle">SCORE</div>
+                <div class="score-display" id="score-text">0</div>
+                <div class="multiplier" id="multi-text">x1.0</div>
+                <div class="strike-text" id="strike-alert">CRASH!</div>
+            </div>
         </div>
+
+        <div id="codex-panel">
+            <div class="codex-title" id="codex-title">INSTRUMENT CODEX</div>
+            <div class="codex-section">
+                <div class="codex-label" style="color:#ff8c00;">FOURTH TENSION:</div>
+                <div class="chord-diagram" id="codex-lalit">Awaiting Root...</div>
+            </div>
+            <div class="codex-section">
+                <div class="codex-label" style="color:#0f0;">FIFTH STABILITY:</div>
+                <div class="chord-diagram" id="codex-harris">Awaiting Root...</div>
+            </div>
+        </div>
+
         <div class="controls">
             <button id="btn-mic">START MIC</button>
+            <div style="display:flex; align-items:center; gap: 5px; background: rgba(0,0,0,0.5); padding: 5px; border: 1px solid #555;">
+                <span id="bpm-val" style="font-size:10px;">120 BPM</span>
+                <input type="range" id="bpm-slider" min="60" max="200" value="120">
+                <button id="btn-beat">START BEAT</button>
+            </div>
+            <button id="btn-timing">MODE: STANDARD</button>
             <button id="btn-vision">VISUAL: ORGANIC</button>
-            <a href="https://buymeacoffee.com/brandonkennedy" target="_blank" class="btn-link" style="border-color: #ffd700; color: #ffd700;">SUPPORT</a>
+            <button id="btn-inst">INST: NONE</button>
         </div>
     </div>
 
 <script type="module">
-    import { AudioEngine } from './audio.js';
     import { GameEngine } from './game.js';
-    import { notes, hzToPitchClass } from './theory.js';
+    import { AudioEngine } from './audio.js';
+    import { notes, circleOfFifths, circleOfFourths, colorPalettes, instruments, chordDictionary, hzToPitchClass, getColorGroup } from './theory.js';
 
-    const audio = new AudioEngine();
     const game = new GameEngine();
-    const canvas = document.getElementById('c-main');
-    const ctx = canvas.getContext('2d');
+    const audio = new AudioEngine();
+
+    const canvas = document.getElementById('c-main'); const ctx = canvas.getContext('2d');
+    const btnMic = document.getElementById('btn-mic'); const btnVision = document.getElementById('btn-vision');
+    const btnBeat = document.getElementById('btn-beat'); const bpmSlider = document.getElementById('bpm-slider');
+    const btnTiming = document.getElementById('btn-timing'); const codexPanel = document.getElementById('codex-panel');
+    const btnInst = document.getElementById('btn-inst');
+    const codexLalit = document.getElementById('codex-lalit'); const codexHarris = document.getElementById('codex-harris');
+    const organicOverlay = document.getElementById('organic-overlay'); 
+
+    const hRoot = document.getElementById('hud-root'); const hLalit = document.getElementById('hud-lalit');
+    const hHarris = document.getElementById('hud-harris'); const hGame = document.getElementById('hud-game');
+    const hAccuracy = document.getElementById('hud-accuracy');
+    const scoreText = document.getElementById('score-text'); const multiText = document.getElementById('multi-text');
+    const strikeAlert = document.getElementById('strike-alert'); const mainTitle = document.getElementById('main-title');
+    const highScoreText = document.getElementById('high-score-text');
+
+    let viewMode = 'ORGANIC'; organicOverlay.style.opacity = 1; btnVision.style.borderColor = '#ff8c00'; btnVision.style.color = '#ff8c00';
+    let timingMode = 'STANDARD';
+    let activeColor = '#ff8c00';
+    let currentRootIndex = -1; let instIndex = 0; let activeNotes = new Set();
+    let orbitAngle = 0; let explosionRadius = 0;
+    let visualFlashOpacity = 0; let visualFlashColor = 'rgba(255, 255, 255, ';
+    let bpm = 120; let lookahead = 25.0; let scheduleAheadTime = 0.1; 
+    let nextNoteTime = 0.0; let currentNote = 0; let isBeatRunning = false;
+    let timerID; let lastBeatTime = 0; let lastBeatDuration = 0;
+
+    let highScore = 0;
+    try { highScore = localStorage.getItem('sunriseHighScore') || 0; } catch(e) {}
+    highScoreText.innerText = Math.floor(highScore);
 
     function resize() { 
         canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
@@ -61,41 +159,199 @@
     }
     window.addEventListener('resize', resize); resize();
 
-    document.getElementById('btn-mic').addEventListener('click', async (e) => {
-        if (await audio.startMic()) e.target.style.display = 'none';
+    function updateCodex(rootIdx) {
+        let inst = instruments[instIndex];
+        if(inst === 'NONE' || rootIdx === -1) return;
+        let data = chordDictionary[inst][rootIdx] || chordDictionary[inst]['default'];
+        codexLalit.innerText = data.lalit; codexHarris.innerText = data.harris;
+    }
+
+    btnInst.addEventListener('click', () => {
+        instIndex = (instIndex + 1) % instruments.length;
+        let inst = instruments[instIndex];
+        btnInst.innerText = `INST: ${inst}`;
+        if(inst === 'NONE') codexPanel.style.display = 'none';
+        else { codexPanel.style.display = 'block'; document.getElementById('codex-title').innerText = `${inst} CODEX`; }
+        updateCodex(currentRootIndex);
     });
 
-    function render() {
-        requestAnimationFrame(render);
+    function nextNote() { lastBeatDuration = 60.0 / bpm; nextNoteTime += lastBeatDuration; currentNote++; if (currentNote === 4) currentNote = 0; }
+    function scheduleNote(beatNumber, time) {
+        lastBeatTime = time; let timeToFlash = (time - audio.getCurrentTime()) * 1000;
+        setTimeout(() => { visualFlashOpacity = (beatNumber === 0) ? 0.8 : 0.4; visualFlashColor = (beatNumber === 0) ? 'rgba(255, 0, 85, ' : 'rgba(255, 255, 255, '; }, Math.max(0, timeToFlash));
+    }
+    function scheduler() { while (nextNoteTime < audio.getCurrentTime() + scheduleAheadTime) { scheduleNote(currentNote, nextNoteTime); nextNote(); } timerID = setTimeout(scheduler, lookahead); }
+
+    btnBeat.addEventListener('click', () => {
+        if(!audio.isRunning) return; 
+        if(isBeatRunning) { clearTimeout(timerID); isBeatRunning = false; btnBeat.innerText = "START BEAT"; btnBeat.style.borderColor = "#ff0055"; btnBeat.style.color = "#ff0055"; } 
+        else { isBeatRunning = true; btnBeat.innerText = "STOP BEAT"; btnBeat.style.borderColor = "#fff"; btnBeat.style.color = "#fff"; nextNoteTime = audio.getCurrentTime() + 0.05; scheduler(); }
+    });
+
+    bpmSlider.addEventListener('input', (e) => { bpm = e.target.value; document.getElementById('bpm-val').innerText = `${bpm} BPM`; });
+
+    btnTiming.addEventListener('click', () => {
+        if(timingMode === 'STANDARD') { timingMode = 'ADVANCED'; btnTiming.innerText = 'MODE: ADVANCED (SWING)'; hAccuracy.style.display = 'block'; } 
+        else { timingMode = 'STANDARD'; btnTiming.innerText = 'MODE: STANDARD'; hAccuracy.style.display = 'none'; }
+    });
+
+    btnMic.addEventListener('click', async () => {
+        const started = await audio.startMic();
+        if (started) { btnMic.style.display = 'none'; document.getElementById('status-text').innerText = "STATUS: LISTENING..."; }
+    });
+
+    btnVision.addEventListener('click', () => {
+        if(viewMode === 'SCIENCE') { viewMode = 'ORGANIC'; btnVision.innerText = 'VISUAL: ORGANIC'; btnVision.style.borderColor = activeColor; btnVision.style.color = activeColor; organicOverlay.style.opacity = 1; } 
+        else { viewMode = 'SCIENCE'; btnVision.innerText = 'VISUAL: SCIENCE'; btnVision.style.borderColor = '#0ff'; btnVision.style.color = '#0ff'; organicOverlay.style.opacity = 0; }
+    });
+
+    function triggerAlert(msg, color) {
+        strikeAlert.innerText = msg; strikeAlert.style.color = color;
+        strikeAlert.style.textShadow = `0 0 10px ${color}`; strikeAlert.style.opacity = 1;
+        setTimeout(() => strikeAlert.style.opacity = 0, 1500);
+        if (msg.includes("CRASH") || msg.includes("DECAY") || msg.includes("WRONG")) { explosionRadius = 1; }
+    }
+
+    function renderFrame() {
+        requestAnimationFrame(renderFrame); 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        let has4 = false, has5 = false;
-        if (audio.isRunning) {
-            let peaks = audio.getPeaks(90);
-            if (peaks.length > 0) {
-                let root = hzToPitchClass(peaks[0].hz);
-                peaks.forEach(p => {
-                    let n = hzToPitchClass(p.hz);
-                    if ((n - root + 12) % 12 === 5) has4 = true;
-                    if ((n - root + 12) % 12 === 7) has5 = true;
-                });
-            }
-            game.updatePhase(has4, has5, audio.getCurrentTime());
+
+        if (visualFlashOpacity > 0.01) {
+            ctx.lineWidth = 20;
+            ctx.strokeStyle = visualFlashColor + visualFlashOpacity + ')';
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+            visualFlashOpacity *= 0.85; 
         }
 
-        // Draw Earth & Sun
-        let cx = canvas.width / 2, cy = canvas.height / 2;
-        ctx.fillStyle = '#1e90ff'; ctx.beginPath(); ctx.arc(cx, cy, 30, 0, Math.PI*2); ctx.fill();
-        
-        let sunY = canvas.height - 50 - game.sunHeight;
-        ctx.fillStyle = '#ff8c00'; ctx.shadowBlur = 20; ctx.shadowColor = '#ff8c00';
-        ctx.beginPath(); ctx.arc(cx, sunY, 20, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 0;
+        let hasFourth = false; let hasFifth = false; activeNotes.clear(); 
+        let intervalPlayedThisFrame = false;
 
-        document.getElementById('score-text').innerText = Math.floor(game.score);
-        document.getElementById('hud-phase').innerText = `PHASE: ${game.phase}`;
+        if (audio.isRunning) {
+            let peaks = audio.getPeaks(90);
+
+            if (peaks.length > 0) {
+                let rootPeak = peaks[0]; 
+                let rootNote = hzToPitchClass(rootPeak.hz);
+
+                if (rootNote !== -1) { 
+                    hRoot.innerText = `ROOT: ${notes[rootNote]} (${rootPeak.hz.toFixed(1)}Hz)`; 
+
+                    if (rootNote !== currentRootIndex) { 
+                        currentRootIndex = rootNote; 
+                        activeColor = getColorGroup(rootNote);
+                        mainTitle.style.color = activeColor;
+                        if (viewMode === 'ORGANIC') btnVision.style.borderColor = activeColor;
+                        updateCodex(currentRootIndex);
+                    }
+
+                    // Native interval check to prevent import crashes
+                    peaks.forEach(p => {
+                        let n = hzToPitchClass(p.hz);
+                        if (n !== -1) {
+                            activeNotes.add(n);
+                            let diff = (n - rootNote + 12) % 12;
+                            if (diff === 5) hasFourth = true;
+                            if (diff === 7) hasFifth = true;
+                        }
+                    });
+
+                    if (hasFourth || hasFifth) intervalPlayedThisFrame = true;
+                }
+
+                hLalit.innerText = `TENSION (Fourth): ${hasFourth ? "DETECTED" : "--"}`; 
+                hHarris.innerText = `STABILITY (Fifth): ${hasFifth ? "DETECTED" : "--"}`;
+            }
+
+            if (intervalPlayedThisFrame && isBeatRunning) {
+                const currentHitTime = audio.getCurrentTime();
+                const timingResult = game.evaluateTiming(currentHitTime, lastBeatTime, lastBeatDuration, timingMode);
+                hAccuracy.innerText = `TIMING: ${timingResult.msOff}ms off`;
+                hAccuracy.style.color = timingResult.isPerfect ? '#0f0' : '#ff0055';
+            }
+
+            const alertData = game.updatePhase(hasFourth, hasFifth, audio.getCurrentTime());
+            if (alertData) triggerAlert(alertData.msg, alertData.color);
+
+            hGame.innerText = game.phase === 'SUNRISE' ? "PHASE: LIFT OFF (Play Fourths)" : "PHASE: ORBIT (Maintain with Fifths)";
+            hGame.style.color = game.phase === 'SUNRISE' ? "#ff8c00" : "#0f0";
+            
+            scoreText.innerText = Math.floor(game.score); 
+            if (game.score > highScore) {
+                highScore = game.score;
+                try { localStorage.setItem('sunriseHighScore', highScore); } catch(e) {}
+                highScoreText.innerText = Math.floor(highScore);
+            }
+
+            multiText.innerText = `x${game.multiplier.toFixed(1)}`;
+            multiText.style.color = game.multiplier > 2.0 ? "#0f0" : "#ff0055";
+        }
+
+        let cx = canvas.width / 2; let cy = canvas.height / 2;
+
+        if (viewMode === 'SCIENCE') {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            let rOuter = Math.min(canvas.width, canvas.height) * 0.35; let rInner = rOuter * 0.65;
+            cy = canvas.height / 2.2; 
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(cx, cy, rOuter, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, rInner, 0, Math.PI*2); ctx.stroke();
+
+            for(let i=0; i<12; i++) {
+                let angle = (i * Math.PI / 6) - (Math.PI / 2);
+                let note5 = circleOfFifths[i]; let ox = cx + Math.cos(angle) * rOuter; let oy = cy + Math.sin(angle) * rOuter;
+                let note4 = circleOfFourths[i]; let ix = cx + Math.cos(angle) * rInner; let iy = cy + Math.sin(angle) * rInner;
+                let oActive = activeNotes.has(note5); let iActive = activeNotes.has(note4);
+
+                ctx.fillStyle = oActive ? (hasFifth ? '#0f0' : activeColor) : '#333'; ctx.beginPath(); ctx.arc(ox, oy, oActive ? 8 : 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = oActive ? '#fff' : '#666'; ctx.font = '12px monospace'; ctx.fillText(notes[note5], ox - 5, oy - 15);
+
+                ctx.fillStyle = iActive ? (hasFourth ? activeColor : '#0ff') : '#333'; ctx.beginPath(); ctx.arc(ix, iy, iActive ? 6 : 2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = iActive ? '#fff' : '#666'; ctx.font = '10px monospace'; ctx.fillText(notes[note4], ix - 5, iy + 15);
+            }
+        } else if (viewMode === 'ORGANIC') {
+            let earthColor = '#1e90ff'; let earthGlow = '#4169e1'; let isPerfectOrbit = false;
+
+            if (game.phase === 'ORBIT') {
+                let zoneMargin = (game.orbitMax - game.orbitMin) * 0.25;
+                if (game.sunHeight < game.orbitMin + zoneMargin) { earthColor = '#ff4500'; earthGlow = '#ff0000'; } 
+                else if (game.sunHeight > game.orbitMax - zoneMargin) { earthColor = '#00ffff'; earthGlow = '#0000ff'; } 
+                else { earthColor = '#32cd32'; earthGlow = '#00ff00'; isPerfectOrbit = true; }
+            }
+
+            if (explosionRadius > 0) {
+                ctx.beginPath(); ctx.arc(cx, cy, explosionRadius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 69, 0, ${1 - explosionRadius/300})`; ctx.fill();
+                explosionRadius += 8; if (explosionRadius > 300) explosionRadius = 0;
+            }
+
+            ctx.shadowBlur = 20; ctx.shadowColor = earthGlow; ctx.fillStyle = earthColor; 
+            ctx.beginPath(); ctx.arc(cx, cy, 25, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+
+            if (isPerfectOrbit) {
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+                for (let b = 0; b < 3; b++) {
+                    let bAngle = (orbitAngle * 3) + (b * (Math.PI * 0.6));
+                    let bx = cx + Math.cos(bAngle) * 45; let by = cy + Math.sin(bAngle) * 45;
+                    ctx.beginPath(); ctx.moveTo(bx - 3, by - 3); ctx.lineTo(bx, by); ctx.lineTo(bx + 3, by - 3); ctx.stroke();
+                }
+            }
+
+            if (game.phase === 'SUNRISE') {
+                let sunY = canvas.height - 30 - game.sunHeight; 
+                ctx.shadowBlur = 40; ctx.shadowColor = activeColor; ctx.fillStyle = activeColor; 
+                ctx.beginPath(); ctx.arc(cx, sunY, 20, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+            } else {
+                orbitAngle += 0.015; let orbitRadius = 100 + (game.sunHeight - game.orbitMin); 
+                let sunX = cx + Math.cos(orbitAngle) * orbitRadius; let sunY = cy + Math.sin(orbitAngle) * orbitRadius;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctx.beginPath(); ctx.arc(cx, cy, orbitRadius, 0, Math.PI * 2); ctx.stroke();
+                ctx.shadowBlur = 40; ctx.shadowColor = '#0f0'; ctx.fillStyle = activeColor; 
+                ctx.beginPath(); ctx.arc(sunX, sunY, 20, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+            }
+        }
     }
-    render();
+    
+    renderFrame();
 </script>
 </body>
 </html>
