@@ -4,20 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Harmonic Invaders</title>
-<link rel="manifest" href="manifest.json">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Harmonics">
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker registered!', reg))
-                    .catch(err => console.error('Service Worker failed!', err));
-            });
-        }
-    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
 
@@ -44,7 +37,7 @@
 </head>
 <body>
 
-        <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
+    <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
         <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold; transition: color 0.2s;">[1] SUNRISE</a>
         <span style="color: #555;">|</span>
         <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold; transition: color 0.2s;">[2] FLAPPY</a>
@@ -55,7 +48,7 @@
         <span style="color: #555;">|</span>
         <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[5] WEAVER</a>
         <span style="color: #555;">|</span>
-        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold; transition: color 0.2s; text-shadow: 0 0 5px #fff;">[6] SIMON</a>
+        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[6] SIMON</a>
     </div>
 
     <canvas id="c-invaders"></canvas>
@@ -87,11 +80,17 @@
     import { AudioEngine } from './audio.js';
     import { notes, hzToPitchClass, colorPalettes } from './theory.js';
 
+    // Service Worker Registration for PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
+        });
+    }
+
     const canvas = document.getElementById('c-invaders');
     const ctx = canvas.getContext('2d');
     const audio = new AudioEngine();
 
-    // UI Elements
     const btnMic = document.getElementById('btn-mic');
     const btnRestart = document.getElementById('btn-restart');
     const scoreText = document.getElementById('score-text');
@@ -100,21 +99,18 @@
     const gameOverPanel = document.getElementById('game-over');
     const finalScore = document.getElementById('final-score');
 
-    // Game State
     let isGameOver = false;
     let score = 0;
     let health = 100;
     let frames = 0;
-    let spawnRate = 120; // Lower is faster
+    let spawnRate = 120; 
     let enemySpeed = 1;
 
-    // Entities
     let enemies = [];
     let particles = [];
     let laser = null;
     let cannon = { x: 0, y: 0 };
 
-    // Cooldown logic
     let lastPlayedNote = -1;
     let noteHoldFrames = 0; 
 
@@ -154,7 +150,7 @@
     function spawnEnemy() {
         let noteValue = Math.floor(Math.random() * 12);
         let colorGroup = Math.floor(noteValue / 4);
-        let xPos = 40 + Math.random() * (canvas.width - 80); // Keep away from edges
+        let xPos = 40 + Math.random() * (canvas.width - 80); 
         
         enemies.push({
             x: xPos,
@@ -185,17 +181,18 @@
     }
 
     function renderFrame() {
-        if (!audio.isRunning || isGameOver) return;
+        if (!audio.isRunning) return;
         requestAnimationFrame(renderFrame);
         
-        // Draw trailing background
+        // Background loop continues, but visuals freeze on game over
+        if (isGameOver) return;
+        
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         frames++;
         laser = null;
 
-        // --- AUDIO PROCESSING ---
         let peaks = audio.getPeaks(95); 
         let currentNote = -1;
         
@@ -207,14 +204,11 @@
             lastPlayedNote = -1;
         }
 
-        // Firing logic (prevent rapid-fire spam from holding a single note)
         if (currentNote !== -1) {
             if (currentNote !== lastPlayedNote || noteHoldFrames > 30) {
-                // Find target
                 let targetIdx = -1;
                 let lowestY = -999;
                 
-                // Target the asteroid closest to the ground that matches the note
                 for (let i = 0; i < enemies.length; i++) {
                     if (enemies[i].note === currentNote && enemies[i].y > lowestY) {
                         lowestY = enemies[i].y;
@@ -230,7 +224,6 @@
                     score += 10;
                     scoreText.innerText = score;
                     
-                    // Difficulty scaling
                     if (score % 50 === 0) {
                         enemySpeed += 0.2;
                         spawnRate = Math.max(40, spawnRate - 10);
@@ -244,18 +237,15 @@
             }
         }
 
-        // --- ENEMY LOGIC ---
         if (frames % spawnRate === 0) spawnEnemy();
 
         for (let i = enemies.length - 1; i >= 0; i--) {
             let e = enemies[i];
             e.y += enemySpeed;
             
-            // Draw Asteroid Body
             ctx.shadowBlur = 15; ctx.shadowColor = e.color;
             ctx.fillStyle = '#111'; ctx.strokeStyle = e.color; ctx.lineWidth = 2;
             
-            // Draw Hexagon for sci-fi feel
             ctx.beginPath();
             for (let j = 0; j < 6; j++) {
                 let angle = (Math.PI / 3) * j;
@@ -266,19 +256,16 @@
             }
             ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
 
-            // Draw Note Text
             ctx.fillStyle = '#fff'; ctx.font = 'bold 16px monospace'; 
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(notes[e.note], e.x, e.y);
 
-            // Floor Collision (Damage)
             if (e.y > canvas.height - 50) {
                 createExplosion(e.x, e.y, '#ff0000');
                 enemies.splice(i, 1);
                 health -= 10;
                 updateHealthUI();
                 
-                // Red screen flash
                 ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -290,7 +277,6 @@
             }
         }
 
-        // --- DRAW PARTICLES ---
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i];
             p.x += p.vx; p.y += p.vy;
@@ -304,7 +290,6 @@
             if (p.life <= 0) particles.splice(i, 1);
         }
 
-        // --- DRAW CANNON & LASER ---
         if (laser) {
             ctx.strokeStyle = laser.color;
             ctx.lineWidth = 6;
@@ -316,10 +301,9 @@
             ctx.shadowBlur = 0;
         }
 
-        // Cannon Turret
         ctx.fillStyle = '#333'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(cannon.x, cannon.y, 20, Math.PI, 0); ctx.fill(); ctx.stroke();
-        ctx.fillRect(cannon.x - 5, cannon.y - 35, 10, 20); // Barrel
+        ctx.fillRect(cannon.x - 5, cannon.y - 35, 10, 20); 
     }
 </script>
 </body>
