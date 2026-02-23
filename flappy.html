@@ -13,27 +13,21 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 60px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
         .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
         .title { font-size: 20px; font-weight: bold; color: #00ffcc; letter-spacing: 2px; }
         .score-display { font-size: 24px; color: #fff; font-weight: bold; }
         .high-score { font-size: 14px; color: #ff8c00; text-align: right; }
-        
         .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; margin-top: 10px; width: fit-content; }
         .target-text { font-size: 14px; color: #ff8c00; }
-
         .controls { display: flex; gap: 10px; pointer-events: auto; flex-wrap: wrap; }
         button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
         button:active { transform: translate(2px, 2px); }
-
         #btn-mic { border-color: #0f0; color: #0f0; }
         #btn-mode { border-color: #00ffcc; color: #00ffcc; }
         #btn-speed { border-color: #ff00ff; color: #ff00ff; }
-        
         #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff0055; }
         #game-over h1 { color: #ff0055; margin: 0 0 20px 0; }
     </style>
@@ -121,12 +115,11 @@
     let targetNote = -1;
     let frames = 0;
 
-    // Slower Defaults
     let speedMultiplier = 1.0;
     let basePipeSpeed = 2;
     let baseSpawnRate = 180;
 
-    let bird = { x: 100, y: 300, radius: 15, velocity: 0, gravity: 0.4, flapPower: -8 };
+    let bird = { x: 100, y: 300, radius: 18, velocity: 0, gravity: 0.4, flapPower: -8 };
     let pipes = [];
     const pipeWidth = 60;
     const pipeGap = 200;
@@ -155,7 +148,7 @@
         if (speedMultiplier === 1.0) { speedMultiplier = 1.5; btnSpeed.innerText = "SPEED: 1.5x"; }
         else if (speedMultiplier === 1.5) { speedMultiplier = 2.0; btnSpeed.innerText = "SPEED: 2.0x (HARDCORE)"; }
         else { speedMultiplier = 1.0; btnSpeed.innerText = "SPEED: 1.0x"; }
-        resetGame(); // Reset to apply speed fairly
+        resetGame();
     });
 
     btnMode.addEventListener('click', () => {
@@ -185,10 +178,22 @@
     });
 
     function spawnPipe() {
-        let minHeight = 50;
-        let maxHeight = canvas.height - pipeGap - minHeight;
-        let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
-        pipes.push({ x: canvas.width, top: topHeight, passed: false });
+        let gapCenterY;
+        let noteForGap = -1;
+
+        if (mode === 'EASY') {
+            // Force the pipe gap to align perfectly with one of the 12 note lanes
+            noteForGap = Math.floor(Math.random() * 12);
+            gapCenterY = canvas.height - ((noteForGap / 11) * (canvas.height - 100)) - 50;
+        } else {
+            // Hard mode: Random height
+            let minCenter = 50 + pipeGap/2;
+            let maxCenter = canvas.height - 50 - pipeGap/2;
+            gapCenterY = minCenter + Math.random() * (maxCenter - minCenter);
+        }
+
+        let topHeight = gapCenterY - (pipeGap / 2);
+        pipes.push({ x: canvas.width, top: topHeight, passed: false, gapNote: noteForGap });
     }
 
     function checkCollision(p) {
@@ -206,20 +211,17 @@
     function handleGameOver() {
         isGameOver = true;
         finalScore.innerText = score;
-        
         if (score > highScore) {
             highScore = score;
             localStorage.setItem('flappyHighScore', highScore);
             highScoreText.innerText = Math.floor(highScore);
         }
-        
         gameOverPanel.style.display = 'block';
     }
 
     function renderFrame() {
         if (!audio.isRunning) return;
         requestAnimationFrame(renderFrame);
-        
         if (isGameOver) return; 
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -273,7 +275,6 @@
             }
         }
 
-        // --- DRAW BACKGROUND SUN ---
         let sunColor = mode === 'EASY' ? '#00ffcc' : (targetNote !== -1 ? '#ff8c00' : '#333');
         ctx.shadowBlur = 50; ctx.shadowColor = sunColor; ctx.fillStyle = sunColor;
         ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height / 2, 80, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
@@ -298,13 +299,16 @@
 
             ctx.fillRect(p.x, 0, pipeWidth, p.top);
             ctx.strokeRect(p.x, 0, pipeWidth, p.top);
-            
             ctx.fillRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - p.top - pipeGap);
             ctx.strokeRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - p.top - pipeGap);
 
             // --- TARGET NOTE IN PIPE GAP ---
-            if (mode === 'HARD' && targetNote !== -1) {
-                ctx.fillStyle = 'rgba(255, 140, 0, 0.6)'; 
+            if (mode === 'EASY' && p.gapNote !== -1) {
+                ctx.fillStyle = 'rgba(0, 255, 204, 0.8)'; 
+                ctx.font = 'bold 24px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(notes[p.gapNote], p.x + pipeWidth/2, p.top + pipeGap/2);
+            } else if (mode === 'HARD' && targetNote !== -1) {
+                ctx.fillStyle = 'rgba(255, 140, 0, 0.8)'; 
                 ctx.font = 'bold 24px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(notes[targetNote], p.x + pipeWidth/2, p.top + pipeGap/2);
             }
@@ -326,7 +330,7 @@
         
         // --- CURRENT NOTE IN BIRD ---
         if (currentNote !== -1) {
-            ctx.fillStyle = '#000'; ctx.font = 'bold 12px monospace'; 
+            ctx.fillStyle = '#000'; ctx.font = 'bold 14px monospace'; 
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(notes[currentNote], bird.x, bird.y);
         }
