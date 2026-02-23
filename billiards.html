@@ -2,21 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Winding Room</title>
     <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
+        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        /* Fixed UI Overlap - 110px padding */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 60px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
         
         .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; pointer-events: auto; }
         .data-text { font-size: 10px; color: #00ffcc; margin-top: 5px; }
         
-        .controls { display: flex; gap: 10px; pointer-events: auto; }
+        .controls { display: flex; gap: 10px; pointer-events: auto; margin-bottom: 20px; }
         button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono'; cursor: pointer; text-transform: uppercase; font-size: 10px; }
         
         #result-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff00ff; }
@@ -73,14 +72,14 @@
     function resize() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         sqSize = Math.min(canvas.width, canvas.height) * 0.6;
-        sqX = (canvas.width - sqSize) / 2; sqY = (canvas.height - sqSize) / 2 + 50;
+        sqX = (canvas.width - sqSize) / 2; sqY = (canvas.height - sqSize) / 2 + 30;
         resetBall();
     }
     window.addEventListener('resize', resize); resize();
 
     function resetBall() {
         ball.active = false;
-        ball.x = sqX + 10; // Start slightly inside
+        ball.x = sqX + 10; 
         ball.y = sqY + sqSize - 10;
         pathHistory = []; bounces = 0;
         resultPanel.style.display = 'none';
@@ -95,8 +94,6 @@
 
     btnShoot.addEventListener('click', () => {
         ball.active = true;
-        // CORRECT TRAJECTORY MATH: Use the frequency ratio to determine the slope (Angle)
-        // This forces the ball to weave through the center [cite: 2026-02-21]
         let speed = 7;
         let angle = Math.atan(currentRatio);
         ball.vx = speed * Math.cos(angle);
@@ -106,9 +103,8 @@
 
     function render() {
         requestAnimationFrame(render);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Square Arena [cite: 2026-02-21]
         ctx.strokeStyle = '#444'; ctx.lineWidth = 3; ctx.strokeRect(sqX, sqY, sqSize, sqSize);
 
         if (audio.isRunning) {
@@ -122,14 +118,23 @@
             }
         }
 
+        // Restore Lissajous Standing Wave before firing
+        if (!ball.active && currentRatio > 1.0) {
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 0, 255, 0.4)'; ctx.lineWidth = 1;
+            for (let t = 0; t < 100; t += 0.1) {
+                let lx = sqX + (0.5 + 0.5 * Math.sin(t)) * sqSize;
+                let ly = sqY + (0.5 + 0.5 * Math.sin(t * currentRatio)) * sqSize;
+                t === 0 ? ctx.moveTo(lx, ly) : ctx.lineTo(lx, ly);
+            }
+            ctx.stroke();
+        }
+
         if (ball.active) {
             ball.x += ball.vx; ball.y += ball.vy;
 
-            // Wall Collisions
             if (ball.x <= sqX || ball.x >= sqX + sqSize) { ball.vx *= -1; bounces++; }
             if (ball.y <= sqY || ball.y >= sqY + sqSize) { ball.vy *= -1; bounces++; }
 
-            // Corner Detection [cite: 2026-02-21]
             let corners = [[sqX, sqY], [sqX+sqSize, sqY], [sqX, sqY+sqSize], [sqX+sqSize, sqY+sqSize]];
             corners.forEach(c => {
                 if (Math.hypot(ball.x - c[0], ball.y - c[1]) < 15 && bounces > 1) {
@@ -144,7 +149,6 @@
             if (bounces > 150) resetBall();
         }
 
-        // Draw Path
         if (pathHistory.length > 1) {
             ctx.beginPath(); ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 1;
             ctx.moveTo(pathHistory[0].x, pathHistory[0].y);
@@ -152,7 +156,6 @@
             ctx.stroke();
         }
 
-        // Draw Ball
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); ctx.fill();
     }
     render();
