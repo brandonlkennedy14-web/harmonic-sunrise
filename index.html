@@ -13,37 +13,29 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 60px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
         .hud { text-shadow: 2px 2px 0 #000; font-size: 12px; pointer-events: auto; display: flex; justify-content: space-between; width: 100%; }
         .title { font-size: 20px; font-weight: bold; color: #ff8c00; letter-spacing: 2px; transition: color 0.5s; }
         .subtitle { color: #aaa; font-size: 10px; margin-top: 5px; }
-
         .hud-left { flex: 1; }
         .hud-right { text-align: right; }
         .score-display { font-size: 24px; color: #0f0; font-weight: bold; transition: color 0.5s; }
         .high-score { font-size: 14px; color: #ff8c00; font-weight: bold; margin-bottom: 5px; }
         .multiplier { font-size: 14px; color: #ff0055; margin-top: 5px; transition: all 0.2s; }
         .strike-text { color: #fff; font-size: 18px; position: absolute; top: 80px; right: 20px; opacity: 0; transition: opacity 0.3s; text-shadow: 0 0 10px #ff0055; font-weight: bold; }
-
         .controls { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         button, .btn-link { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; text-decoration: none; display: inline-block; box-sizing: border-box; }
         button:active, .btn-link:active { transform: translate(2px, 2px); }
         input[type="range"] { width: 100px; }
-
         #btn-mic { border-color: #0f0; color: #0f0; }
         #btn-beat { border-color: #ff0055; color: #ff0055; }
         #btn-timing { border-color: #00ffcc; color: #00ffcc; }
         #btn-coffee { border-color: #ffd700; color: #ffd700; }
-
         #organic-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: linear-gradient(to bottom, #0a0015, #2a0845); opacity: 0; transition: opacity 0.5s; }
-
         .hud-ratios { margin-top: 15px; font-size: 12px; }
         .ratio-box { padding: 4px; border-left: 3px solid #fff; margin-bottom: 4px; background: rgba(0,0,0,0.5); transition: border-color 0.5s, color 0.5s; }
-
         #codex-panel { position: absolute; top: 120px; right: 20px; width: 220px; background: rgba(0,0,0,0.8); border: 2px solid #ffcc00; padding: 10px; box-sizing: border-box; pointer-events: auto; display: none; }
         .codex-title { color: #ffcc00; font-size: 12px; text-align: center; border-bottom: 1px solid #ffcc00; padding-bottom: 5px; margin-bottom: 10px; }
         .codex-section { margin-bottom: 10px; }
@@ -115,7 +107,7 @@
             <button id="btn-timing">MODE: STANDARD</button>
             <button id="btn-vision">VISUAL: ORGANIC</button>
             <button id="btn-inst">INST: NONE</button>
-            <a href="https://buymeacoffee.com/brandonkennedy" target="_blank" id="btn-coffee" class="btn-link">BUY ME A COFFEE</a>
+            <a href="https://buymeacoffee.com/brandonkennedy" target="_blank" class="btn-link">BUY ME A COFFEE</a>
         </div>
     </div>
 
@@ -165,7 +157,6 @@
     let nextNoteTime = 0.0; let currentNote = 0; let isBeatRunning = false;
     let timerID; let lastBeatTime = 0; let lastBeatDuration = 0;
 
-    // Local Leaderboard
     let highScore = localStorage.getItem('sunriseHighScore') || 0;
     highScoreText.innerText = Math.floor(highScore);
 
@@ -258,7 +249,6 @@
         requestAnimationFrame(renderFrame); 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Visual flash (Metronome)
         if (visualFlashOpacity > 0.01) {
             ctx.lineWidth = 20;
             ctx.strokeStyle = visualFlashColor + visualFlashOpacity + ')';
@@ -269,7 +259,6 @@
         let hasFourth = false; let hasFifth = false; activeNotes.clear(); 
         let intervalPlayedThisFrame = false;
 
-        // ONLY RUN AUDIO LOGIC IF MIC IS STARTED
         if (audio.isRunning) {
             let peaks = audio.getPeaks(90);
 
@@ -313,7 +302,6 @@
             hGame.innerText = game.phase === 'SUNRISE' ? "PHASE: LIFT OFF (Play Fourths)" : "PHASE: ORBIT (Maintain with Fifths)";
             hGame.style.color = game.phase === 'SUNRISE' ? "#ff8c00" : "#0f0";
             
-            // Handle Leaderboard
             scoreText.innerText = Math.floor(game.score); 
             if (game.score > highScore) {
                 highScore = game.score;
@@ -325,7 +313,6 @@
             multiText.style.color = game.multiplier > 2.0 ? "#0f0" : "#ff0055";
         }
 
-        // --- VISUAL RENDERING (Runs instantly on load) ---
         let cx = canvas.width / 2; 
         let cy = canvas.height / 2;
 
@@ -406,7 +393,6 @@
         }
     }
     
-    // Kickstart the rendering loop instantly
     renderFrame();
 </script>
 </body>
