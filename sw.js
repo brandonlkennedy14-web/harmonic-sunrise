@@ -1,4 +1,4 @@
-const CACHE_NAME = 'harmonic-arcade-v1';
+const CACHE_NAME = 'harmonic-arcade-v2';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -13,7 +13,6 @@ const ASSETS_TO_CACHE = [
     '/manifest.json'
 ];
 
-// Install Event: Cache the files
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
@@ -22,7 +21,20 @@ self.addEventListener('install', event => {
     );
 });
 
-// Fetch Event: Serve from cache if offline
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cache => {
+                    if (cache !== CACHE_NAME) {
+                        return caches.delete(cache);
+                    }
+                })
+            );
+        })
+    );
+});
+
 self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request).then(response => {
