@@ -2,28 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Harmonic Invaders</title>
     <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
-        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        body { margin: 0; padding: 0; background: #050505; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
+        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; image-rendering: pixelated; }
         
-        /* Fixed UI Overlap - 110px padding */
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
         
         .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
         .title { font-size: 20px; font-weight: bold; color: #ff0055; letter-spacing: 2px; }
-        .score-display { font-size: 24px; color: #0f0; font-weight: bold; }
+        .score-display { font-size: 24px; color: #0f0; font-weight: bold; text-align: right; }
         
-        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; margin-top: 10px; width: fit-content; }
-        .health-text { color: #00ffcc; font-size: 14px; font-weight: bold;}
+        .hud-box { background: rgba(0,0,0,0.8); padding: 10px; border: 2px solid #333; margin-top: 10px; width: fit-content; }
+        .power-text { color: #ff8c00; font-size: 12px; font-weight: bold; margin-top: 5px; }
 
-        .controls { display: flex; gap: 10px; pointer-events: auto; }
-        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono'; cursor: pointer; text-transform: uppercase; font-size: 10px; }
+        .controls { display: flex; gap: 10px; pointer-events: auto; justify-content: center; }
+        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 15px 25px; font-family: 'Space Mono'; cursor: pointer; text-transform: uppercase; font-size: 14px; font-weight: bold;}
         
-        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff0055; }
+        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.95); padding: 40px; border: 4px solid #ff0055; }
+        #game-over h1 { color: #ff0055; margin: 0 0 10px 0; font-size: 28px; }
     </style>
 </head>
 <body>
@@ -44,21 +44,25 @@
             <div>
                 <div class="title">HARMONIC INVADERS</div>
                 <div class="hud-box">
-                    <div id="status-health" class="health-text">CITY INTEGRITY: 100%</div>
+                    <div id="status-health" style="color: #00ffcc; font-size: 14px; font-weight: bold;">CITY STATUS: STABLE</div>
+                    <div id="power-meter" class="power-text">POWER-CHORD: 0/10</div>
                 </div>
             </div>
-            <div class="score-display" id="score-text">0</div>
+            <div>
+                <div style="font-size: 10px; color: #aaa; text-align: right;">SCORE</div>
+                <div class="score-display" id="score-text">0</div>
+            </div>
         </div>
 
         <div class="controls">
-            <button id="btn-mic">START SCANNER</button>
+            <button id="btn-mic">INITIALIZE WEAPONS</button>
         </div>
     </div>
 
     <div id="game-over">
-        <h1 style="color: #ff0055;">CITY DESTROYED</h1>
-        <p>Final Score: <span id="final-score">0</span></p>
-        <button onclick="location.reload()" style="border-color:#0f0; color:#0f0; margin-top:10px;">REDEPLOY</button>
+        <h1>CITY DESTROYED</h1>
+        <p style="font-size: 18px;">FINAL SCORE: <span id="final-score" style="color:#0f0;">0</span></p>
+        <button id="btn-restart" style="border-color:#0f0; color:#0f0; margin-top:20px;">REDEPLOY</button>
     </div>
 
 <script type="module">
@@ -69,75 +73,375 @@
     const ctx = canvas.getContext('2d');
     const audio = new AudioEngine();
 
-    let enemies = [], laser = null, cannon = { x: 0, y: 0 }, health = 100, score = 0, frames = 0;
+    // Game Variables
+    let gameState = 'IDLE'; // IDLE, PLAYING, GAMEOVER
+    let score = 0;
+    let frames = 0;
+    let laneWidth = 0;
+    
+    // Entities
+    let enemies = [];
+    let lasers = [];
+    let particles = [];
+    let cityBlocks = [];
+    let cityHealth = 100;
+    
+    // Power Up
+    let powerMeter = 0;
+    const POWER_MAX = 10;
+    let flashTimer = 0;
+
+    // Boss Mechanics
+    let boss = null;
+    let bossSpawnScore = 100;
+    
+    // Anti-spam
+    let lastPlayedNote = -1;
+    let silentFrames = 0;
 
     function resize() { 
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
-        cannon.x = canvas.width / 2;
-        cannon.y = canvas.height - 80; // Cannon higher up for mobile visibility
+        canvas.width = window.innerWidth; 
+        canvas.height = window.innerHeight; 
+        laneWidth = canvas.width / 12;
+        initCity();
     }
     window.addEventListener('resize', resize); resize();
 
+    // Generate Retro Pixel City
+    function initCity() {
+        cityBlocks = [];
+        cityHealth = 100;
+        let cols = Math.floor(canvas.width / 8);
+        let rows = 6;
+        let startY = canvas.height - (rows * 8);
+
+        for (let c = 0; c < cols; c++) {
+            // Generate simple skyline shapes
+            let heightLimit = Math.floor(Math.random() * rows) + 2; 
+            for (let r = 0; r < heightLimit; r++) {
+                cityBlocks.push({
+                    x: c * 8,
+                    y: canvas.height - (r * 8) - 8,
+                    w: 8, h: 8,
+                    color: (Math.random() > 0.8) ? '#00ffcc' : '#0055aa' // Randomly light up windows
+                });
+            }
+        }
+    }
+
+    function resetGame() {
+        enemies = [];
+        lasers = [];
+        particles = [];
+        boss = null;
+        score = 0;
+        frames = 0;
+        powerMeter = 0;
+        bossSpawnScore = 100;
+        initCity();
+        gameState = 'PLAYING';
+        document.getElementById('game-over').style.display = 'none';
+        updateHUD();
+    }
+
     document.getElementById('btn-mic').addEventListener('click', async (e) => {
-        if (await audio.startMic()) e.target.style.display = 'none';
-        render();
+        if (await audio.startMic()) {
+            e.target.style.display = 'none';
+            resetGame();
+        }
     });
 
+    document.getElementById('btn-restart').addEventListener('click', resetGame);
+
+    function updateHUD() {
+        document.getElementById('score-text').innerText = score;
+        
+        let healthText = document.getElementById('status-health');
+        healthText.innerText = `CITY HEALTH: ${cityHealth}%`;
+        healthText.style.color = cityHealth > 50 ? '#00ffcc' : (cityHealth > 25 ? '#ff8c00' : '#ff0055');
+
+        let powerText = document.getElementById('power-meter');
+        if (powerMeter >= POWER_MAX) {
+            powerText.innerText = "POWER CHORD: READY (PLAY P5)";
+            powerText.style.color = "#0f0";
+            powerText.style.textShadow = "0 0 10px #0f0";
+        } else {
+            powerText.innerText = `POWER-CHORD: ${powerMeter}/${POWER_MAX}`;
+            powerText.style.color = "#ff8c00";
+            powerText.style.textShadow = "none";
+        }
+    }
+
+    function spawnParticleExplosion(x, y, color, count) {
+        for (let i = 0; i < count; i++) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                life: 1.0,
+                color: color,
+                size: Math.random() * 4 + 2
+            });
+        }
+    }
+
+    function damageCity(x) {
+        let blastRadius = 40;
+        let damageDone = 0;
+        for (let i = cityBlocks.length - 1; i >= 0; i--) {
+            let b = cityBlocks[i];
+            let dist = Math.hypot(b.x - x, b.y - (canvas.height - 10));
+            if (dist < blastRadius) {
+                spawnParticleExplosion(b.x, b.y, b.color, 1);
+                cityBlocks.splice(i, 1);
+                damageDone++;
+            }
+        }
+        if (damageDone > 0) {
+            cityHealth = Math.max(0, cityHealth - 5);
+            updateHUD();
+            if (cityHealth <= 0) {
+                gameState = 'GAMEOVER';
+                document.getElementById('final-score').innerText = score;
+                document.getElementById('game-over').style.display = 'block';
+            }
+        }
+    }
+
     function spawnEnemy() {
-        let n = Math.floor(Math.random() * 12);
+        if (boss) return; // Don't spawn basic enemies during boss fight
+        let note = Math.floor(Math.random() * 12);
         enemies.push({
-            x: 50 + Math.random() * (canvas.width - 100),
+            x: (note * laneWidth) + (laneWidth / 2),
             y: -30,
-            note: n,
-            color: colorPalettes[Math.floor(n / 4)],
-            radius: 25
+            note: note,
+            color: colorPalettes[Math.floor(note / 4)],
+            speed: 1 + (score / 200) // Gradually speed up
         });
     }
 
-    function render() {
-        requestAnimationFrame(render);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        frames++; laser = null;
+    function spawnBoss() {
+        boss = {
+            note: Math.floor(Math.random() * 12),
+            y: 80,
+            hp: 5,
+            maxHp: 5,
+            shieldTimer: 0,
+            shieldOpen: false
+        };
+    }
 
+    function triggerPowerChord() {
+        powerMeter = 0;
+        flashTimer = 20; // Flash screen white
+        updateHUD();
+
+        // Nuke all normal enemies
+        enemies.forEach(e => spawnParticleExplosion(e.x, e.y, e.color, 10));
+        score += enemies.length * 10;
+        enemies = [];
+
+        // Damage Boss heavily
+        if (boss) {
+            spawnParticleExplosion(canvas.width/2, boss.y, '#fff', 30);
+            boss.hp -= 3;
+            if (boss.hp <= 0) killBoss();
+        }
+        updateHUD();
+    }
+
+    function killBoss() {
+        spawnParticleExplosion(canvas.width/2, boss.y, '#ff00ff', 50);
+        boss = null;
+        score += 50;
+        bossSpawnScore = score + 100; // Schedule next boss
+        updateHUD();
+    }
+
+    // --- RENDER LOOP ---
+    function renderFrame() {
+        requestAnimationFrame(renderFrame);
+        if (gameState !== 'PLAYING') return;
+
+        // Screen Flash for Power Up
+        if (flashTimer > 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashTimer / 20})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            flashTimer--;
+        } else {
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        frames++;
+
+        // Draw Lanes (Faint Grid)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i < 12; i++) {
+            ctx.beginPath(); ctx.moveTo(i * laneWidth, 0); ctx.lineTo(i * laneWidth, canvas.height); ctx.stroke();
+        }
+
+        // --- AUDIO INPUT PROCESSING ---
         if (audio.isRunning) {
             let peaks = audio.getPeaks(95);
-            if (peaks.length > 0) {
-                let current = hzToPitchClass(peaks[0].hz);
-                let targetIdx = enemies.findIndex(e => e.note === current);
-                if (targetIdx !== -1) {
-                    let e = enemies[targetIdx];
-                    laser = { x: e.x, y: e.y, color: e.color };
-                    enemies.splice(targetIdx, 1);
-                    score += 10;
-                    document.getElementById('score-text').innerText = score;
+            
+            if (peaks.length === 0) {
+                silentFrames++;
+                if (silentFrames > 10) lastPlayedNote = -1; // Reset trigger
+            } else {
+                silentFrames = 0;
+                
+                // Double Stop Power-Chord Detection
+                if (peaks.length >= 2 && powerMeter >= POWER_MAX) {
+                    let n1 = hzToPitchClass(peaks[0].hz);
+                    let n2 = hzToPitchClass(peaks[1].hz);
+                    if (n1 !== -1 && n2 !== -1) {
+                        let interval = Math.abs(n1 - n2);
+                        if (interval === 7 || interval === 5) { // Perfect 5th or 4th
+                            triggerPowerChord();
+                            lastPlayedNote = -2; // Prevent firing single laser
+                        }
+                    }
+                } 
+                
+                // Standard Single Shot
+                if (peaks.length > 0) {
+                    let currentNote = hzToPitchClass(peaks[0].hz);
+                    if (currentNote !== -1 && currentNote !== lastPlayedNote) {
+                        // Fire Laser in Note Lane
+                        lasers.push({
+                            x: (currentNote * laneWidth) + (laneWidth / 2),
+                            y: canvas.height - 80,
+                            note: currentNote,
+                            color: colorPalettes[Math.floor(currentNote / 4)]
+                        });
+                        lastPlayedNote = currentNote;
+                    }
                 }
             }
         }
 
-        if (frames % 120 === 0) spawnEnemy();
+        // --- UPDATE & DRAW LASERS ---
+        for (let i = lasers.length - 1; i >= 0; i--) {
+            let l = lasers[i];
+            l.y -= 15; // Fast laser speed
 
-        enemies.forEach((e, i) => {
-            e.y += 1.5;
-            ctx.fillStyle = e.color; ctx.beginPath(); ctx.arc(e.x, e.y, e.radius, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.fillText(notes[e.note], e.x, e.y+5);
-            
-            if (e.y > cannon.y) {
-                enemies.splice(i, 1);
-                health -= 10;
-                document.getElementById('status-health').innerText = `CITY INTEGRITY: ${health}%`;
-                if (health <= 0) {
-                    document.getElementById('game-over').style.display = 'block';
-                    document.getElementById('final-score').innerText = score;
+            ctx.fillStyle = l.color;
+            ctx.shadowBlur = 10; ctx.shadowColor = l.color;
+            ctx.fillRect(l.x - 3, l.y, 6, 20);
+            ctx.shadowBlur = 0;
+
+            let hit = false;
+
+            // Collision with Boss
+            if (boss && Math.abs(l.note - boss.note) === 0 && l.y < boss.y + 40 && l.y > boss.y - 40) {
+                hit = true;
+                if (boss.shieldOpen) {
+                    boss.hp--;
+                    spawnParticleExplosion(l.x, l.y, l.color, 15);
+                    if (boss.hp <= 0) killBoss();
+                } else {
+                    spawnParticleExplosion(l.x, l.y, '#555', 5); // Absorbed
                 }
             }
+
+            // Collision with normal enemies
+            if (!hit) {
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    if (l.note === e.note && l.y < e.y + 20 && l.y > e.y - 20) {
+                        hit = true;
+                        spawnParticleExplosion(e.x, e.y, e.color, 10);
+                        enemies.splice(j, 1);
+                        score += 10;
+                        if (powerMeter < POWER_MAX) powerMeter++;
+                        updateHUD();
+                        break;
+                    }
+                }
+            }
+
+            if (hit || l.y < 0) lasers.splice(i, 1);
+        }
+
+        // --- UPDATE & DRAW ENEMIES ---
+        if (!boss && score >= bossSpawnScore) spawnBoss();
+        if (!boss && frames % Math.max(40, 120 - Math.floor(score/10)) === 0) spawnEnemy();
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            let e = enemies[i];
+            e.y += e.speed;
+            
+            // Draw Retro Alien (Pixelated)
+            ctx.fillStyle = e.color;
+            let s = 4; // Pixel size
+            ctx.fillRect(e.x - s*2, e.y - s*2, s*5, s);
+            ctx.fillRect(e.x - s*3, e.y - s, s*7, s);
+            ctx.fillRect(e.x - s*3, e.y, s*2, s); ctx.fillRect(e.x + s, e.y, s*2, s);
+            ctx.fillRect(e.x - s*2, e.y + s, s*5, s);
+
+            // Draw Target Note
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+            ctx.fillText(notes[e.note], e.x, e.y - 15);
+
+            if (e.y > canvas.height - 40) {
+                damageCity(e.x);
+                spawnParticleExplosion(e.x, e.y, '#ff0000', 15);
+                enemies.splice(i, 1);
+            }
+        }
+
+        // --- UPDATE & DRAW BOSS ---
+        if (boss) {
+            let bx = (boss.note * laneWidth) + (laneWidth / 2);
+            
+            boss.shieldTimer++;
+            if (boss.shieldTimer > 120) { // Toggle shield every 2 seconds
+                boss.shieldOpen = !boss.shieldOpen;
+                boss.shieldTimer = 0;
+                if(boss.shieldOpen) boss.note = Math.floor(Math.random() * 12); // Change target when opening
+            }
+
+            // Draw Boss Body
+            ctx.fillStyle = '#ff00ff';
+            ctx.fillRect(bx - 30, boss.y - 20, 60, 40);
+            ctx.fillStyle = '#000'; ctx.font = 'bold 20px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(notes[boss.note], bx, boss.y);
+
+            // Draw Boss Health
+            ctx.fillStyle = '#ff0055'; ctx.fillRect(bx - 30, boss.y - 30, 60, 5);
+            ctx.fillStyle = '#0f0'; ctx.fillRect(bx - 30, boss.y - 30, 60 * (boss.hp/boss.maxHp), 5);
+
+            // Draw Shield
+            if (!boss.shieldOpen) {
+                ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(bx, boss.y, 50, 0, Math.PI*2); ctx.stroke();
+            } else {
+                // Warning brackets
+                ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(bx, boss.y, 50, -0.5, 0.5); ctx.stroke();
+                ctx.beginPath(); ctx.arc(bx, boss.y, 50, Math.PI-0.5, Math.PI+0.5); ctx.stroke();
+            }
+        }
+
+        // --- DRAW CITY ---
+        cityBlocks.forEach(b => {
+            ctx.fillStyle = b.color;
+            ctx.fillRect(b.x, b.y, b.w, b.h);
         });
 
-        if (laser) {
-            ctx.strokeStyle = laser.color; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(cannon.x, cannon.y); ctx.lineTo(laser.x, laser.y); ctx.stroke();
+        // --- UPDATE & DRAW PARTICLES ---
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx; p.y += p.vy;
+            p.life -= 0.05;
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = Math.max(0, p.life);
+            ctx.fillRect(p.x, p.y, p.size, p.size); // Blocky particles
+            ctx.globalAlpha = 1.0;
+            if (p.life <= 0) particles.splice(i, 1);
         }
-
-        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(cannon.x, cannon.y, 20, Math.PI, 0); ctx.fill();
     }
 </script>
 </body>
