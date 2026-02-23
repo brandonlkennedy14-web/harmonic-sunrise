@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constellation Weaver</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
+
+        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
+        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 70px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
+        .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
+        .title { font-size: 20px; font-weight: bold; color: #b366ff; letter-spacing: 2px; }
+        .score-display { font-size: 24px; color: #00ffcc; font-weight: bold; text-shadow: 0 0 10px #00ffcc; }
+        
+        .hud-box { background: rgba(0,0,0,0.7); padding: 15px; border: 1px solid #b366ff; margin-top: 10px; width: fit-content; border-radius: 5px; box-shadow: 0 0 15px rgba(179, 102, 255, 0.2); }
+        .data-text { font-size: 14px; margin-bottom: 5px; }
+        .data-label { color: #aaa; font-size: 10px; }
+        .data-value { font-weight: bold; font-size: 16px; }
+        
+        #val-current { color: #ff8c00; }
+        #val-interval { color: #ff00ff; }
+        #val-target { color: #0f0; }
+
+        .controls { display: flex; gap: 10px; pointer-events: auto; }
+        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
+        button:active { transform: translate(2px, 2px); }
+
+        #btn-mic { border-color: #0f0; color: #0f0; }
+        #btn-mode { border-color: #b366ff; color: #b366ff; }
+    </style>
+</head>
+<body>
+
+    <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
+        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold; transition: color 0.2s;">[1] SUNRISE</a>
+        <span style="color: #555;">|</span>
+        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold; transition: color 0.2s;">[2] FLAPPY</a>
+        <span style="color: #555;">|</span>
+        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[3] WINDING</a>
+        <span style="color: #555;">|</span>
+        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold; transition: color 0.2s;">[4] INVADERS</a>
+        <span style="color: #555;">|</span>
+        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[5] WEAVER</a>
+        <span style="color: #555;">|</span>
+        <span style="color: #777; font-weight: bold; opacity: 0.5; cursor: not-allowed;">[6] SIMON</span>
+    </div>
+
+    <canvas id="c-weaver"></canvas>
+
+    <div id="ui-layer">
+        <div class="hud">
+            <div>
+                <div class="title">CONSTELLATION WEAVER</div>
+                <div class="hud-box">
+                    <div class="data-text"><span class="data-label">STARTING STAR: </span><span class="data-value" id="val-current">--</span></div>
+                    <div class="data-text"><span class="data-label">JUMP REQUIRED: </span><span class="data-value" id="val-interval">--</span></div>
+                    <div class="data-text" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px;">
+                        <span class="data-label">TARGET NOTE: </span><span class="data-value" id="val-target">--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="score-display">STARS LINKED: <span id="score-text">0</span></div>
+        </div>
+
+        <div class="controls">
+            <button id="btn-mic">START SCANNER (MIC)</button>
+            <button id="btn-mode">MODE: STUDY</button>
+        </div>
+    </div>
+
+<script type="module">
+    import { AudioEngine } from './audio.js';
+    import { notes, hzToPitchClass } from './theory.js';
+
+    const canvas = document.getElementById('c-weaver');
+    const ctx = canvas.getContext('2d');
+    const audio = new AudioEngine();
+
+    // UI Elements
+    const btnMic = document.getElementById('btn-mic');
+    const btnMode = document.getElementById('btn-mode');
+    const scoreText = document.getElementById('score-text');
+    const valCurrent = document.getElementById('val-current');
+    const valInterval = document.getElementById('val-interval');
+    const valTarget = document.getElementById('val-target');
+
+    // Interval Dictionary
+    const intervalDict = [
+        { name: "Minor 2nd", st: 1 }, { name: "Major 2nd", st: 2 },
+        { name: "Minor 3rd", st: 3 }, { name: "Major 3rd", st: 4 },
+        { name: "Perfect 4th", st: 5 }, { name: "Tritone", st: 6 },
+        { name: "Perfect 5th", st: 7 }, { name: "Minor 6th", st: 8 },
+        { name: "Major 6th", st: 9 }, { name: "Minor 7th", st: 10 },
+        { name: "Major 7th", st: 11 }
+    ];
+
+    // Game State
+    let mode = 'STUDY'; // 'STUDY' or 'BLIND'
+    let score = 0;
+    let bgStars = [];
+    let constellation = []; // History of played stars
+    let currentStar = null;
+    let targetStar = null;
+    
+    // Anti-spam
+    let hitCooldown = 0;
+
+    function resize() { 
+        canvas.width = window.innerWidth; 
+        canvas.height = window.innerHeight; 
+        generateBgStars();
+    }
+    window.addEventListener('resize', resize);
+
+    function generateBgStars() {
+        bgStars = [];
+        for (let i = 0; i < 150; i++) {
+            bgStars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2,
+                alpha: Math.random()
+            });
+        }
+    }
+
+    function generateNextStar() {
+        // Pick a random interval
+        let intObj = intervalDict[Math.floor(Math.random() * intervalDict.length)];
+        
+        // Calculate the target note (modulo 12 wraps it around the octave)
+        let targetNoteIdx = (currentStar.noteIdx + intObj.st) % 12;
+
+        // Pick a random spot on the canvas for the new star (keep away from edges/UI)
+        let paddingX = 100;
+        let paddingY = 200;
+        let newX = paddingX + Math.random() * (canvas.width - paddingX * 2);
+        let newY = paddingY + Math.random() * (canvas.height - paddingY * 2.5);
+
+        targetStar = {
+            x: newX,
+            y: newY,
+            noteIdx: targetNoteIdx,
+            intervalName: intObj.name,
+            pulse: 0
+        };
+
+        // Update HUD
+        valCurrent.innerText = notes[currentStar.noteIdx];
+        valInterval.innerText = `+ ${targetStar.intervalName}`;
+        
+        if (mode === 'STUDY') {
+            valTarget.innerText = notes[targetNoteIdx];
+            valTarget.style.color = "#0f0";
+        } else {
+            valTarget.innerText = "???";
+            valTarget.style.color = "#aaa";
+        }
+    }
+
+    function initGame() {
+        generateBgStars();
+        
+        // Start in the center with a random root note
+        currentStar = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            noteIdx: Math.floor(Math.random() * 12)
+        };
+        constellation.push(currentStar);
+        
+        generateNextStar();
+    }
+
+    btnMode.addEventListener('click', () => {
+        if (mode === 'STUDY') {
+            mode = 'BLIND';
+            btnMode.innerText = 'MODE: BLIND';
+            if (targetStar) {
+                valTarget.innerText = "???";
+                valTarget.style.color = "#aaa";
+            }
+        } else {
+            mode = 'STUDY';
+            btnMode.innerText = 'MODE: STUDY';
+            if (targetStar) {
+                valTarget.innerText = notes[targetStar.noteIdx];
+                valTarget.style.color = "#0f0";
+            }
+        }
+    });
+
+    btnMic.addEventListener('click', async () => {
+        const started = await audio.startMic();
+        if (started) {
+            btnMic.style.display = 'none';
+            initGame();
+            renderFrame();
+        }
+    });
+
+    function renderFrame() {
+        if (!audio.isRunning) return;
+        requestAnimationFrame(renderFrame);
+        
+        // Clear canvas with deep space blue/black
+        ctx.fillStyle = '#02000a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw background stars
+        bgStars.forEach(s => {
+            s.alpha += (Math.random() - 0.5) * 0.05;
+            if (s.alpha > 1) s.alpha = 1;
+            if (s.alpha < 0.2) s.alpha = 0.2;
+            
+            ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
+        });
+
+        // --- AUDIO PROCESSING ---
+        if (hitCooldown > 0) hitCooldown--;
+
+        let peaks = audio.getPeaks(95); 
+        let playedNoteIdx = -1;
+        
+        if (peaks.length > 0) {
+            playedNoteIdx = hzToPitchClass(peaks[0].hz);
+        }
+
+        // Logic Check: Did they play the target note?
+        if (playedNoteIdx !== -1 && playedNoteIdx === targetStar.noteIdx && hitCooldown === 0) {
+            score++;
+            scoreText.innerText = score;
+            
+            // The target becomes the new current star
+            currentStar = {
+                x: targetStar.x,
+                y: targetStar.y,
+                noteIdx: targetStar.noteIdx
+            };
+            constellation.push(currentStar);
+            
+            // Keep the constellation array from getting infinitely long to save memory
+            if (constellation.length > 15) constellation.shift();
+
+            generateNextStar();
+            hitCooldown = 60; // Wait 1 second before accepting the next note to prevent double-triggers
+        }
+
+        // --- DRAW CONSTELLATION LINES ---
+        if (constellation.length > 1) {
+            ctx.strokeStyle = 'rgba(179, 102, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(constellation[0].x, constellation[0].y);
+            for (let i = 1; i < constellation.length; i++) {
+                ctx.lineTo(constellation[i].x, constellation[i].y);
+            }
+            ctx.stroke();
+        }
+
+        // Draw the connection line bridging current star to target star (dashed)
+        if (currentStar && targetStar) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 10]); // Dashed line
+            ctx.beginPath();
+            ctx.moveTo(currentStar.x, currentStar.y);
+            ctx.lineTo(targetStar.x, targetStar.y);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset to solid
+        }
+
+        // --- DRAW STARS ---
+        // Draw History Nodes
+        constellation.forEach((star, index) => {
+            let isCurrent = (index === constellation.length - 1);
+            
+            ctx.beginPath(); 
+            ctx.arc(star.x, star.y, isCurrent ? 8 : 4, 0, Math.PI * 2);
+            
+            if (isCurrent) {
+                ctx.fillStyle = '#ff8c00'; // Current star glows orange
+                ctx.shadowBlur = 20; ctx.shadowColor = '#ff8c00';
+            } else {
+                ctx.fillStyle = '#b366ff'; // History stars are purple
+                ctx.shadowBlur = 10; ctx.shadowColor = '#b366ff';
+            }
+            
+            ctx.fill(); ctx.shadowBlur = 0;
+
+            // Draw text for the nodes
+            ctx.fillStyle = '#fff'; ctx.font = isCurrent ? 'bold 16px monospace' : '10px monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            ctx.fillText(notes[star.noteIdx], star.x, star.y - 12);
+        });
+
+        // Draw Target Star
+        if (targetStar) {
+            targetStar.pulse += 0.05;
+            let pSize = 5 + Math.sin(targetStar.pulse) * 3;
+
+            ctx.beginPath(); ctx.arc(targetStar.x, targetStar.y, pSize, 0, Math.PI * 2);
+            ctx.fillStyle = '#0f0';
+            ctx.shadowBlur = 20; ctx.shadowColor = '#0f0';
+            ctx.fill(); ctx.shadowBlur = 0;
+
+            if (mode === 'STUDY') {
+                ctx.fillStyle = '#0f0'; ctx.font = 'bold 14px monospace';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText(notes[targetStar.noteIdx], targetStar.x, targetStar.y - 12);
+            } else {
+                ctx.fillStyle = '#aaa'; ctx.font = 'bold 14px monospace';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText("???", targetStar.x, targetStar.y - 12);
+            }
+        }
+    }
+    
+    // Safety check to ensure init runs if user resizes window before clicking start
+    resize();
+</script>
+</body>
+</html>
