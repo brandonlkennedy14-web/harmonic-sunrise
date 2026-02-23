@@ -38,7 +38,7 @@
             <div class="hud-box">
                 <div style="color:#ff00ff; font-weight: bold; font-size: 16px;">THE WINDING ROOM</div>
                 <div id="hud-ratio" class="data-text">WAVE RATIO: --</div>
-                <div id="launch-warn" style="color: #ff0055; font-size: 10px; margin-top: 10px;">PLAY 2 QUICK NOTES TO LAUNCH</div>
+                <div id="launch-warn" style="color: #ff0055; font-size: 10px; margin-top: 10px;">PLAY SAME NOTE TWICE TO LAUNCH</div>
             </div>
             <div>
                 <div class="high-score">BEST: <span id="high-score-text">0</span></div>
@@ -75,11 +75,11 @@
     let ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 6, active: false };
     let bounces = 0, pathHistory = [];
     
-    // Double Stop & Steering Variables
     let lastHz = 0;
     let lastTime = 0;
-    let launchHz = 261.63; // Default baseline
+    let launchHz = 261.63; 
     let currentRatio = 1.0;
+    let hearingAudio = false;
 
     let highScore = 0;
     try { highScore = localStorage.getItem('windingHighScore') || 0; } catch(e) {}
@@ -87,22 +87,16 @@
 
     function resize() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        // Massively increased square size
         sqSize = Math.min(canvas.width, canvas.height) * 0.85;
-        sqX = (canvas.width - sqSize) / 2; 
-        sqY = (canvas.height - sqSize) / 2 + 30;
+        sqX = (canvas.width - sqSize) / 2; sqY = (canvas.height - sqSize) / 2 + 30;
         if(!ball.active) resetBall();
     }
     window.addEventListener('resize', resize); resize();
 
     function resetBall() {
-        ball.active = false; 
-        ball.x = sqX + 20; 
-        ball.y = sqY + sqSize - 20;
-        pathHistory = []; bounces = 0;
-        currentRatio = 1.0;
-        resultPanel.style.display = 'none'; 
-        btnShoot.style.display = 'block'; 
+        ball.active = false; ball.x = sqX + 20; ball.y = sqY + sqSize - 20;
+        pathHistory = []; bounces = 0; currentRatio = 1.0;
+        resultPanel.style.display = 'none'; btnShoot.style.display = 'block'; 
         document.getElementById('launch-warn').style.display = 'block';
         document.getElementById('score-text').innerText = bounces;
     }
@@ -110,20 +104,14 @@
     btnReset.addEventListener('click', resetBall);
 
     btnMic.addEventListener('click', async (e) => {
-        if (await audio.startMic()) {
-            e.target.style.display = 'none';
-            resetBall();
-        }
+        if (await audio.startMic()) { e.target.style.display = 'none'; resetBall(); }
     });
 
     function fireBall() {
         ball.active = true;
-        let speed = 6;
-        let angle = Math.atan(1.0); // Start with a perfect diagonal
-        ball.vx = speed * Math.cos(angle);
-        ball.vy = -speed * Math.sin(angle);
-        btnShoot.style.display = 'none';
-        document.getElementById('launch-warn').style.display = 'none';
+        let speed = 6; let angle = Math.atan(1.0); // 45 degree perfect launch
+        ball.vx = speed * Math.cos(angle); ball.vy = -speed * Math.sin(angle);
+        btnShoot.style.display = 'none'; document.getElementById('launch-warn').style.display = 'none';
     }
 
     btnShoot.addEventListener('click', fireBall);
@@ -132,59 +120,56 @@
         requestAnimationFrame(render);
         ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw Arena
         ctx.strokeStyle = '#444'; ctx.lineWidth = 3; ctx.strokeRect(sqX, sqY, sqSize, sqSize);
-        // Highlight Corners (Danger Zones)
         ctx.fillStyle = 'rgba(255, 0, 85, 0.5)';
         let corners = [[sqX, sqY], [sqX+sqSize, sqY], [sqX, sqY+sqSize], [sqX+sqSize, sqY+sqSize]];
         corners.forEach(c => { ctx.beginPath(); ctx.arc(c[0], c[1], 20, 0, Math.PI*2); ctx.fill(); });
 
         let now = Date.now();
+        hearingAudio = false;
 
         if (audio.isRunning) {
             let peaks = audio.getPeaks(85);
             if (peaks.length > 0) {
                 let currentHz = peaks[0].hz;
+                hearingAudio = true;
 
                 if (!ball.active) {
-                    // Successive Note (Double Stop) Detection for Launch
+                    currentRatio = 1.0; // Draw 1:1 circle before launch
                     let centsDiff = 1200 * Math.log2(currentHz / lastHz);
+                    
+                    // Double stop same note logic
                     if (Math.abs(centsDiff) < 50 && (now - lastTime > 150 && now - lastTime < 800)) {
                         launchHz = currentHz;
                         fireBall();
                     } else if (now - lastTime > 100) {
-                        lastHz = currentHz;
-                        lastTime = now;
+                        lastHz = currentHz; lastTime = now;
                     }
                 } else {
-                    // In-Flight Steering via Standing Wave
+                    // In-Flight Steering 
                     currentRatio = currentHz / launchHz;
-                    // Normalize ratio to prevent extreme numbers
                     if (currentRatio > 2.0) currentRatio = currentRatio % 2.0 + 1.0;
                     if (currentRatio < 0.5) currentRatio = currentRatio * 2.0;
                     
                     document.getElementById('hud-ratio').innerText = `WAVE RATIO: ${currentRatio.toFixed(3)}`;
 
-                    // Gently bend trajectory based on the ratio's angle
                     let forceAngle = Math.atan(currentRatio);
                     ball.vx += Math.cos(forceAngle) * 0.15;
                     ball.vy -= Math.sin(forceAngle) * 0.15;
 
-                    // Normalize speed so it doesn't accelerate infinitely
-                    let speed = 6;
-                    let currentSpeed = Math.hypot(ball.vx, ball.vy);
-                    ball.vx = (ball.vx / currentSpeed) * speed;
-                    ball.vy = (ball.vy / currentSpeed) * speed;
+                    let speed = 6; let currentSpeed = Math.hypot(ball.vx, ball.vy);
+                    ball.vx = (ball.vx / currentSpeed) * speed; ball.vy = (ball.vy / currentSpeed) * speed;
                 }
             } else {
-                document.getElementById('hud-ratio').innerText = `WAVE RATIO: --`;
-                currentRatio = 1.0; // Decay wave when silent
+                if(ball.active) document.getElementById('hud-ratio').innerText = `WAVE RATIO: --`;
+                currentRatio = 1.0; 
             }
         }
 
-        // Draw In-Flight Standing Wave (Lissajous)
-        if (ball.active && currentRatio !== 1.0) {
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(0, 255, 204, 0.3)'; ctx.lineWidth = 2;
+        // Draw In-Flight OR Pre-Launch Standing Wave (Lissajous)
+        if (hearingAudio) {
+            ctx.beginPath(); ctx.strokeStyle = ball.active ? 'rgba(0, 255, 204, 0.4)' : 'rgba(255, 0, 255, 0.4)'; 
+            ctx.lineWidth = 2;
             for (let t = 0; t < 100; t += 0.1) {
                 let lx = sqX + (0.5 + 0.5 * Math.sin(t)) * sqSize;
                 let ly = sqY + (0.5 + 0.5 * Math.sin(t * currentRatio)) * sqSize;
@@ -196,7 +181,6 @@
         if (ball.active) {
             ball.x += ball.vx; ball.y += ball.vy;
 
-            // Wall Collisions
             if (ball.x <= sqX + ball.radius || ball.x >= sqX + sqSize - ball.radius) { 
                 ball.vx *= -1; bounces++; 
                 ball.x = Math.max(sqX + ball.radius, Math.min(sqX + sqSize - ball.radius, ball.x));
@@ -208,25 +192,19 @@
 
             document.getElementById('score-text').innerText = bounces;
 
-            // Check Corner Death
             corners.forEach(c => {
                 if (Math.hypot(ball.x - c[0], ball.y - c[1]) < 25 && bounces > 2) {
                     ball.active = false;
                     document.getElementById('res-winding').innerText = bounces;
-                    if (bounces > highScore) {
-                        highScore = bounces;
-                        try { localStorage.setItem('windingHighScore', highScore); } catch(e) {}
-                        highScoreText.innerText = highScore;
-                    }
+                    if (bounces > highScore) { highScore = bounces; try { localStorage.setItem('windingHighScore', highScore); } catch(e) {} highScoreText.innerText = highScore; }
                     resultPanel.style.display = 'block';
                 }
             });
 
             pathHistory.push({x: ball.x, y: ball.y});
-            if (pathHistory.length > 200) pathHistory.shift(); // Keep path trail from lagging phone
+            if (pathHistory.length > 200) pathHistory.shift(); 
         }
 
-        // Draw Path Trail
         if (pathHistory.length > 1) {
             ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 0, 255, 0.8)'; ctx.lineWidth = 2;
             ctx.moveTo(pathHistory[0].x, pathHistory[0].y);
@@ -234,7 +212,6 @@
             ctx.stroke();
         }
 
-        // Draw Ball
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); ctx.fill();
     }
     render();
