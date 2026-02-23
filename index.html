@@ -42,6 +42,13 @@
         .codex-label { font-size: 10px; color: #aaa; margin-bottom: 5px; }
         .chord-diagram { font-family: monospace; font-size: 12px; white-space: pre; color: #fff; background: #111; padding: 5px; border: 1px solid #333; }
     </style>
+    
+    <script>
+        window.addEventListener('error', function(e) {
+            let status = document.getElementById('status-text');
+            if(status) { status.innerText = "CRASH: " + e.message; status.style.color = "red"; }
+        }, true);
+    </script>
 </head>
 <body>
 
@@ -72,7 +79,7 @@
                     <div class="ratio-box" id="hud-root">ROOT: --</div>
                     <div class="ratio-box" id="hud-lalit">TENSION (Fourth): --</div>
                     <div class="ratio-box" id="hud-harris">STABILITY (Fifth): --</div>
-                    <div class="ratio-box" id="hud-game" style="color:#0ff; border-color:#0ff; margin-top: 10px;">PHASE: GROUNDED</div>
+                    <div class="ratio-box" id="hud-game" style="color:#0ff; border-color:#0ff; margin-top: 10px;">PHASE: LIFT OFF</div>
                     <div class="ratio-box" id="hud-accuracy" style="color:#fff; border-color:#fff; display:none;">TIMING: --</div>
                 </div>
             </div>
@@ -107,17 +114,14 @@
             <button id="btn-timing">MODE: STANDARD</button>
             <button id="btn-vision">VISUAL: ORGANIC</button>
             <button id="btn-inst">INST: NONE</button>
-            <a href="https://buymeacoffee.com/brandonkennedy" target="_blank" class="btn-link">BUY ME A COFFEE</a>
+            <a href="https://buymeacoffee.com/brandonkennedy" target="_blank" class="btn-link" style="border-color: #ffd700; color: #ffd700;">BUY ME A COFFEE</a>
         </div>
     </div>
 
 <script type="module">
     import { GameEngine } from './game.js';
     import { AudioEngine } from './audio.js';
-    import { 
-        notes, circleOfFifths, circleOfFourths, colorPalettes, 
-        instruments, chordDictionary, hzToPitchClass, getColorGroup, detectIntervals 
-    } from './theory.js';
+    import { notes, circleOfFifths, circleOfFourths, colorPalettes, instruments, chordDictionary, hzToPitchClass, getColorGroup, detectIntervals } from './theory.js';
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -147,22 +151,18 @@
     let timingMode = 'STANDARD';
     let activeColor = '#ff8c00';
     let currentRootIndex = -1; let instIndex = 0; let activeNotes = new Set();
-
-    let orbitAngle = 0;
-    let explosionRadius = 0;
-    let visualFlashOpacity = 0;
-    let visualFlashColor = 'rgba(255, 255, 255, ';
-
+    let orbitAngle = 0; let explosionRadius = 0;
+    let visualFlashOpacity = 0; let visualFlashColor = 'rgba(255, 255, 255, ';
     let bpm = 120; let lookahead = 25.0; let scheduleAheadTime = 0.1; 
     let nextNoteTime = 0.0; let currentNote = 0; let isBeatRunning = false;
     let timerID; let lastBeatTime = 0; let lastBeatDuration = 0;
 
-    let highScore = localStorage.getItem('sunriseHighScore') || 0;
+    let highScore = 0;
+    try { highScore = localStorage.getItem('sunriseHighScore') || 0; } catch(e) { console.warn("Storage blocked"); }
     highScoreText.innerText = Math.floor(highScore);
 
     function resize() { 
-        canvas.width = window.innerWidth; 
-        canvas.height = window.innerHeight; 
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
         game.setOrbitBounds(canvas.height);
     }
     window.addEventListener('resize', resize); resize();
@@ -183,54 +183,29 @@
         updateCodex(currentRootIndex);
     });
 
-    function nextNote() { 
-        lastBeatDuration = 60.0 / bpm; 
-        nextNoteTime += lastBeatDuration; 
-        currentNote++; if (currentNote === 4) currentNote = 0; 
-    }
-
+    function nextNote() { lastBeatDuration = 60.0 / bpm; nextNoteTime += lastBeatDuration; currentNote++; if (currentNote === 4) currentNote = 0; }
     function scheduleNote(beatNumber, time) {
-        lastBeatTime = time;
-        let timeToFlash = (time - audio.getCurrentTime()) * 1000;
-        setTimeout(() => { 
-            visualFlashOpacity = (beatNumber === 0) ? 0.8 : 0.4;
-            visualFlashColor = (beatNumber === 0) ? 'rgba(255, 0, 85, ' : 'rgba(255, 255, 255, ';
-        }, Math.max(0, timeToFlash));
+        lastBeatTime = time; let timeToFlash = (time - audio.getCurrentTime()) * 1000;
+        setTimeout(() => { visualFlashOpacity = (beatNumber === 0) ? 0.8 : 0.4; visualFlashColor = (beatNumber === 0) ? 'rgba(255, 0, 85, ' : 'rgba(255, 255, 255, '; }, Math.max(0, timeToFlash));
     }
-
-    function scheduler() {
-        while (nextNoteTime < audio.getCurrentTime() + scheduleAheadTime) { scheduleNote(currentNote, nextNoteTime); nextNote(); }
-        timerID = setTimeout(scheduler, lookahead);
-    }
+    function scheduler() { while (nextNoteTime < audio.getCurrentTime() + scheduleAheadTime) { scheduleNote(currentNote, nextNoteTime); nextNote(); } timerID = setTimeout(scheduler, lookahead); }
 
     btnBeat.addEventListener('click', () => {
         if(!audio.isRunning) return alert("Start the Mic first.");
-        if(isBeatRunning) {
-            clearTimeout(timerID); isBeatRunning = false; btnBeat.innerText = "START BEAT";
-            btnBeat.style.borderColor = "#ff0055"; btnBeat.style.color = "#ff0055";
-        } else {
-            isBeatRunning = true; btnBeat.innerText = "STOP BEAT";
-            btnBeat.style.borderColor = "#fff"; btnBeat.style.color = "#fff";
-            nextNoteTime = audio.getCurrentTime() + 0.05; scheduler();
-        }
+        if(isBeatRunning) { clearTimeout(timerID); isBeatRunning = false; btnBeat.innerText = "START BEAT"; btnBeat.style.borderColor = "#ff0055"; btnBeat.style.color = "#ff0055"; } 
+        else { isBeatRunning = true; btnBeat.innerText = "STOP BEAT"; btnBeat.style.borderColor = "#fff"; btnBeat.style.color = "#fff"; nextNoteTime = audio.getCurrentTime() + 0.05; scheduler(); }
     });
 
     bpmSlider.addEventListener('input', (e) => { bpm = e.target.value; document.getElementById('bpm-val').innerText = `${bpm} BPM`; });
 
     btnTiming.addEventListener('click', () => {
-        if(timingMode === 'STANDARD') {
-            timingMode = 'ADVANCED'; btnTiming.innerText = 'MODE: ADVANCED (SWING)'; hAccuracy.style.display = 'block';
-        } else {
-            timingMode = 'STANDARD'; btnTiming.innerText = 'MODE: STANDARD'; hAccuracy.style.display = 'none';
-        }
+        if(timingMode === 'STANDARD') { timingMode = 'ADVANCED'; btnTiming.innerText = 'MODE: ADVANCED (SWING)'; hAccuracy.style.display = 'block'; } 
+        else { timingMode = 'STANDARD'; btnTiming.innerText = 'MODE: STANDARD'; hAccuracy.style.display = 'none'; }
     });
 
     btnMic.addEventListener('click', async () => {
         const started = await audio.startMic();
-        if (started) {
-            btnMic.style.display = 'none';
-            document.getElementById('status-text').innerText = "STATUS: LISTENING..."; 
-        }
+        if (started) { btnMic.style.display = 'none'; document.getElementById('status-text').innerText = "STATUS: LISTENING..."; }
     });
 
     btnVision.addEventListener('click', () => {
@@ -305,7 +280,7 @@
             scoreText.innerText = Math.floor(game.score); 
             if (game.score > highScore) {
                 highScore = game.score;
-                localStorage.setItem('sunriseHighScore', highScore);
+                try { localStorage.setItem('sunriseHighScore', highScore); } catch(e) {}
                 highScoreText.innerText = Math.floor(highScore);
             }
 
@@ -313,8 +288,7 @@
             multiText.style.color = game.multiplier > 2.0 ? "#0f0" : "#ff0055";
         }
 
-        let cx = canvas.width / 2; 
-        let cy = canvas.height / 2;
+        let cx = canvas.width / 2; let cy = canvas.height / 2;
 
         if (viewMode === 'SCIENCE') {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -338,28 +312,19 @@
                 ctx.fillStyle = iActive ? '#fff' : '#666'; ctx.font = '10px monospace'; ctx.fillText(notes[note4], ix - 5, iy + 15);
             }
         } else if (viewMode === 'ORGANIC') {
-            let earthColor = '#1e90ff'; 
-            let earthGlow = '#4169e1';
-            let isPerfectOrbit = false;
+            let earthColor = '#1e90ff'; let earthGlow = '#4169e1'; let isPerfectOrbit = false;
 
             if (game.phase === 'ORBIT') {
                 let zoneMargin = (game.orbitMax - game.orbitMin) * 0.25;
-                if (game.sunHeight < game.orbitMin + zoneMargin) {
-                    earthColor = '#ff4500'; earthGlow = '#ff0000';
-                } else if (game.sunHeight > game.orbitMax - zoneMargin) {
-                    earthColor = '#00ffff'; earthGlow = '#0000ff';
-                } else {
-                    earthColor = '#32cd32'; earthGlow = '#00ff00';
-                    isPerfectOrbit = true;
-                }
+                if (game.sunHeight < game.orbitMin + zoneMargin) { earthColor = '#ff4500'; earthGlow = '#ff0000'; } 
+                else if (game.sunHeight > game.orbitMax - zoneMargin) { earthColor = '#00ffff'; earthGlow = '#0000ff'; } 
+                else { earthColor = '#32cd32'; earthGlow = '#00ff00'; isPerfectOrbit = true; }
             }
 
             if (explosionRadius > 0) {
                 ctx.beginPath(); ctx.arc(cx, cy, explosionRadius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 69, 0, ${1 - explosionRadius/300})`;
-                ctx.fill();
-                explosionRadius += 8;
-                if (explosionRadius > 300) explosionRadius = 0;
+                ctx.fillStyle = `rgba(255, 69, 0, ${1 - explosionRadius/300})`; ctx.fill();
+                explosionRadius += 8; if (explosionRadius > 300) explosionRadius = 0;
             }
 
             ctx.shadowBlur = 20; ctx.shadowColor = earthGlow; ctx.fillStyle = earthColor; 
@@ -369,11 +334,8 @@
                 ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
                 for (let b = 0; b < 3; b++) {
                     let bAngle = (orbitAngle * 3) + (b * (Math.PI * 0.6));
-                    let bx = cx + Math.cos(bAngle) * 45; 
-                    let by = cy + Math.sin(bAngle) * 45;
-                    ctx.beginPath();
-                    ctx.moveTo(bx - 3, by - 3); ctx.lineTo(bx, by); ctx.lineTo(bx + 3, by - 3);
-                    ctx.stroke();
+                    let bx = cx + Math.cos(bAngle) * 45; let by = cy + Math.sin(bAngle) * 45;
+                    ctx.beginPath(); ctx.moveTo(bx - 3, by - 3); ctx.lineTo(bx, by); ctx.lineTo(bx + 3, by - 3); ctx.stroke();
                 }
             }
 
@@ -382,10 +344,8 @@
                 ctx.shadowBlur = 40; ctx.shadowColor = activeColor; ctx.fillStyle = activeColor; 
                 ctx.beginPath(); ctx.arc(cx, sunY, 20, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
             } else {
-                orbitAngle += 0.015; 
-                let orbitRadius = 100 + (game.sunHeight - game.orbitMin); 
+                orbitAngle += 0.015; let orbitRadius = 100 + (game.sunHeight - game.orbitMin); 
                 let sunX = cx + Math.cos(orbitAngle) * orbitRadius; let sunY = cy + Math.sin(orbitAngle) * orbitRadius;
-
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctx.beginPath(); ctx.arc(cx, cy, orbitRadius, 0, Math.PI * 2); ctx.stroke();
                 ctx.shadowBlur = 40; ctx.shadowColor = '#0f0'; ctx.fillStyle = activeColor; 
                 ctx.beginPath(); ctx.arc(sunX, sunY, 20, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
