@@ -1,56 +1,264 @@
-class FlappyEngine {
-    constructor() {
-        this.mode = 'EASY'; // 'EASY' or 'HARD'
-        this.birdY = 500;
-        this.velocity = 0;
-        this.gravity = 0.5;
-        this.flapPower = -10;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Fifths</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
+
+        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
+        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; pointer-events: none; }
+        .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
+        .title { font-size: 20px; font-weight: bold; color: #00ffcc; letter-spacing: 2px; }
+        .score-display { font-size: 24px; color: #fff; font-weight: bold; }
         
-        // Memory for Hard Mode
-        this.lastPlayedNote = -1; 
+        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; margin-top: 10px; width: fit-content; }
+        .target-text { font-size: 14px; color: #ff8c00; }
+
+        .controls { display: flex; gap: 10px; pointer-events: auto; }
+        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
+        button:active { transform: translate(2px, 2px); }
+
+        #btn-mic { border-color: #0f0; color: #0f0; }
+        #btn-mode { border-color: #00ffcc; color: #00ffcc; }
+        
+        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff0055; }
+        #game-over h1 { color: #ff0055; margin: 0 0 20px 0; }
+    </style>
+</head>
+<body>
+
+    <canvas id="c-flappy"></canvas>
+
+    <div id="ui-layer">
+        <div class="hud">
+            <div>
+                <div class="title">FLAPPY FIFTHS</div>
+                <div class="hud-box">
+                    <div id="status-mode" style="color:#00ffcc;">MODE: EASY (Hover)</div>
+                    <div id="status-note">LAST NOTE: --</div>
+                    <div id="status-target" class="target-text" style="display:none;">TARGET (5th): --</div>
+                </div>
+            </div>
+            <div class="score-display" id="score-text">0</div>
+        </div>
+
+        <div class="controls">
+            <button id="btn-mic">START MIC</button>
+            <button id="btn-mode">MODE: EASY</button>
+        </div>
+    </div>
+
+    <div id="game-over">
+        <h1>CRASH!</h1>
+        <p>Score: <span id="final-score">0</span></p>
+        <button id="btn-restart" style="border-color:#0f0; color:#0f0; margin-top:10px;">PLAY AGAIN</button>
+    </div>
+
+<script type="module">
+    import { AudioEngine } from './audio.js';
+    import { notes, hzToPitchClass } from './theory.js';
+
+    const canvas = document.getElementById('c-flappy');
+    const ctx = canvas.getContext('2d');
+    const audio = new AudioEngine();
+
+    // UI Elements
+    const btnMic = document.getElementById('btn-mic');
+    const btnMode = document.getElementById('btn-mode');
+    const btnRestart = document.getElementById('btn-restart');
+    const scoreText = document.getElementById('score-text');
+    const statusMode = document.getElementById('status-mode');
+    const statusNote = document.getElementById('status-note');
+    const statusTarget = document.getElementById('status-target');
+    const gameOverPanel = document.getElementById('game-over');
+    const finalScore = document.getElementById('final-score');
+
+    // Game State
+    let isGameOver = false;
+    let score = 0;
+    let mode = 'EASY'; // 'EASY' or 'HARD'
+    let lastPlayedNote = -1;
+    let targetNote = -1;
+    let frames = 0;
+
+    // Entities
+    let bird = { x: 100, y: 300, radius: 15, velocity: 0, gravity: 0.4, flapPower: -8 };
+    let pipes = [];
+    const pipeWidth = 60;
+    const pipeGap = 200;
+    let pipeSpeed = 3;
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
+
+    function resetGame() {
+        bird.y = canvas.height / 2;
+        bird.velocity = 0;
+        pipes = [];
+        score = 0;
+        frames = 0;
+        lastPlayedNote = -1;
+        targetNote = -1;
+        isGameOver = false;
+        gameOverPanel.style.display = 'none';
+        scoreText.innerText = score;
+        statusNote.innerText = "LAST NOTE: --";
+        if (mode === 'HARD') statusTarget.innerText = "TARGET (5th): PLAY ANY NOTE";
     }
 
-    updatePhysics(currentNote, hasFifth) {
-        if (this.mode === 'EASY') {
-            // Hover Mode: Map the 12 pitch classes (0-11) to screen height
-            if (currentNote !== -1) {
-                // Example: C (0) is bottom, B (11) is top
-                let targetY = canvas.height - ((currentNote / 11) * canvas.height);
-                this.birdY += (targetY - this.birdY) * 0.1; // Smooth lerp
-            }
-        } 
-        else if (this.mode === 'HARD') {
-            // Standard Flappy Gravity
-            this.velocity += this.gravity;
-            this.birdY += this.velocity;
+    btnRestart.addEventListener('click', resetGame);
 
+    btnMode.addEventListener('click', () => {
+        if (mode === 'EASY') {
+            mode = 'HARD';
+            btnMode.innerText = 'MODE: HARD';
+            statusMode.innerText = 'MODE: HARD (Gravity & Fifths)';
+            statusMode.style.color = '#ff0055';
+            statusTarget.style.display = 'block';
+        } else {
+            mode = 'EASY';
+            btnMode.innerText = 'MODE: EASY';
+            statusMode.innerText = 'MODE: EASY (Hover)';
+            statusMode.style.color = '#00ffcc';
+            statusTarget.style.display = 'none';
+        }
+        resetGame();
+    });
+
+    btnMic.addEventListener('click', async () => {
+        const started = await audio.startMic();
+        if (started) {
+            btnMic.style.display = 'none';
+            resetGame();
+            renderFrame();
+        }
+    });
+
+    function spawnPipe() {
+        let minHeight = 50;
+        let maxHeight = canvas.height - pipeGap - minHeight;
+        let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
+        pipes.push({ x: canvas.width, top: topHeight, passed: false });
+    }
+
+    function checkCollision(p) {
+        // Check hitting pipes
+        if (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + pipeWidth) {
+            if (bird.y - bird.radius < p.top || bird.y + bird.radius > p.top + pipeGap) {
+                return true;
+            }
+        }
+        // Check hitting floor or ceiling
+        if (bird.y + bird.radius >= canvas.height || bird.y - bird.radius <= 0) {
+            return true;
+        }
+        return false;
+    }
+
+    function renderFrame() {
+        if (!audio.isRunning || isGameOver) return;
+        requestAnimationFrame(renderFrame);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        frames++;
+
+        // --- AUDIO PROCESSING ---
+        let peaks = audio.getPeaks(100); // Slightly higher threshold to avoid accidental flaps
+        let currentNote = -1;
+        
+        if (peaks.length > 0) {
+            currentNote = hzToPitchClass(peaks[0].hz);
+        }
+
+        // --- BIRD PHYSICS ---
+        if (mode === 'EASY') {
+            // Hover Mode: Map note directly to vertical lane
             if (currentNote !== -1) {
-                // If it's the first note they play, just set it and give them a free flap
-                if (this.lastPlayedNote === -1) {
-                    this.flap();
-                    this.lastPlayedNote = currentNote;
-                } 
-                // Otherwise, check if the current note is a 5th above the LAST note
-                else if (currentNote !== this.lastPlayedNote) {
-                    let isValidFifth = this.checkIfFifth(this.lastPlayedNote, currentNote);
-                    
-                    if (isValidFifth) {
-                        this.flap();
-                    }
-                    // Update memory for the next flap
-                    this.lastPlayedNote = currentNote;
+                statusNote.innerText = `LANE: ${notes[currentNote]}`;
+                // Map 0-11 to canvas height (C at bottom, B at top)
+                let targetY = canvas.height - ((currentNote / 11) * (canvas.height - 100)) - 50;
+                bird.y += (targetY - bird.y) * 0.15; // Smooth fly
+            }
+        } else if (mode === 'HARD') {
+            // Gravity Mode: Must play perfect fifth to flap
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            if (currentNote !== -1 && currentNote !== lastPlayedNote) {
+                if (lastPlayedNote === -1) {
+                    // First note played gives a free flap and sets the initial target
+                    bird.velocity = bird.flapPower;
+                    lastPlayedNote = currentNote;
+                    targetNote = (currentNote + 7) % 12; // Perfect Fifth
+                    statusNote.innerText = `LAST NOTE: ${notes[currentNote]}`;
+                    statusTarget.innerText = `TARGET (5th): ${notes[targetNote]}`;
+                } else if (currentNote === targetNote) {
+                    // Successfully played the target fifth!
+                    bird.velocity = bird.flapPower;
+                    lastPlayedNote = currentNote;
+                    targetNote = (currentNote + 7) % 12;
+                    statusNote.innerText = `LAST NOTE: ${notes[currentNote]}`;
+                    statusTarget.innerText = `TARGET (5th): ${notes[targetNote]}`;
                 }
             }
         }
-    }
 
-    flap() {
-        this.velocity = this.flapPower;
-    }
+        // --- DRAW BACKGROUND SUN ---
+        let sunColor = mode === 'EASY' ? '#00ffcc' : (targetNote !== -1 ? '#ff8c00' : '#333');
+        ctx.shadowBlur = 50; ctx.shadowColor = sunColor; ctx.fillStyle = sunColor;
+        ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height / 2, 80, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+        
+        if (mode === 'HARD' && targetNote !== -1) {
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 40px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(notes[targetNote], canvas.width / 2, canvas.height / 2);
+        }
 
-    checkIfFifth(lastNote, newNote) {
-        // A perfect fifth is 7 semitones up (modulo 12 to wrap around the octave)
-        let expectedFifth = (lastNote + 7) % 12;
-        return newNote === expectedFifth;
+        // --- PIPES ---
+        if (frames % 120 === 0) spawnPipe(); // Spawn every 2 seconds roughly
+
+        ctx.fillStyle = '#333';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+
+        for (let i = pipes.length - 1; i >= 0; i--) {
+            let p = pipes[i];
+            p.x -= pipeSpeed;
+
+            // Draw Top Pipe
+            ctx.fillRect(p.x, 0, pipeWidth, p.top);
+            ctx.strokeRect(p.x, 0, pipeWidth, p.top);
+            
+            // Draw Bottom Pipe
+            ctx.fillRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - p.top - pipeGap);
+            ctx.strokeRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - p.top - pipeGap);
+
+            // Collision
+            if (checkCollision(p)) {
+                isGameOver = true;
+                finalScore.innerText = score;
+                gameOverPanel.style.display = 'block';
+            }
+
+            // Scoring
+            if (p.x + pipeWidth < bird.x && !p.passed) {
+                score++;
+                scoreText.innerText = score;
+                p.passed = true;
+                // Increase difficulty slightly
+                if (score % 5 === 0) pipeSpeed += 0.5;
+            }
+
+            // Remove off-screen pipes
+            if (p.x + pipeWidth < 0) pipes.splice(i, 1);
+        }
+
+        // --- DRAW BIRD ---
+        ctx.fillStyle = mode === 'EASY' ? '#fff' : '#ff0055';
+        ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2); ctx.fill();
     }
-}
+</script>
+</body>
+</html>
