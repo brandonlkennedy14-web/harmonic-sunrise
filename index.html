@@ -15,7 +15,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 60px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
+        /* Increased padding-top to 100px to fix UI overlap */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 100px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
         .hud { text-shadow: 2px 2px 0 #000; font-size: 12px; pointer-events: auto; display: flex; justify-content: space-between; width: 100%; }
         .title { font-size: 20px; font-weight: bold; color: #ff8c00; letter-spacing: 2px; transition: color 0.5s; }
         .subtitle { color: #aaa; font-size: 10px; margin-top: 5px; }
@@ -32,7 +33,6 @@
         #btn-mic { border-color: #0f0; color: #0f0; }
         #btn-beat { border-color: #ff0055; color: #ff0055; }
         #btn-timing { border-color: #00ffcc; color: #00ffcc; }
-        #btn-coffee { border-color: #ffd700; color: #ffd700; }
         #organic-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: linear-gradient(to bottom, #0a0015, #2a0845); opacity: 0; transition: opacity 0.5s; }
         .hud-ratios { margin-top: 15px; font-size: 12px; }
         .ratio-box { padding: 4px; border-left: 3px solid #fff; margin-bottom: 4px; background: rgba(0,0,0,0.5); transition: border-color 0.5s, color 0.5s; }
@@ -119,6 +119,7 @@
     </div>
 
 <script type="module">
+    // Imports MUST be top-level (Not inside a try/catch)
     import { GameEngine } from './game.js';
     import { AudioEngine } from './audio.js';
     import { notes, circleOfFifths, circleOfFourths, colorPalettes, instruments, chordDictionary, hzToPitchClass, getColorGroup, detectIntervals } from './theory.js';
