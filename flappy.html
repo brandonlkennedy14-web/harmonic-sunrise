@@ -21,16 +21,18 @@
         .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
         .title { font-size: 20px; font-weight: bold; color: #00ffcc; letter-spacing: 2px; }
         .score-display { font-size: 24px; color: #fff; font-weight: bold; }
+        .high-score { font-size: 14px; color: #ff8c00; text-align: right; }
         
         .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; margin-top: 10px; width: fit-content; }
         .target-text { font-size: 14px; color: #ff8c00; }
 
-        .controls { display: flex; gap: 10px; pointer-events: auto; }
+        .controls { display: flex; gap: 10px; pointer-events: auto; flex-wrap: wrap; }
         button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
         button:active { transform: translate(2px, 2px); }
 
         #btn-mic { border-color: #0f0; color: #0f0; }
         #btn-mode { border-color: #00ffcc; color: #00ffcc; }
+        #btn-speed { border-color: #ff00ff; color: #ff00ff; }
         
         #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff0055; }
         #game-over h1 { color: #ff0055; margin: 0 0 20px 0; }
@@ -64,12 +66,16 @@
                     <div id="status-target" class="target-text" style="display:none;">TARGET (5th): --</div>
                 </div>
             </div>
-            <div class="score-display" id="score-text">0</div>
+            <div style="text-align: right;">
+                <div class="high-score">BEST: <span id="high-score-text">0</span></div>
+                <div class="score-display" id="score-text">0</div>
+            </div>
         </div>
 
         <div class="controls">
             <button id="btn-mic">START MIC</button>
             <button id="btn-mode">MODE: EASY</button>
+            <button id="btn-speed">SPEED: 1.0x</button>
         </div>
     </div>
 
@@ -83,7 +89,6 @@
     import { AudioEngine } from './audio.js';
     import { notes, hzToPitchClass } from './theory.js';
 
-    // Service Worker Registration for PWA
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
@@ -96,8 +101,10 @@
 
     const btnMic = document.getElementById('btn-mic');
     const btnMode = document.getElementById('btn-mode');
+    const btnSpeed = document.getElementById('btn-speed');
     const btnRestart = document.getElementById('btn-restart');
     const scoreText = document.getElementById('score-text');
+    const highScoreText = document.getElementById('high-score-text');
     const statusMode = document.getElementById('status-mode');
     const statusNote = document.getElementById('status-note');
     const statusTarget = document.getElementById('status-target');
@@ -106,16 +113,23 @@
 
     let isGameOver = false;
     let score = 0;
+    let highScore = localStorage.getItem('flappyHighScore') || 0;
+    highScoreText.innerText = Math.floor(highScore);
+
     let mode = 'EASY'; 
     let lastPlayedNote = -1;
     let targetNote = -1;
     let frames = 0;
 
+    // Slower Defaults
+    let speedMultiplier = 1.0;
+    let basePipeSpeed = 2;
+    let baseSpawnRate = 180;
+
     let bird = { x: 100, y: 300, radius: 15, velocity: 0, gravity: 0.4, flapPower: -8 };
     let pipes = [];
     const pipeWidth = 60;
     const pipeGap = 200;
-    let pipeSpeed = 3;
 
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
@@ -136,6 +150,13 @@
     }
 
     btnRestart.addEventListener('click', resetGame);
+
+    btnSpeed.addEventListener('click', () => {
+        if (speedMultiplier === 1.0) { speedMultiplier = 1.5; btnSpeed.innerText = "SPEED: 1.5x"; }
+        else if (speedMultiplier === 1.5) { speedMultiplier = 2.0; btnSpeed.innerText = "SPEED: 2.0x (HARDCORE)"; }
+        else { speedMultiplier = 1.0; btnSpeed.innerText = "SPEED: 1.0x"; }
+        resetGame(); // Reset to apply speed fairly
+    });
 
     btnMode.addEventListener('click', () => {
         if (mode === 'EASY') {
@@ -182,11 +203,24 @@
         return false;
     }
 
+    function handleGameOver() {
+        isGameOver = true;
+        finalScore.innerText = score;
+        
+        // Save Local High Score
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('flappyHighScore', highScore);
+            highScoreText.innerText = Math.floor(highScore);
+        }
+        
+        gameOverPanel.style.display = 'block';
+    }
+
     function renderFrame() {
         if (!audio.isRunning) return;
         requestAnimationFrame(renderFrame);
         
-        // Loop runs in background, but visuals freeze on game over
         if (isGameOver) return; 
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -235,7 +269,11 @@
             ctx.fillText(notes[targetNote], canvas.width / 2, canvas.height / 2);
         }
 
-        if (frames % 120 === 0) spawnPipe(); 
+        // Apply Speed Multiplier to pipe generation
+        let currentSpawnRate = Math.floor(baseSpawnRate / speedMultiplier);
+        let currentPipeSpeed = basePipeSpeed * speedMultiplier;
+
+        if (frames % currentSpawnRate === 0) spawnPipe(); 
 
         ctx.fillStyle = '#333';
         ctx.strokeStyle = '#fff';
@@ -243,7 +281,7 @@
 
         for (let i = pipes.length - 1; i >= 0; i--) {
             let p = pipes[i];
-            p.x -= pipeSpeed;
+            p.x -= currentPipeSpeed;
 
             ctx.fillRect(p.x, 0, pipeWidth, p.top);
             ctx.strokeRect(p.x, 0, pipeWidth, p.top);
@@ -252,16 +290,14 @@
             ctx.strokeRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - p.top - pipeGap);
 
             if (checkCollision(p)) {
-                isGameOver = true;
-                finalScore.innerText = score;
-                gameOverPanel.style.display = 'block';
+                handleGameOver();
             }
 
             if (p.x + pipeWidth < bird.x && !p.passed) {
-                score++;
+                // Higher speed gives more points
+                score += (1 * speedMultiplier);
                 scoreText.innerText = score;
                 p.passed = true;
-                if (score % 5 === 0) pipeSpeed += 0.5;
             }
 
             if (p.x + pipeWidth < 0) pipes.splice(i, 1);
