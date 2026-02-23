@@ -15,7 +15,6 @@
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        /* Fixed UI Overlap - 110px padding */
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
         
         .hud { text-shadow: 2px 2px 0 #000; font-size: 12px; pointer-events: auto; display: flex; justify-content: space-between; width: 100%; }
@@ -32,6 +31,9 @@
 
         .hud-ratios { margin-top: 15px; font-size: 12px; }
         .ratio-box { padding: 8px; border-left: 3px solid #fff; margin-bottom: 8px; background: rgba(0,0,0,0.7); }
+
+        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff0055; box-shadow: 0 0 30px rgba(255,0,85,0.4); }
+        #game-over h1 { color: #ff0055; margin: 0 0 10px 0; font-size: 24px;}
     </style>
 </head>
 <body>
@@ -55,22 +57,26 @@
 
                 <div class="hud-ratios">
                     <div class="ratio-box" id="hud-last" style="border-color: #fff;">LAST NOTE: --</div>
-                    <div class="ratio-box" id="hud-rise" style="border-color: #0f0; color: #0f0;">RISE (P5): --</div>
-                    <div class="ratio-box" id="hud-dawn" style="border-color: #ff0055; color: #ff0055;">DAWN (P4/TT): --</div>
-                    <div class="ratio-box" id="hud-phase" style="border-color: #00ffcc; color: #00ffcc; margin-top: 15px;">PHASE: GROUNDED</div>
+                    <div class="ratio-box" id="hud-rise" style="border-color: #0f0; color: #0f0;">BOOST ALTITUDE (P5): --</div>
+                    <div class="ratio-box" id="hud-dawn" style="border-color: #ff0055; color: #ff0055;">DROP ALTITUDE (P4/TT): --</div>
                 </div>
             </div>
             <div>
-                <div class="subtitle" style="text-align: right;">SCORE</div>
+                <div class="subtitle" style="text-align: right; color: #ff8c00;">BEST: <span id="high-score-text">0</span></div>
+                <div class="subtitle" style="text-align: right; margin-top: 10px;">DAYS ORBITED</div>
                 <div class="score-display" id="score-text">0</div>
             </div>
         </div>
 
         <div class="controls">
             <button id="btn-mic">START MIC</button>
-            <button id="btn-vision">VISUAL: ORGANIC</button>
-            <a href="https://buymeacoffee.com/brandonkennedy" target="_blank" class="btn-link" style="border-color: #ffd700; color: #ffd700;">BUY ME A COFFEE</a>
         </div>
+    </div>
+
+    <div id="game-over">
+        <h1 id="death-reason">CRASHED!</h1>
+        <p>Days Orbited: <span id="final-score" style="color:#0f0; font-weight:bold;">0</span></p>
+        <button id="btn-restart" style="border-color:#fff; color:#fff; margin-top:20px;">LAUNCH NEW SUN</button>
     </div>
 
 <script type="module">
@@ -82,173 +88,176 @@
     const audio = new AudioEngine();
 
     const btnMic = document.getElementById('btn-mic');
-    const btnVision = document.getElementById('btn-vision');
-    
-    let viewMode = 'ORGANIC';
-    let score = 0;
+    const btnRestart = document.getElementById('btn-restart');
+    const gameOverPanel = document.getElementById('game-over');
+    const highScoreText = document.getElementById('high-score-text');
 
-    // Logic Variables
+    let highScore = 0;
+    try { highScore = localStorage.getItem('sunriseHighScore') || 0; } catch(e) {}
+    highScoreText.innerText = highScore;
+
+    // Game State
+    let state = 'IDLE'; // IDLE, ORBITING, DEAD
+    let days = 0;
+    
+    // Interval Tracking
     let lastPlayedNote = -1;
     let targetRise = -1;
     let targetDawn1 = -1; // Perfect 4th
     let targetDawn2 = -1; // Tritone
     
     // Physics Variables
-    let sunTargetHeight = 0;
-    let sunCurrentHeight = 0;
-    let maxSunHeight = 0;
+    let cx, cy;
+    let earthRadius = 25;
+    let sunRadius = 12;
+    
+    let orbitRadius = 120; // Starting distance
     let orbitAngle = 0;
+    let orbitSpeed = 0.02;
+    let gravity = 0.2; // Pixels per frame pulled toward Earth
+    
+    let minRadius = earthRadius + sunRadius + 5; // Crash limit
+    let maxRadius = 0; // Escape limit (calculated on resize)
 
     function resize() { 
         canvas.width = window.innerWidth; 
         canvas.height = window.innerHeight; 
-        maxSunHeight = canvas.height - 150;
+        cx = canvas.width / 2;
+        cy = canvas.height / 2;
+        maxRadius = Math.min(canvas.width, canvas.height) / 2 - 20;
     }
     window.addEventListener('resize', resize); resize();
+
+    function resetGame() {
+        orbitRadius = (maxRadius + minRadius) / 2; // Start perfectly in the middle
+        orbitAngle = 0;
+        days = 0;
+        lastPlayedNote = -1;
+        targetRise = -1;
+        targetDawn1 = -1;
+        targetDawn2 = -1;
+        state = 'IDLE';
+        gameOverPanel.style.display = 'none';
+        document.getElementById('score-text').innerText = days;
+        document.getElementById('status-text').innerText = "STATUS: PLAY A BASELINE NOTE TO START";
+        updateHUD();
+    }
+
+    btnRestart.addEventListener('click', resetGame);
 
     btnMic.addEventListener('click', async () => {
         if (await audio.startMic()) {
             btnMic.style.display = 'none';
-            document.getElementById('status-text').innerText = "STATUS: PLAY A BASELINE NOTE"; 
+            resetGame();
         }
     });
 
-    btnVision.addEventListener('click', () => {
-        if (viewMode === 'ORGANIC') {
-            viewMode = 'SCIENCE';
-            btnVision.innerText = 'VISUAL: SCIENCE';
-        } else {
-            viewMode = 'ORGANIC';
-            btnVision.innerText = 'VISUAL: ORGANIC';
+    function triggerGameOver(reason) {
+        state = 'DEAD';
+        document.getElementById('death-reason').innerText = reason;
+        document.getElementById('final-score').innerText = days;
+        
+        if (days > highScore) {
+            highScore = days;
+            try { localStorage.setItem('sunriseHighScore', highScore); } catch(e) {}
+            highScoreText.innerText = highScore;
         }
-    });
+        
+        gameOverPanel.style.display = 'block';
+    }
 
     function updateHUD() {
-        document.getElementById('score-text').innerText = score;
+        document.getElementById('score-text').innerText = days;
 
         if (lastPlayedNote === -1) {
             document.getElementById('hud-last').innerText = "LAST NOTE: --";
-            document.getElementById('hud-rise').innerText = "RISE (P5): --";
-            document.getElementById('hud-dawn').innerText = "DAWN (P4/TT): --";
+            document.getElementById('hud-rise').innerText = "BOOST ALTITUDE (P5): --";
+            document.getElementById('hud-dawn').innerText = "DROP ALTITUDE (P4/TT): --";
         } else {
             document.getElementById('hud-last').innerText = `LAST NOTE: ${notes[lastPlayedNote]}`;
-            document.getElementById('hud-rise').innerText = `RISE (P5): ${notes[targetRise]}`;
-            document.getElementById('hud-dawn').innerText = `DAWN (P4/TT): ${notes[targetDawn1]} or ${notes[targetDawn2]}`;
+            document.getElementById('hud-rise').innerText = `BOOST ALTITUDE (P5): ${notes[targetRise]}`;
+            document.getElementById('hud-dawn').innerText = `DROP ALTITUDE (P4/TT): ${notes[targetDawn1]} or ${notes[targetDawn2]}`;
         }
-
-        let phase = document.getElementById('hud-phase');
-        if (sunTargetHeight <= 0) { phase.innerText = "PHASE: GROUNDED"; phase.style.color = "#ff0055"; }
-        else if (sunTargetHeight >= maxSunHeight) { phase.innerText = "PHASE: ORBIT ACHIEVED"; phase.style.color = "#00ffcc"; }
-        else { phase.innerText = "PHASE: LIFTING"; phase.style.color = "#ff8c00"; }
     }
 
     function renderFrame() {
         requestAnimationFrame(renderFrame); 
 
-        // Smooth physics interpolation
-        sunCurrentHeight += (sunTargetHeight - sunCurrentHeight) * 0.05;
-
-        // Background
-        if (viewMode === 'ORGANIC') {
-            let skyGlow = Math.min(1, sunCurrentHeight / maxSunHeight);
-            ctx.fillStyle = `rgb(${10 + skyGlow*40}, ${0 + skyGlow*20}, ${20 + skyGlow*50})`;
-        } else {
-            ctx.fillStyle = '#050505';
-        }
+        // Deep Space Background
+        ctx.fillStyle = '#05050a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        let cx = canvas.width / 2; 
-        let cy = canvas.height / 2;
+        // --- AUDIO & PHYSICS LOGIC ---
+        if (state === 'ORBITING') {
+            orbitRadius -= gravity; // Constant decay toward earth
+            
+            let previousAngle = orbitAngle;
+            orbitAngle += orbitSpeed;
+            
+            // Check if we completed a full lap (crossed the 2*PI threshold)
+            if (previousAngle % (Math.PI * 2) > orbitAngle % (Math.PI * 2)) {
+                days++;
+                document.getElementById('score-text').innerText = days;
+                orbitSpeed += 0.001; // Gets slightly faster each day
+                gravity += 0.02; // Gravity pulls slightly harder each day
+            }
 
-        // --- AUDIO LOGIC ---
-        if (audio.isRunning) {
+            // Death Conditions
+            if (orbitRadius <= minRadius) triggerGameOver("CRASHED INTO EARTH!");
+            if (orbitRadius >= maxRadius) triggerGameOver("LOST IN DEEP SPACE!");
+        }
+
+        if (audio.isRunning && state !== 'DEAD') {
             let peaks = audio.getPeaks(95);
             if (peaks.length > 0) {
                 let currentNote = hzToPitchClass(peaks[0].hz);
                 
                 if (currentNote !== -1 && currentNote !== lastPlayedNote) {
-                    if (lastPlayedNote === -1) {
-                        // Initialize first note
-                        lastPlayedNote = currentNote;
-                        document.getElementById('status-text').innerText = "STATUS: TRACKING INTERVALS"; 
+                    if (state === 'IDLE') {
+                        state = 'ORBITING';
+                        document.getElementById('status-text').innerText = "STATUS: MAINTAIN HABITABLE ORBIT"; 
                     } else {
-                        // Check interval logic based on user rules
                         let diff = (currentNote - lastPlayedNote + 12) % 12;
-                        
-                        if (diff === 7) { // Perfect 5th -> RISE
-                            sunTargetHeight += 60;
-                            score += 10;
-                        } else if (diff === 5 || diff === 6) { // P4 or Tritone -> DAWN
-                            sunTargetHeight -= 60;
-                            score = Math.max(0, score - 5);
-                        }
-
-                        // Clamp sun height
-                        sunTargetHeight = Math.max(0, Math.min(sunTargetHeight, maxSunHeight));
-                        lastPlayedNote = currentNote; // Shift baseline
+                        if (diff === 7) orbitRadius += 35; // Boost
+                        else if (diff === 5 || diff === 6) orbitRadius -= 35; // Drop
                     }
 
-                    // Calculate new targets
+                    lastPlayedNote = currentNote;
                     targetRise = (lastPlayedNote + 7) % 12;
-                    targetDawn1 = (lastPlayedNote + 5) % 12; // P4
-                    targetDawn2 = (lastPlayedNote + 6) % 12; // Tritone
-                    
+                    targetDawn1 = (lastPlayedNote + 5) % 12;
+                    targetDawn2 = (lastPlayedNote + 6) % 12;
                     updateHUD();
                 }
             }
         }
 
         // --- VISUAL RENDERING ---
-        if (viewMode === 'ORGANIC') {
-            // Draw Earth
-            ctx.shadowBlur = 30; ctx.shadowColor = '#0055ff'; ctx.fillStyle = '#1e90ff';
-            ctx.beginPath(); ctx.arc(cx, canvas.height - 30, 40, Math.PI, 0); ctx.fill(); ctx.shadowBlur = 0;
+        
+        // Habitable Zone Bounds (Faint Rings)
+        ctx.strokeStyle = 'rgba(255, 0, 85, 0.2)'; // Inner danger ring
+        ctx.beginPath(); ctx.arc(cx, cy, minRadius + 10, 0, Math.PI*2); ctx.stroke();
+        
+        ctx.strokeStyle = 'rgba(0, 255, 204, 0.2)'; // Outer danger ring
+        ctx.beginPath(); ctx.arc(cx, cy, maxRadius - 10, 0, Math.PI*2); ctx.stroke();
 
-            // Draw Sun
-            let sunY = canvas.height - 30 - sunCurrentHeight;
-            let isOrbiting = sunCurrentHeight >= maxSunHeight - 5;
+        // Draw Earth
+        ctx.shadowBlur = 20; ctx.shadowColor = '#0055ff'; ctx.fillStyle = '#1e90ff';
+        ctx.beginPath(); ctx.arc(cx, cy, earthRadius, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
 
-            if (isOrbiting) {
-                orbitAngle += 0.02;
-                let orbitRadius = maxSunHeight * 0.4;
-                cx = canvas.width/2 + Math.cos(orbitAngle) * orbitRadius;
-                sunY = (canvas.height - 30 - maxSunHeight) + Math.sin(orbitAngle) * (orbitRadius * 0.5);
-            }
+        // Draw Sun
+        let sunX = cx + Math.cos(orbitAngle) * orbitRadius;
+        let sunY = cy + Math.sin(orbitAngle) * orbitRadius;
 
-            ctx.shadowBlur = 50; ctx.shadowColor = '#ff8c00'; ctx.fillStyle = '#ffaa00'; 
-            ctx.beginPath(); ctx.arc(cx, sunY, 25, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
-
-        } else if (viewMode === 'SCIENCE') {
-            // Science View - Circular Interval Map
-            let radius = Math.min(canvas.width, canvas.height) * 0.35;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.stroke();
-
-            for (let i = 0; i < 12; i++) {
-                let angle = (i * Math.PI / 6) - (Math.PI / 2);
-                let x = cx + Math.cos(angle) * radius;
-                let y = cy + Math.sin(angle) * radius;
-
-                let isLast = (i === lastPlayedNote);
-                let isRise = (i === targetRise);
-                let isDawn = (i === targetDawn1 || i === targetDawn2);
-
-                if (isLast) { ctx.fillStyle = '#fff'; ctx.shadowBlur = 10; ctx.shadowColor = '#fff'; }
-                else if (isRise) { ctx.fillStyle = '#0f0'; ctx.shadowBlur = 10; ctx.shadowColor = '#0f0'; }
-                else if (isDawn) { ctx.fillStyle = '#ff0055'; ctx.shadowBlur = 10; ctx.shadowColor = '#ff0055'; }
-                else { ctx.fillStyle = '#333'; ctx.shadowBlur = 0; }
-
-                ctx.beginPath(); ctx.arc(x, y, isLast ? 10 : 6, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
-                
-                ctx.fillStyle = '#aaa'; ctx.font = '12px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(notes[i], cx + Math.cos(angle) * (radius + 25), cy + Math.sin(angle) * (radius + 25));
-            }
-
-            // Draw center height bar
-            let barHeight = 200;
-            let fillHeight = (sunCurrentHeight / maxSunHeight) * barHeight;
-            ctx.strokeStyle = '#333'; ctx.strokeRect(cx - 5, cy - barHeight/2, 10, barHeight);
-            ctx.fillStyle = '#ff8c00'; ctx.fillRect(cx - 5, cy + barHeight/2 - fillHeight, 10, fillHeight);
+        ctx.shadowBlur = 40; ctx.shadowColor = '#ff8c00'; ctx.fillStyle = '#ffaa00'; 
+        ctx.beginPath(); ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+        
+        // Draw orbital trail
+        if (state === 'ORBITING') {
+            ctx.strokeStyle = 'rgba(255, 170, 0, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, orbitRadius, orbitAngle - 0.5, orbitAngle, false);
+            ctx.stroke();
         }
     }
     
