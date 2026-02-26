@@ -4,38 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flappy Fifths</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
-        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 60px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
+        /* 64-Bit Retro Pixelation */
+        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; image-rendering: pixelated; }
         
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
         .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
         .title { font-size: 20px; font-weight: bold; color: #00ffcc; letter-spacing: 2px; }
         .score-display { font-size: 24px; color: #fff; font-weight: bold; }
-        .high-score { font-size: 14px; color: #ff8c00; text-align: right; }
-        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; margin-top: 10px; width: fit-content; }
-        .target-text { font-size: 14px; color: #ff8c00; }
-        
+        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 2px solid #333; margin-top: 10px; width: fit-content; }
+        .target-text { font-size: 14px; font-weight: bold; }
         .controls { display: flex; gap: 10px; pointer-events: auto; flex-wrap: wrap; margin-bottom: 20px; }
         button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
         button:active { transform: translate(2px, 2px); }
-        
-        #btn-mic { border-color: #0f0; color: #0f0; }
-        #btn-mode { border-color: #00ffcc; color: #00ffcc; }
-        #btn-speed { border-color: #ff00ff; color: #ff00ff; }
-        
-        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 2px solid #ff0055; }
+        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 4px solid #ff0055; }
         #game-over h1 { color: #ff0055; margin: 0 0 20px 0; }
-
-        #rules-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 2px solid #00ffcc; padding: 30px; z-index: 100; pointer-events: auto; text-align: center; width: 80%; max-width: 400px; }
     </style>
 </head>
 <body>
@@ -49,34 +35,25 @@
         <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold;">[6] SIMON</a>
     </div>
 
-    <div id="rules-overlay">
-        <h3 style="color: #00ffcc;">FLAPPY FIFTHS</h3>
-        <p style="font-size: 12px; color: #aaa; text-align: left;"><strong>EASY:</strong> Snap directly to the 12 note lanes.<br><br><strong>HARD:</strong> Gravity drops you. Play a Perfect 5th based on your last note to flap upward!</p>
-        <button onclick="document.getElementById('rules-overlay').style.display='none'" style="margin-top: 20px;">START</button>
-    </div>
-
     <canvas id="c-flappy"></canvas>
 
     <div id="ui-layer">
         <div class="hud">
             <div>
-                <div class="title">FLAPPY FIFTHS</div>
+                <div class="title" id="main-title">FLAPPY FIFTHS</div>
                 <div class="hud-box">
                     <div id="status-mode" style="color:#00ffcc;">MODE: EASY (Hover)</div>
                     <div id="status-note">LAST NOTE: --</div>
-                    <div id="status-target" class="target-text" style="display:none;">TARGET (5th): --</div>
+                    <div id="status-target" class="target-text" style="display:none; color: #ff8c00;">TARGET (P5): --</div>
                 </div>
             </div>
             <div style="text-align: right;">
-                <div class="high-score">BEST: <span id="high-score-text">0</span></div>
                 <div class="score-display" id="score-text">0</div>
             </div>
         </div>
-
         <div class="controls">
-            <button id="btn-mic">START MIC</button>
-            <button id="btn-mode">MODE: EASY</button>
-            <button id="btn-speed">SPEED: 1.0x</button>
+            <button id="btn-mic" style="border-color:#0f0; color:#0f0;">START MIC</button>
+            <button id="btn-mode" style="border-color:#00ffcc; color:#00ffcc;">MODE: EASY</button>
         </div>
     </div>
 
@@ -86,117 +63,218 @@
         <button id="btn-restart" style="border-color:#0f0; color:#0f0; margin-top:10px;">PLAY AGAIN</button>
     </div>
 
-<script type="module">
-    import { AudioEngine } from './audio.js';
-    import { notes, hzToPitchClass, circleOfFifths } from './theory.js';
+<script>
+    // --- INLINED AUDIO & THEORY ENGINE ---
+    const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const laneColors = ['#FF0055', '#FF3300', '#FF6600', '#FF9900', '#FFCC00', '#FFFF00', '#CCFF00', '#00FF00', '#00FFCC', '#00CCFF', '#0055FF', '#B366FF'];
+    
+    function hzToPitchClass(hz) {
+        if (hz <= 0) return -1;
+        const c0 = 16.35;
+        let halfSteps = Math.round(12 * Math.log2(hz / c0));
+        return (halfSteps % 12 + 12) % 12;
+    }
 
+    class AudioEngine {
+        constructor() {
+            this.audioContext = null; this.analyser = null; this.microphone = null;
+            this.isRunning = false; this.dataArray = null;
+        }
+        async startMic() {
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                this.microphone = this.audioContext.createMediaStreamSource(stream);
+                this.analyser = this.audioContext.createAnalyser();
+                this.analyser.fftSize = 2048;
+                this.microphone.connect(this.analyser);
+                this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                this.isRunning = true;
+                return true;
+            } catch (err) { console.error("Mic error:", err); return false; }
+        }
+        getPeaks(threshold = 95) {
+            if (!this.isRunning) return [];
+            this.analyser.getByteFrequencyData(this.dataArray);
+            let maxVal = 0; let maxIdx = -1;
+            for (let i = 0; i < this.dataArray.length; i++) {
+                if (this.dataArray[i] > maxVal) { maxVal = this.dataArray[i]; maxIdx = i; }
+            }
+            if (maxVal > threshold) {
+                let hz = maxIdx * this.audioContext.sampleRate / this.analyser.fftSize;
+                return [{ hz: hz, amp: maxVal }];
+            }
+            return [];
+        }
+    }
+
+    // --- GAME LOGIC ---
     const canvas = document.getElementById('c-flappy');
     const ctx = canvas.getContext('2d');
     const audio = new AudioEngine();
 
-    const btnMic = document.getElementById('btn-mic');
-    const btnMode = document.getElementById('btn-mode');
-    const btnSpeed = document.getElementById('btn-speed');
-    const btnRestart = document.getElementById('btn-restart');
-    const scoreText = document.getElementById('score-text');
-    const highScoreText = document.getElementById('high-score-text');
-    const statusMode = document.getElementById('status-mode');
-    const statusNote = document.getElementById('status-note');
-    const statusTarget = document.getElementById('status-target');
-    const gameOverPanel = document.getElementById('game-over');
-    const finalScore = document.getElementById('final-score');
-
-    let isGameOver = false;
-    let score = 0;
-    
-    let highScore = 0;
-    try { highScore = localStorage.getItem('flappyHighScore') || 0; } catch(e) {}
-    highScoreText.innerText = Math.floor(highScore);
-
-    let mode = 'EASY'; 
-    let lastPlayedNote = -1;
-    let targetNote = -1;
-    let frames = 0;
-
-    let speedMultiplier = 1.0;
-    let basePipeSpeed = 2;
-    let baseSpawnRate = 180;
-
-    let bird = { x: 100, y: 300, radius: 18, velocity: 0, gravity: 0.4, flapPower: -8 };
+    let mode = 'EASY', lastPlayedNote = -1, targetNote = -1, frames = 0, score = 0, isGameOver = false;
+    let basePipeSpeed = 3, baseSpawnRate = 150;
+    let bird = { x: 100, y: 300, radius: 20, velocity: 0, gravity: 0.3, flapPower: -7, colorHistory: [] };
+    let visualRipples = [];
     let pipes = [];
-    const pipeWidth = 60;
-    const pipeGap = 200;
+    const pipeWidth = 50, pipeGap = 160;
+    const OCTAVES = 3;
+    let laneHeight = 0;
 
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    // 2D Radiating Wave (Reaction/Ripple) Setup
+    let cellSize = 16;
+    let gridCols = 0;
+    let gridRows = 0;
+    let wave1 = new Float32Array(0);
+    let wave2 = new Float32Array(0);
+    let waveColors = [];
+    const dampening = 0.98;
+
+    function resize() { 
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
+        laneHeight = canvas.height / (12 * OCTAVES); 
+        
+        gridCols = Math.ceil(canvas.width / cellSize);
+        gridRows = Math.ceil(canvas.height / cellSize);
+        wave1 = new Float32Array(gridCols * gridRows);
+        wave2 = new Float32Array(gridCols * gridRows);
+        waveColors = new Array(gridCols * gridRows).fill(null);
+    }
     window.addEventListener('resize', resize); resize();
 
     function resetGame() {
-        bird.y = canvas.height / 2; bird.velocity = 0; pipes = []; score = 0; frames = 0;
-        lastPlayedNote = -1; targetNote = -1; isGameOver = false; gameOverPanel.style.display = 'none';
-        scoreText.innerText = score; statusNote.innerText = "LAST NOTE: --";
-        if (mode === 'HARD') statusTarget.innerText = "TARGET (5th): PLAY ANY NOTE";
+        bird.y = canvas.height / 2; bird.velocity = 0; bird.colorHistory = []; pipes = []; score = 0; frames = 0;
+        visualRipples = [];
+        lastPlayedNote = -1; targetNote = -1; isGameOver = false; 
+        
+        wave1.fill(0); wave2.fill(0); waveColors.fill(null); // Clear waves
+        
+        document.getElementById('game-over').style.display = 'none';
+        document.getElementById('score-text').innerText = score;
+        document.getElementById('status-note').innerText = "LAST NOTE: --";
     }
 
-    btnRestart.addEventListener('click', resetGame);
-
-    btnSpeed.addEventListener('click', () => {
-        if (speedMultiplier === 1.0) { speedMultiplier = 1.5; btnSpeed.innerText = "SPEED: 1.5x"; }
-        else if (speedMultiplier === 1.5) { speedMultiplier = 2.0; btnSpeed.innerText = "SPEED: 2.0x"; }
-        else if (speedMultiplier === 2.0) { speedMultiplier = 0.5; btnSpeed.innerText = "SPEED: 0.5x"; }
-        else { speedMultiplier = 1.0; btnSpeed.innerText = "SPEED: 1.0x"; }
+    document.getElementById('btn-restart').addEventListener('click', resetGame);
+    document.getElementById('btn-mode').addEventListener('click', (e) => {
+        mode = mode === 'EASY' ? 'HARD' : 'EASY';
+        e.target.innerText = `MODE: ${mode}`;
+        document.getElementById('status-mode').innerText = `MODE: ${mode}`;
+        document.getElementById('status-target').style.display = mode === 'HARD' ? 'block' : 'none';
         resetGame();
     });
 
-    btnMode.addEventListener('click', () => {
-        if (mode === 'EASY') {
-            mode = 'HARD'; btnMode.innerText = 'MODE: HARD';
-            statusMode.innerText = 'MODE: HARD (Gravity & Fifths)'; statusMode.style.color = '#ff0055'; statusTarget.style.display = 'block';
-        } else {
-            mode = 'EASY'; btnMode.innerText = 'MODE: EASY';
-            statusMode.innerText = 'MODE: EASY (Hover)'; statusMode.style.color = '#00ffcc'; statusTarget.style.display = 'none';
-        }
-        resetGame();
+    document.getElementById('btn-mic').addEventListener('click', async (e) => {
+        if (await audio.startMic()) { e.target.style.display = 'none'; resetGame(); renderFrame(); }
     });
 
-    btnMic.addEventListener('click', async () => {
-        if (await audio.startMic()) { btnMic.style.display = 'none'; resetGame(); renderFrame(); }
-    });
-
-    function spawnPipe() {
-        let gapCenterY; let noteForGap = -1;
-        if (mode === 'EASY') {
-            noteForGap = Math.floor(Math.random() * 12);
-            gapCenterY = canvas.height - ((noteForGap / 11) * (canvas.height - 100)) - 50;
+    function spawnPipe(isSun) {
+        let note;
+        if (pipes.length > 0) {
+            let prevNote = pipes[pipes.length - 1].note;
+            do {
+                note = Math.floor(Math.random() * 12);
+            } while (isSun ? (Math.abs(note - prevNote) === 6) : (Math.abs(note - prevNote) === 7));
         } else {
-            let minCenter = 50 + pipeGap/2; let maxCenter = canvas.height - 50 - pipeGap/2;
-            gapCenterY = minCenter + Math.random() * (maxCenter - minCenter);
+            note = Math.floor(Math.random() * 12);
         }
-        let topHeight = gapCenterY - (pipeGap / 2);
-        pipes.push({ x: canvas.width, top: topHeight, passed: false, gapNote: noteForGap });
+        
+        let gaps = [];
+        for (let o = 0; o < OCTAVES; o++) {
+            gaps.push(canvas.height - ((note + (o * 12)) * laneHeight) - (laneHeight * 2));
+        }
+        pipes.push({ x: canvas.width, gaps: gaps, passed: false, note: note });
     }
 
-    function checkCollision(p) {
-        if (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + pipeWidth) {
-            if (bird.y - bird.radius < p.top || bird.y + bird.radius > p.top + pipeGap) return true;
+    function drawCoolBird(x, y, radius, colorHistory) {
+        let baseColor = colorHistory.length > 0 ? colorHistory[0] : '#ffcc00';
+        
+        let rayPulse = Math.sin(frames * 0.15) * 4;
+        ctx.fillStyle = baseColor;
+        for(let a = 0; a < Math.PI*2; a += Math.PI/4) {
+            ctx.beginPath();
+            ctx.moveTo(x + Math.cos(a)*radius, y + Math.sin(a)*radius);
+            ctx.lineTo(x + Math.cos(a-0.2)*(radius+8+rayPulse), y + Math.sin(a-0.2)*(radius+8+rayPulse));
+            ctx.lineTo(x + Math.cos(a+0.2)*(radius+8+rayPulse), y + Math.sin(a+0.2)*(radius+8+rayPulse));
+            ctx.fill();
         }
-        if (bird.y + bird.radius >= canvas.height || bird.y - bird.radius <= 0) return true;
-        return false;
+
+        if (colorHistory.length === 0) {
+            ctx.fillStyle = '#ffcc00';
+            ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI*2); ctx.fill();
+        } else {
+            let sliceCount = colorHistory.length;
+            for(let i = 0; i < colorHistory.length; i++) {
+                let r = radius - (i * (radius / sliceCount));
+                ctx.fillStyle = colorHistory[i];
+                ctx.beginPath(); ctx.arc(x, y, Math.max(0, r), 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        let lensW = radius * 0.7, lensH = radius * 0.5, bridgeW = radius * 0.4;
+        
+        ctx.fillStyle = '#111';
+        ctx.fillRect(x - radius*0.8, y - radius*0.2, lensW, lensH);
+        ctx.fillRect(x + radius*0.1, y - radius*0.2, lensW, lensH);
+        ctx.fillRect(x - radius*0.1, y, bridgeW, 3);
+        
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x - radius*0.6, y - radius*0.1, 4, 4);
+        ctx.fillRect(x + radius*0.3, y - radius*0.1, 4, 4);
+
+        ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y + radius*0.3, radius*0.3, 0, Math.PI); ctx.stroke();
     }
 
-    function drawCircleHUD(current) {
-        let cx = 80, cy = canvas.height - 100, r = 40;
-        ctx.strokeStyle = '#333'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
-        circleOfFifths.forEach((n, i) => {
-            let ang = (i * Math.PI/6) - Math.PI/2;
-            ctx.fillStyle = (n === current) ? '#0f0' : (n === targetNote) ? '#ff8c00' : '#555';
-            ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(notes[n], cx + Math.cos(ang)*r, cy + Math.sin(ang)*r);
-        });
-        if (current !== -1 && targetNote !== -1) {
-            ctx.strokeStyle = '#ff8c00'; ctx.beginPath(); ctx.moveTo(cx, cy);
-            let tAng = (circleOfFifths.indexOf(targetNote) * Math.PI/6) - Math.PI/2;
-            ctx.lineTo(cx + Math.cos(tAng)*r, cy + Math.sin(tAng)*r); ctx.stroke();
+    // --- 2D WAVE PHYSICS ---
+    function update2DWaves() {
+        for (let y = 1; y < gridRows - 1; y++) {
+            for (let x = 1; x < gridCols - 1; x++) {
+                let i = x + y * gridCols;
+                
+                // Collide with pipes (Pipes act as solid walls for the waves)
+                let isWall = false;
+                let worldX = x * cellSize;
+                let worldY = y * cellSize;
+                
+                for (let p of pipes) {
+                    if (worldX + cellSize > p.x && worldX < p.x + pipeWidth) {
+                        let inGap = false;
+                        for (let gap of p.gaps) {
+                            if (worldY > gap - pipeGap/2 && worldY < gap + pipeGap/2) {
+                                inGap = true; break;
+                            }
+                        }
+                        if (!inGap) { isWall = true; break; }
+                    }
+                }
+
+                if (isWall) {
+                    wave2[i] = 0; // Wave bounces off pipe structure
+                    continue;
+                }
+
+                // 2D Ripple Equation
+                wave2[i] = (wave1[i - 1] + wave1[i + 1] + wave1[i - gridCols] + wave1[i + gridCols]) / 2 - wave2[i];
+                wave2[i] *= dampening;
+
+                // Propagate color along the wave front
+                if (Math.abs(wave2[i]) > 0.1) {
+                    let maxNeighbor = Math.abs(wave1[i-1]); let bestColor = waveColors[i-1];
+                    if (Math.abs(wave1[i+1]) > maxNeighbor) { maxNeighbor = Math.abs(wave1[i+1]); bestColor = waveColors[i+1]; }
+                    if (Math.abs(wave1[i-gridCols]) > maxNeighbor) { maxNeighbor = Math.abs(wave1[i-gridCols]); bestColor = waveColors[i-gridCols]; }
+                    if (Math.abs(wave1[i+gridCols]) > maxNeighbor) { maxNeighbor = Math.abs(wave1[i+gridCols]); bestColor = waveColors[i+gridCols]; }
+                    
+                    if (maxNeighbor > Math.abs(wave2[i]) && bestColor) {
+                        waveColors[i] = bestColor;
+                    }
+                } else {
+                    if (Math.abs(wave2[i]) < 0.05) waveColors[i] = null; // Fade color when wave dies
+                }
+            }
         }
+        // Swap buffers
+        let temp = wave1; wave1 = wave2; wave2 = temp;
     }
 
     function renderFrame() {
@@ -204,85 +282,161 @@
         requestAnimationFrame(renderFrame);
         if (isGameOver) return; 
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        frames++;
+        // --- SUN & MOON CYCLE LOGIC ---
+        let cyclePhase = (frames % 2000) / 2000;
+        let isSun = cyclePhase < 0.5;
+        
+        let bgColor = isSun ? '#1a0b2e' : '#05050a'; 
+        ctx.fillStyle = bgColor; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.lineWidth = 2;
-        let staveSpacing = 40; let startY = canvas.height / 2 - (staveSpacing * 2);
-        ctx.beginPath();
-        for(let i=0; i<5; i++) { let y = startY + (i * staveSpacing); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
-        ctx.stroke();
+        document.getElementById('main-title').innerText = isSun ? "FLAPPY FIFTHS (DAY)" : "FLAPPY TRITONES (NIGHT)";
+        document.getElementById('main-title').style.color = isSun ? "#ff8c00" : "#00ffff";
+        
+        let flapTargetInterval = isSun ? 7 : 6;
+        let targetLabel = document.getElementById('status-target');
+        targetLabel.style.color = isSun ? "#ff8c00" : "#00ffff";
 
-        let peaks = audio.getPeaks(100); let currentNote = -1;
-        if (peaks.length > 0) currentNote = hzToPitchClass(peaks[0].hz);
+        // --- AUDIO DETECTION & WAVE TRIGGER ---
+        let currentNote = -1;
+        let peaks = audio.getPeaks(90);
+        if (peaks.length > 0) {
+            currentNote = hzToPitchClass(peaks[0].hz);
+        }
 
-        if (mode === 'EASY') {
-            if (currentNote !== -1) {
-                statusNote.innerText = `LANE: ${notes[currentNote]}`;
-                let targetY = canvas.height - ((currentNote / 11) * (canvas.height - 100)) - 50;
-                bird.y += (targetY - bird.y) * 0.15; 
-            }
-        } else if (mode === 'HARD') {
-            bird.velocity += bird.gravity; bird.y += bird.velocity;
-            if (currentNote !== -1 && currentNote !== lastPlayedNote) {
+        if (currentNote !== -1 && currentNote !== lastPlayedNote) {
+            bird.colorHistory.unshift(laneColors[currentNote]);
+            if (bird.colorHistory.length > 6) bird.colorHistory.pop();
+
+            document.getElementById('status-note').innerText = `LAST: ${notes[currentNote]}`;
+            
+            if (mode === 'HARD') {
                 if (lastPlayedNote === -1 || currentNote === targetNote) {
-                    bird.velocity = bird.flapPower; lastPlayedNote = currentNote; targetNote = (currentNote + 7) % 12; 
-                    statusNote.innerText = `LAST NOTE: ${notes[currentNote]}`; statusTarget.innerText = `TARGET (5th): ${notes[targetNote]}`;
+                    bird.velocity = bird.flapPower; 
+                    targetNote = (currentNote + flapTargetInterval) % 12; 
+                    targetLabel.innerText = isSun ? `TARGET (P5): ${notes[targetNote]}` : `TARGET (TT): ${notes[targetNote]}`;
                 }
             }
-            drawCircleHUD(currentNote);
+
+            // DROP STONE INTO RIPPLE GRID
+            let bx = Math.floor(bird.x / cellSize);
+            let by = Math.floor(bird.y / cellSize);
+            for(let dy=-2; dy<=2; dy++) {
+                for(let dx=-2; dx<=2; dx++) {
+                    let px = bx + dx, py = by + dy;
+                    if (px > 0 && px < gridCols-1 && py > 0 && py < gridRows-1) {
+                        let idx = py * gridCols + px;
+                        wave1[idx] = 400; // Big splash
+                        waveColors[idx] = laneColors[currentNote];
+                    }
+                }
+            }
+
+            // ADD SECONDARY VISUAL RIPPLE
+            visualRipples.push({
+                x: bird.x,
+                y: bird.y,
+                radius: bird.radius,
+                color: laneColors[currentNote],
+                alpha: 1.0
+            });
+
+            lastPlayedNote = currentNote;
         }
 
-        let sunColor = mode === 'EASY' ? '#00ffcc' : (targetNote !== -1 ? '#ff8c00' : '#333');
-        ctx.shadowBlur = 50; ctx.shadowColor = sunColor; ctx.fillStyle = sunColor;
-        ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height / 2, 80, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
-        
-        if (mode === 'HARD' && targetNote !== -1) {
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 40px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(notes[targetNote], canvas.width / 2, canvas.height / 2);
+        // --- 2D WAVE RENDER ---
+        update2DWaves();
+        for (let y = 0; y < gridRows; y++) {
+            for (let x = 0; x < gridCols; x++) {
+                let i = x + y * gridCols;
+                let val = wave1[i];
+                if (Math.abs(val) > 1 && waveColors[i]) {
+                    let intensity = Math.min(0.8, Math.abs(val) / 50); // Convert wave height to opacity
+                    ctx.globalAlpha = intensity;
+                    ctx.fillStyle = waveColors[i];
+                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+        ctx.globalAlpha = 1.0;
+
+        // Faint 3-Octave Grid
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+        for(let i=0; i < (12 * OCTAVES); i+=2) ctx.fillRect(0, i * laneHeight, canvas.width, laneHeight);
+
+        // --- BIRD PHYSICS ---
+        if (mode === 'EASY') {
+            if (currentNote !== -1) {
+                let targetY = canvas.height - ((currentNote + 12) * laneHeight) - (laneHeight * 2);
+                bird.y += (targetY - bird.y) * 0.15; 
+            }
+        } else {
+            bird.velocity += bird.gravity; bird.y += bird.velocity;
         }
 
-        let currentSpawnRate = Math.floor(baseSpawnRate / speedMultiplier);
-        let currentPipeSpeed = basePipeSpeed * speedMultiplier;
+        // --- PIPES ---
+        if (frames % baseSpawnRate === 0) spawnPipe(isSun); 
 
-        if (frames % currentSpawnRate === 0) spawnPipe(); 
-
-        ctx.fillStyle = '#333'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-
+        ctx.fillStyle = isSun ? '#ff8c00' : '#00ffff';
         for (let i = pipes.length - 1; i >= 0; i--) {
-            let p = pipes[i]; p.x -= currentPipeSpeed;
+            let p = pipes[i]; p.x -= basePipeSpeed;
 
-            ctx.fillRect(p.x, 0, pipeWidth, p.top); ctx.strokeRect(p.x, 0, pipeWidth, p.top);
-            ctx.fillRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - p.top - pipeGap); ctx.strokeRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - p.top - pipeGap);
+            let currentY = 0;
+            let sortedGaps = [...p.gaps].sort((a, b) => a - b);
+            
+            for(let gap of sortedGaps) {
+                ctx.fillRect(p.x, currentY, pipeWidth, (gap - pipeGap/2) - currentY);
+                let targetN = mode === 'EASY' ? p.note : targetNote;
+                if (targetN !== -1) {
+                    ctx.fillStyle = '#000'; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(notes[targetN], p.x + pipeWidth/2, gap);
+                    ctx.fillStyle = isSun ? '#ff8c00' : '#00ffff'; 
+                }
+                currentY = gap + pipeGap/2;
+            }
+            ctx.fillRect(p.x, currentY, pipeWidth, canvas.height - currentY);
 
-            if (mode === 'EASY' && p.gapNote !== -1) {
-                ctx.fillStyle = 'rgba(0, 255, 204, 0.8)'; ctx.font = 'bold 24px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(notes[p.gapNote], p.x + pipeWidth/2, p.top + pipeGap/2);
-            } else if (mode === 'HARD' && targetNote !== -1) {
-                ctx.fillStyle = 'rgba(255, 140, 0, 0.8)'; ctx.font = 'bold 24px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(notes[targetNote], p.x + pipeWidth/2, p.top + pipeGap/2);
+            // Collision
+            let inAnyGap = false;
+            for(let gap of sortedGaps) {
+                if (bird.y - bird.radius > gap - pipeGap/2 && bird.y + bird.radius < gap + pipeGap/2) {
+                    inAnyGap = true; break;
+                }
+            }
+            
+            if (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + pipeWidth) {
+                if (!inAnyGap) { isGameOver = true; document.getElementById('game-over').style.display = 'block'; }
             }
 
-            if (checkCollision(p)) {
-                isGameOver = true; finalScore.innerText = Math.floor(score);
-                if (score > highScore) { highScore = score; try { localStorage.setItem('flappyHighScore', highScore); } catch(e) {} highScoreText.innerText = Math.floor(highScore); }
-                gameOverPanel.style.display = 'block';
+            if (bird.y + bird.radius >= canvas.height || bird.y - bird.radius <= 0) {
+                isGameOver = true; document.getElementById('game-over').style.display = 'block';
             }
 
-            if (p.x + pipeWidth < bird.x && !p.passed) {
-                score += (1 * speedMultiplier); scoreText.innerText = Math.floor(score); p.passed = true;
-            }
-
+            if (p.x + pipeWidth < bird.x && !p.passed) { score++; document.getElementById('score-text').innerText = score; p.passed = true; }
             if (p.x + pipeWidth < 0) pipes.splice(i, 1);
         }
 
-        ctx.fillStyle = mode === 'EASY' ? '#fff' : '#ff0055';
-        ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2); ctx.fill();
-        
-        if (currentNote !== -1) {
-            ctx.fillStyle = '#000'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(notes[currentNote], bird.x, bird.y);
+        // --- DRAW VISUAL RIPPLES ---
+        for(let i = visualRipples.length - 1; i >= 0; i--) {
+            let r = visualRipples[i];
+            r.radius += 5;
+            r.alpha -= 0.02;
+            if(r.alpha <= 0) {
+                visualRipples.splice(i, 1);
+            } else {
+                ctx.strokeStyle = r.color;
+                ctx.globalAlpha = r.alpha;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(r.x, r.y, r.radius, 0, Math.PI*2);
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            }
         }
+
+        drawCoolBird(bird.x, bird.y, bird.radius, bird.colorHistory);
+
+        frames++;
     }
 </script>
 </body>
