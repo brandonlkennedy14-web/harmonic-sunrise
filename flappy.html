@@ -3,441 +3,761 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Fifths</title>
+    <title>Flappy Sunrise</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
-        
-        /* 64-Bit Retro Pixelation */
-        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; image-rendering: pixelated; }
-        
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
-        .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
-        .title { font-size: 20px; font-weight: bold; color: #00ffcc; letter-spacing: 2px; }
-        .score-display { font-size: 24px; color: #fff; font-weight: bold; }
-        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 2px solid #333; margin-top: 10px; width: fit-content; }
-        .target-text { font-size: 14px; font-weight: bold; }
-        .controls { display: flex; gap: 10px; pointer-events: auto; flex-wrap: wrap; margin-bottom: 20px; }
-        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
-        button:active { transform: translate(2px, 2px); }
-        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 40px; border: 4px solid #ff0055; }
-        #game-over h1 { color: #ff0055; margin: 0 0 20px 0; }
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0;
+            background: #000; color: #fff;
+            font-family: 'Space Mono', monospace;
+            overflow: hidden; touch-action: manipulation;
+        }
+
+        canvas {
+            display: block; width: 100vw; height: 100vh;
+            position: absolute; top: 0; left: 0;
+            image-rendering: pixelated;
+        }
+
+        /* Layer order */
+        #c-stars  { z-index: 1; }
+        #c-ruliad { z-index: 2; }
+        #c-game   { z-index: 3; background: transparent; }
+        #c-munker { z-index: 4; pointer-events: none; }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+            display: flex; flex-direction: column;
+            justify-content: space-between;
+            padding: 110px 20px 20px 20px;
+            pointer-events: none;
+        }
+
+        .hud {
+            display: flex; justify-content: space-between; width: 100%;
+            pointer-events: auto;
+        }
+
+        .title { font-size: 18px; font-weight: bold; letter-spacing: 3px; transition: color 0.5s; }
+        .score-display { font-size: 32px; color: #fff; font-weight: bold; text-align: right; text-shadow: 0 0 10px currentColor; }
+
+        .hud-box {
+            background: rgba(0,0,0,0.75);
+            padding: 8px 12px;
+            border: 2px solid #333;
+            margin-top: 8px;
+            font-size: 10px;
+            letter-spacing: 1px;
+            width: fit-content;
+            transition: border-color 0.4s;
+        }
+
+        .target-text { font-size: 12px; font-weight: bold; margin-top: 4px; }
+
+        .controls {
+            display: flex; gap: 10px;
+            pointer-events: auto; flex-wrap: wrap; margin-bottom: 20px;
+        }
+
+        button {
+            background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff;
+            padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+            transition: all 0.15s;
+        }
+        button:active { transform: translate(2px,2px); }
+        #btn-mic { border-color: #0f0; color: #0f0; }
+
+        #game-over {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            text-align: center; display: none;
+            z-index: 20; pointer-events: auto;
+            background: rgba(0,0,0,0.95);
+            padding: 40px 50px; border: 3px solid #ff0055;
+        }
+        #game-over h1 { color: #ff0055; margin: 0 0 12px 0; font-size: 22px; letter-spacing: 3px; }
+
+        /* Register hint labels */
+        #register-labels {
+            position: absolute; left: 0; top: 0;
+            width: 60px; height: 100%;
+            z-index: 9; pointer-events: none;
+            display: flex; flex-direction: column;
+            justify-content: space-around;
+            padding: 110px 0 20px 0;
+        }
+        .reg-label {
+            font-size: 9px; font-family: 'Space Mono', monospace;
+            letter-spacing: 1px; text-align: center;
+            opacity: 0.4; transition: opacity 0.3s, color 0.3s;
+        }
+
+        #pitch-accent {
+            position: absolute; top: 0; left: 0; width: 100%; height: 3px;
+            z-index: 15; pointer-events: none;
+            transition: background 0.5s ease;
+        }
     </style>
 </head>
 <body>
 
-    <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
-        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold;">[1] SUNRISE</a> <span style="color: #555;">|</span>
-        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold;">[2] FLAPPY</a> <span style="color: #555;">|</span>
-        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold;">[3] WINDING</a> <span style="color: #555;">|</span>
-        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold;">[4] INVADERS</a> <span style="color: #555;">|</span>
-        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold;">[5] WEAVER</a> <span style="color: #555;">|</span>
-        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold;">[6] SIMON</a>
-    </div>
+<div id="global-nav" style="
+    position:absolute; top:0; left:0; width:100%; z-index:100;
+    display:flex; justify-content:center; gap:10px; padding:14px 5px;
+    background:rgba(0,0,0,0.92); border-bottom:2px solid #222;
+    pointer-events:auto; font-family:'Space Mono',monospace;
+    box-sizing:border-box; flex-wrap:wrap; font-size:11px; letter-spacing:1px;">
+    <a href="index.html"     style="color:#ff8c00;text-decoration:none;font-weight:bold;">[1] SUNRISE</a>  <span style="color:#444;">|</span>
+    <a href="flappy.html"    style="color:#00ffcc;text-decoration:none;font-weight:bold;">[2] FLAPPY</a>   <span style="color:#444;">|</span>
+    <a href="billiards.html" style="color:#ff00ff;text-decoration:none;font-weight:bold;">[3] WINDING</a>  <span style="color:#444;">|</span>
+    <a href="invaders.html"  style="color:#ff0055;text-decoration:none;font-weight:bold;">[4] INVADERS</a> <span style="color:#444;">|</span>
+    <a href="weaver.html"    style="color:#b366ff;text-decoration:none;font-weight:bold;">[5] WEAVER</a>   <span style="color:#444;">|</span>
+    <a href="simon.html"     style="color:#fff;text-decoration:none;font-weight:bold;">[6] SIMON</a>
+</div>
 
-    <canvas id="c-flappy"></canvas>
+<div id="pitch-accent"></div>
 
-    <div id="ui-layer">
-        <div class="hud">
-            <div>
-                <div class="title" id="main-title">FLAPPY FIFTHS</div>
-                <div class="hud-box">
-                    <div id="status-mode" style="color:#00ffcc;">MODE: EASY (Hover)</div>
-                    <div id="status-note">LAST NOTE: --</div>
-                    <div id="status-target" class="target-text" style="display:none; color: #ff8c00;">TARGET (P5): --</div>
-                </div>
-            </div>
-            <div style="text-align: right;">
-                <div class="score-display" id="score-text">0</div>
+<canvas id="c-stars"></canvas>
+<canvas id="c-ruliad"></canvas>
+<canvas id="c-game"></canvas>
+<canvas id="c-munker"></canvas>
+
+<div id="register-labels">
+    <div class="reg-label" id="lbl-high" style="color:#00ccff;">HIGH</div>
+    <div class="reg-label" id="lbl-mid"  style="color:#00ffcc;">MID</div>
+    <div class="reg-label" id="lbl-bass" style="color:#ff8c00;">BASS</div>
+</div>
+
+<div id="ui-layer">
+    <div class="hud">
+        <div>
+            <div class="title" id="main-title">FLAPPY SUNRISE</div>
+            <div class="hud-box" id="hud-box">
+                <div id="status-mode" style="color:#00ffcc;">MODE: EASY (HOVER)</div>
+                <div id="status-note">LAST: --</div>
+                <div id="status-register">REGISTER: --</div>
+                <div id="status-target" class="target-text" style="display:none; color:#ff8c00;">TARGET (P5): --</div>
             </div>
         </div>
-        <div class="controls">
-            <button id="btn-mic" style="border-color:#0f0; color:#0f0;">START MIC</button>
-            <button id="btn-mode" style="border-color:#00ffcc; color:#00ffcc;">MODE: EASY</button>
+        <div style="text-align:right;">
+            <div style="font-size:9px;color:#aaa;letter-spacing:1px;">SCORE</div>
+            <div class="score-display" id="score-text">0</div>
+            <div style="font-size:9px;color:#555;letter-spacing:1px;margin-top:4px;">BEST <span id="best-text">0</span></div>
         </div>
     </div>
-
-    <div id="game-over">
-        <h1>CRASH!</h1>
-        <p>Score: <span id="final-score">0</span></p>
-        <button id="btn-restart" style="border-color:#0f0; color:#0f0; margin-top:10px;">PLAY AGAIN</button>
+    <div class="controls">
+        <button id="btn-mic">START MIC</button>
+        <button id="btn-mode" style="border-color:#00ffcc;color:#00ffcc;">MODE: EASY</button>
     </div>
+</div>
+
+<div id="game-over">
+    <h1>CRASH!</h1>
+    <p style="letter-spacing:1px;">Score: <span id="final-score" style="font-weight:bold;">0</span></p>
+    <button id="btn-restart" style="border-color:#0f0;color:#0f0;margin-top:10px;">PLAY AGAIN</button>
+</div>
 
 <script>
-    // --- INLINED AUDIO & THEORY ENGINE ---
-    const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    const laneColors = ['#FF0055', '#FF3300', '#FF6600', '#FF9900', '#FFCC00', '#FFFF00', '#CCFF00', '#00FF00', '#00FFCC', '#00CCFF', '#0055FF', '#B366FF'];
-    
-    function hzToPitchClass(hz) {
-        if (hz <= 0) return -1;
-        const c0 = 16.35;
-        let halfSteps = Math.round(12 * Math.log2(hz / c0));
-        return (halfSteps % 12 + 12) % 12;
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIO ENGINE  — wider frequency scan, higher fftSize for octave resolution
+// ─────────────────────────────────────────────────────────────────────────────
+const noteNames = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 
-    class AudioEngine {
-        constructor() {
-            this.audioContext = null; this.analyser = null; this.microphone = null;
-            this.isRunning = false; this.dataArray = null;
-        }
-        async startMic() {
-            try {
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                this.microphone = this.audioContext.createMediaStreamSource(stream);
-                this.analyser = this.audioContext.createAnalyser();
-                this.analyser.fftSize = 2048;
-                this.microphone.connect(this.analyser);
-                this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-                this.isRunning = true;
-                return true;
-            } catch (err) { console.error("Mic error:", err); return false; }
-        }
-        getPeaks(threshold = 95) {
-            if (!this.isRunning) return [];
-            this.analyser.getByteFrequencyData(this.dataArray);
-            let maxVal = 0; let maxIdx = -1;
-            for (let i = 0; i < this.dataArray.length; i++) {
+// 12-key hues (same as sunrise)
+const KEY_HUES = [0,30,55,80,110,145,175,200,230,265,295,330];
+function keyHSL(pc, s=100, l=55) { return `hsl(${KEY_HUES[pc]},${s}%,${l}%)`; }
+
+function hslToRgb(h,s,l) {
+    s/=100; l/=100;
+    const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l);
+    const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+    return [Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
+}
+
+function lerpHue(a,b,t){let d=b-a; if(d>180)d-=360; if(d<-180)d+=360; return(a+d*t+360)%360;}
+
+// Register bands (Hz boundaries) — bass / mid / high
+// Bass: ~80–300 Hz, Mid: ~300–900 Hz, High: ~900–3000 Hz
+const REG_BASS = { lo: 80,  hi: 300,  label: 'BASS', color: '#ff8c00', gap: 2 }; // gap = screen section (0=top,1=mid,2=bot)
+const REG_MID  = { lo: 300, hi: 900,  label: 'MID',  color: '#00ffcc', gap: 1 };
+const REG_HIGH = { lo: 900, hi: 3000, label: 'HIGH', color: '#00ccff', gap: 0 };
+const REGISTERS = [REG_BASS, REG_MID, REG_HIGH];
+
+function hzToRegister(hz) {
+    if (hz < REG_MID.lo) return REG_BASS;
+    if (hz < REG_HIGH.lo) return REG_MID;
+    return REG_HIGH;
+}
+
+function hzToPitchClass(hz) {
+    if (hz <= 0) return -1;
+    let h = Math.round(12 * Math.log2(hz / 16.35));
+    return ((h % 12) + 12) % 12;
+}
+
+class AudioEngine {
+    constructor() { this.audioContext=null; this.analyser=null; this.microphone=null; this.isRunning=false; this.dataArray=null; }
+    async startMic() {
+        try {
+            this.audioContext = new (window.AudioContext||window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+            this.microphone = this.audioContext.createMediaStreamSource(stream);
+            this.analyser = this.audioContext.createAnalyser();
+            this.analyser.fftSize = 8192;  // High resolution — captures bass AND treble
+            this.analyser.smoothingTimeConstant = 0.7;
+            this.microphone.connect(this.analyser);
+            this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+            this.isRunning = true;
+            return true;
+        } catch(e) { console.error(e); return false; }
+    }
+    // Returns { hz, amp, register, pitchClass } or null
+    getBestPeak(threshold=85) {
+        if (!this.isRunning) return null;
+        this.analyser.getByteFrequencyData(this.dataArray);
+        const sr = this.audioContext.sampleRate;
+        const binHz = sr / this.analyser.fftSize;
+        // Scan each register band separately, find loudest peak in each
+        let best = null;
+        for (const reg of REGISTERS) {
+            const lo = Math.floor(reg.lo / binHz);
+            const hi = Math.min(Math.floor(reg.hi / binHz), this.dataArray.length - 1);
+            let maxVal = 0, maxIdx = -1;
+            for (let i = lo; i <= hi; i++) {
                 if (this.dataArray[i] > maxVal) { maxVal = this.dataArray[i]; maxIdx = i; }
             }
-            if (maxVal > threshold) {
-                let hz = maxIdx * this.audioContext.sampleRate / this.analyser.fftSize;
-                return [{ hz: hz, amp: maxVal }];
+            if (maxVal > threshold && (!best || maxVal > best.amp)) {
+                best = { hz: maxIdx * binHz, amp: maxVal, register: reg };
             }
-            return [];
         }
+        if (!best) return null;
+        best.pitchClass = hzToPitchClass(best.hz);
+        return best;
+    }
+}
+
+const audio = new AudioEngine();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CANVAS LAYERS
+// ─────────────────────────────────────────────────────────────────────────────
+const cStars  = document.getElementById('c-stars');
+const cRuliad = document.getElementById('c-ruliad');
+const cGame   = document.getElementById('c-game');
+const cMunker = document.getElementById('c-munker');
+const ctxS = cStars.getContext('2d');
+const ctxR = cRuliad.getContext('2d');
+const ctx  = cGame.getContext('2d');
+const ctxM = cMunker.getContext('2d');
+
+let W, H;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let mode = 'EASY';
+let lastPeak = null;   // { pitchClass, register, hz }
+let targetNote = -1;
+let frames = 0, score = 0, best = 0;
+let isGameOver = false;
+
+// Physics — classic flappy snap with smoothed input
+const GRAVITY      = 0.38;
+const FLAP_POWER   = -8.5;     // snappy upward kick
+const SMOOTH_EASE  = 0.18;     // easy mode lerp speed
+const VELOCITY_CAP = 12;       // terminal velocity
+const PIPE_SPEED_BASE = 3.0;
+const PIPE_SPAWN_BASE = 140;
+const GAP_SIZE     = 170;      // vertical opening height per gap
+
+let bird = { x: 0, y: 0, vy: 0, radius: 18, colorHistory: [] };
+
+// Velocity smoothing for hard mode — avoids instant spikes from mic noise
+let pendingFlap = 0;  // accumulates flap impulse, applied over frames
+
+let pipes = [];
+
+// Wave grid
+const CELL = 14;
+let gCols, gRows, wave1, wave2, waveClr;
+
+// Munker
+let munkerH1 = 175, munkerH2 = 30;
+let munkerT1  = 175, munkerT2  = 30;
+
+// Stars + ruliad
+let stars = [];
+let rulCells, rulNext, rulCols, rulRows;
+const RUL_CELL = 10;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESIZE
+// ─────────────────────────────────────────────────────────────────────────────
+function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    [cStars, cRuliad, cGame, cMunker].forEach(c => { c.width=W; c.height=H; });
+
+    bird.x = W * 0.18;
+    if (!isGameOver) bird.y = H / 2;
+
+    gCols = Math.ceil(W/CELL)+1; gRows = Math.ceil(H/CELL)+1;
+    wave1 = new Float32Array(gCols*gRows);
+    wave2 = new Float32Array(gCols*gRows);
+    waveClr = new Array(gCols*gRows).fill(null);
+
+    rulCols = Math.ceil(W/RUL_CELL)+1; rulRows = Math.ceil(H/RUL_CELL)+1;
+    rulCells = new Uint8Array(rulCols*rulRows);
+    rulNext  = new Uint8Array(rulCols*rulRows);
+    for (let i=0; i<rulCells.length; i++) rulCells[i] = Math.random()<0.32?1:0;
+
+    stars = [];
+    for (let i=0; i<240; i++) {
+        stars.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()<0.1?2:1,
+                     bri:0.2+Math.random()*0.8, tw:Math.random()*Math.PI*2 });
     }
 
-    // --- GAME LOGIC ---
-    const canvas = document.getElementById('c-flappy');
-    const ctx = canvas.getContext('2d');
-    const audio = new AudioEngine();
+    drawStars(-1);
+    drawMunker(munkerH1, munkerH2, 0.5);
+}
+window.addEventListener('resize', resize);
 
-    let mode = 'EASY', lastPlayedNote = -1, targetNote = -1, frames = 0, score = 0, isGameOver = false;
-    let basePipeSpeed = 3, baseSpawnRate = 150;
-    let bird = { x: 100, y: 300, radius: 20, velocity: 0, gravity: 0.3, flapPower: -7, colorHistory: [] };
-    let visualRipples = [];
-    let pipes = [];
-    const pipeWidth = 50, pipeGap = 160;
-    const OCTAVES = 3;
-    let laneHeight = 0;
-
-    // 2D Radiating Wave (Reaction/Ripple) Setup
-    let cellSize = 16;
-    let gridCols = 0;
-    let gridRows = 0;
-    let wave1 = new Float32Array(0);
-    let wave2 = new Float32Array(0);
-    let waveColors = [];
-    const dampening = 0.98;
-
-    function resize() { 
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
-        laneHeight = canvas.height / (12 * OCTAVES); 
-        
-        gridCols = Math.ceil(canvas.width / cellSize);
-        gridRows = Math.ceil(canvas.height / cellSize);
-        wave1 = new Float32Array(gridCols * gridRows);
-        wave2 = new Float32Array(gridCols * gridRows);
-        waveColors = new Array(gridCols * gridRows).fill(null);
-    }
-    window.addEventListener('resize', resize); resize();
-
-    function resetGame() {
-        bird.y = canvas.height / 2; bird.velocity = 0; bird.colorHistory = []; pipes = []; score = 0; frames = 0;
-        visualRipples = [];
-        lastPlayedNote = -1; targetNote = -1; isGameOver = false; 
-        
-        wave1.fill(0); wave2.fill(0); waveColors.fill(null); // Clear waves
-        
-        document.getElementById('game-over').style.display = 'none';
-        document.getElementById('score-text').innerText = score;
-        document.getElementById('status-note').innerText = "LAST NOTE: --";
-    }
-
-    document.getElementById('btn-restart').addEventListener('click', resetGame);
-    document.getElementById('btn-mode').addEventListener('click', (e) => {
-        mode = mode === 'EASY' ? 'HARD' : 'EASY';
-        e.target.innerText = `MODE: ${mode}`;
-        document.getElementById('status-mode').innerText = `MODE: ${mode}`;
-        document.getElementById('status-target').style.display = mode === 'HARD' ? 'block' : 'none';
-        resetGame();
+// ─────────────────────────────────────────────────────────────────────────────
+// STARFIELD
+// ─────────────────────────────────────────────────────────────────────────────
+function drawStars(pitchHue) {
+    ctxS.fillStyle='#000'; ctxS.fillRect(0,0,W,H);
+    stars.forEach(s=>{
+        const tw = 0.55 + 0.45*Math.sin(s.tw + frames*0.018);
+        const tint = pitchHue>=0 ? `hsla(${KEY_HUES[pitchHue]},55%,82%,${s.bri*tw*0.9})`
+                                  : `rgba(255,255,255,${s.bri*tw*0.85})`;
+        ctxS.fillStyle=tint;
+        ctxS.fillRect(s.x,s.y,s.r,s.r);
     });
+}
 
-    document.getElementById('btn-mic').addEventListener('click', async (e) => {
-        if (await audio.startMic()) { e.target.style.display = 'none'; resetGame(); renderFrame(); }
+// ─────────────────────────────────────────────────────────────────────────────
+// RULIAD GRID
+// ─────────────────────────────────────────────────────────────────────────────
+function stepRuliad() {
+    for (let y=0; y<rulRows; y++) {
+        for (let x=0; x<rulCols; x++) {
+            const i = y*rulCols+x;
+            let n=0;
+            for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++) {
+                if(dx===0&&dy===0) continue;
+                const nx=(x+dx+rulCols)%rulCols, ny=(y+dy+rulRows)%rulRows;
+                n+=rulCells[ny*rulCols+nx];
+            }
+            const a=rulCells[i];
+            rulNext[i]= a ? ((n===2||n===3)?1:0) : ((n===3||n===6)?1:0);
+        }
+    }
+    let t=rulCells; rulCells=rulNext; rulNext=t;
+}
+
+function drawRuliad(pc) {
+    ctxR.clearRect(0,0,W,H);
+    if (!rulCells) return;
+    const hue = pc>=0 ? KEY_HUES[pc] : 175;
+    for (let y=0; y<rulRows; y++) for (let x=0; x<rulCols; x++) {
+        if (rulCells[y*rulCols+x]) {
+            ctxR.fillStyle=`hsla(${hue},65%,55%,0.16)`;
+            ctxR.fillRect(x*RUL_CELL, y*RUL_CELL, RUL_CELL-1, RUL_CELL-1);
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MUNKER OVERLAY
+// ─────────────────────────────────────────────────────────────────────────────
+function drawMunker(h1, h2, op) {
+    ctxM.clearRect(0,0,W,H);
+    const S=16;
+    for (let y=0; y<H; y++) {
+        const m=y%S;
+        if (m<2)            { ctxM.fillStyle=`hsla(${h1},100%,58%,${op})`; ctxM.fillRect(0,y,W,1); }
+        else if(m>=S/2&&m<S/2+2){ ctxM.fillStyle=`hsla(${h2},100%,58%,${op})`; ctxM.fillRect(0,y,W,1); }
+        else if(m===3||m===S/2-1){ ctxM.fillStyle=`rgba(0,0,0,0.55)`;          ctxM.fillRect(0,y,W,1); }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WAVE GRID
+// ─────────────────────────────────────────────────────────────────────────────
+function splashWave(wx, wy, energy, clr) {
+    const bx=Math.floor(wx/CELL), by=Math.floor(wy/CELL);
+    for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++) {
+        const px=bx+dx, py=by+dy;
+        if(px>0&&px<gCols-1&&py>0&&py<gRows-1){
+            const idx=py*gCols+px;
+            wave1[idx]=energy*(1-Math.hypot(dx,dy)/5);
+            if(clr) waveClr[idx]=clr;
+        }
+    }
+}
+
+function updateWaves() {
+    for (let y=1; y<gRows-1; y++) {
+        for (let x=1; x<gCols-1; x++) {
+            const i=x+y*gCols;
+            const wx=x*CELL, wy=y*CELL;
+            // Walls: pipes block waves
+            let wall=false;
+            for (const p of pipes) {
+                if(wx+CELL>p.x && wx<p.x+p.w) {
+                    let inGap=false;
+                    for (const g of p.gaps) {
+                        if(wy>g-GAP_SIZE/2 && wy<g+GAP_SIZE/2){inGap=true;break;}
+                    }
+                    if(!inGap){wall=true;break;}
+                }
+            }
+            if(wall){wave2[i]=0;continue;}
+            wave2[i]=(wave1[i-1]+wave1[i+1]+wave1[i-gCols]+wave1[i+gCols])/2 - wave2[i];
+            wave2[i]*=0.975;
+            // Propagate colour
+            if(Math.abs(wave2[i])>0.1) {
+                let mx=0, bc=null;
+                [[i-1],[i+1],[i-gCols],[i+gCols]].forEach(([j])=>{
+                    if(Math.abs(wave1[j])>mx&&waveClr[j]){mx=Math.abs(wave1[j]);bc=waveClr[j];}
+                });
+                if(bc&&mx>Math.abs(wave2[i])) waveClr[i]=bc;
+                else if(Math.abs(wave2[i])<0.05) waveClr[i]=null;
+            }
+        }
+    }
+    let t=wave1; wave1=wave2; wave2=t;
+}
+
+function drawWaves() {
+    updateWaves();
+    ctx.save();
+    for (let y=0; y<gRows; y++) for (let x=0; x<gCols; x++) {
+        const i=x+y*gCols, val=wave1[i];
+        if(Math.abs(val)>1&&waveClr[i]) {
+            const a=Math.min(0.75, Math.abs(val)/45);
+            ctx.globalAlpha=a; ctx.fillStyle=waveClr[i];
+            ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
+        }
+    }
+    ctx.globalAlpha=1; ctx.restore();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIXEL PLANET RENDERER
+// ─────────────────────────────────────────────────────────────────────────────
+function drawPixelPlanet(context, x, y, r, baseShade, hiShade, px=3) {
+    for (let py=-r; py<=r; py+=px) for (let ppx=-r; ppx<=r; ppx+=px) {
+        if(ppx*ppx+py*py<=r*r) {
+            context.fillStyle = (ppx<0&&py<0) ? hiShade : baseShade;
+            context.fillRect(Math.round(x+ppx), Math.round(y+py), px, px);
+        }
+    }
+}
+
+// Sun with corona rays
+function drawSun(x, y, r, colorHist) {
+    const baseColor = colorHist.length>0 ? colorHist[0] : '#cccccc';
+    const rayPulse = Math.sin(frames*0.14)*3;
+
+    // Rays (grey, Munker colours them)
+    ctx.fillStyle = '#aaaaaa';
+    for (let a=0; a<Math.PI*2; a+=Math.PI/5) {
+        ctx.beginPath();
+        ctx.moveTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
+        ctx.lineTo(x+Math.cos(a-0.18)*(r+9+rayPulse), y+Math.sin(a-0.18)*(r+9+rayPulse));
+        ctx.lineTo(x+Math.cos(a+0.18)*(r+9+rayPulse), y+Math.sin(a+0.18)*(r+9+rayPulse));
+        ctx.fill();
+    }
+
+    // Body — grey circles so Munker overlay tints them
+    if (colorHist.length===0) {
+        drawPixelPlanet(ctx, x, y, r, '#cccccc', '#eeeeee');
+    } else {
+        const n=colorHist.length;
+        for (let i=0; i<n; i++) {
+            const pr=r*(1 - i/n);
+            drawPixelPlanet(ctx, x, y, pr|0, '#bbbbbb', '#dddddd');
+        }
+    }
+
+    // Pixel shades
+    ctx.fillStyle='#222'; ctx.fillRect(x-r*0.7,y-r*0.15,r*0.55,r*0.38); // left lens
+    ctx.fillRect(x+r*0.15,y-r*0.15,r*0.55,r*0.38);                        // right lens
+    ctx.fillRect(x-r*0.08,y+r*0.05,r*0.2,2);                              // bridge
+    ctx.fillStyle='#fff'; ctx.fillRect(x-r*0.5,y-r*0.05,3,3);            // glint L
+    ctx.fillRect(x+r*0.35,y-r*0.05,3,3);                                   // glint R
+    // smile
+    ctx.strokeStyle='#222'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(x,y+r*0.25,r*0.28,0,Math.PI); ctx.stroke();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIPES — 3 gaps (bass=bottom, mid=middle, high=top)
+// ─────────────────────────────────────────────────────────────────────────────
+const PIPE_W = 48;
+
+function gapY(section) {
+    // section 0=top(high), 1=mid, 2=bottom(bass)
+    const band = H / 3;
+    return band * section + band / 2;
+}
+
+function spawnPipe() {
+    // Slight vertical jitter per gap so it's not perfectly predictable
+    const jitter = 30;
+    const gaps = [
+        gapY(0) + (Math.random()-0.5)*jitter,  // HIGH
+        gapY(1) + (Math.random()-0.5)*jitter,  // MID
+        gapY(2) + (Math.random()-0.5)*jitter   // BASS
+    ];
+    pipes.push({ x:W, w:PIPE_W, gaps, passed:false });
+}
+
+function drawPipes(isSun) {
+    const pipeColor  = isSun ? '#cc7700' : '#006688';
+    const labelColor = isSun ? '#ffcc00' : '#00ffff';
+    const regLabels  = ['HIGH','MID','BASS'];
+    const regColors  = [REG_HIGH.color, REG_MID.color, REG_BASS.color];
+
+    for (let i=pipes.length-1; i>=0; i--) {
+        const p=pipes[i];
+        p.x -= PIPE_SPEED_BASE + score*0.04; // subtle acceleration
+
+        // Build sorted solid segments
+        const sorted=[...p.gaps].map((g,idx)=>({g,idx})).sort((a,b)=>a.g-b.g);
+        ctx.fillStyle=pipeColor;
+
+        let curY=0;
+        for (const {g, idx} of sorted) {
+            const top=g-GAP_SIZE/2, bot=g+GAP_SIZE/2;
+            if(top>curY) ctx.fillRect(p.x, curY, p.w, top-curY);
+            // Gap label (register)
+            ctx.save();
+            ctx.fillStyle=regColors[idx];
+            ctx.font='bold 9px Space Mono, monospace';
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(regLabels[idx], p.x+p.w/2, g);
+            ctx.restore();
+            curY=bot;
+        }
+        if(curY<H) ctx.fillRect(p.x, curY, p.w, H-curY);
+
+        // Pixel border effect
+        ctx.fillStyle='rgba(255,255,255,0.15)';
+        ctx.fillRect(p.x, 0, 3, H);
+
+        // Collision
+        const bx=bird.x, by=bird.y, br=bird.radius;
+        if(bx+br>p.x && bx-br<p.x+p.w) {
+            let inGap=false;
+            for (const g of p.gaps) {
+                if(by>g-GAP_SIZE/2+2 && by<g+GAP_SIZE/2-2){inGap=true;break;}
+            }
+            if(!inGap) triggerGameOver();
+        }
+
+        // Off-screen boundary
+        if(by+br>=H||by-br<=0) triggerGameOver();
+
+        // Score
+        if(p.x+p.w<bx && !p.passed){ score++; p.passed=true; document.getElementById('score-text').innerText=score; }
+        if(p.x+p.w<0) pipes.splice(i,1);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VISUAL RIPPLES
+// ─────────────────────────────────────────────────────────────────────────────
+let ripples=[];
+function addRipple(x,y,color){ ripples.push({x,y,r:bird.radius,color,a:1.0}); }
+function drawRipples() {
+    ripples.forEach(r=>{ r.r+=4.5; r.a-=0.025; });
+    ripples=ripples.filter(r=>r.a>0);
+    ctx.save();
+    ripples.forEach(r=>{
+        ctx.globalAlpha=r.a; ctx.strokeStyle=r.color; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,Math.PI*2); ctx.stroke();
     });
+    ctx.globalAlpha=1; ctx.restore();
+}
 
-    function spawnPipe(isSun) {
-        let note;
-        if (pipes.length > 0) {
-            let prevNote = pipes[pipes.length - 1].note;
-            do {
-                note = Math.floor(Math.random() * 12);
-            } while (isSun ? (Math.abs(note - prevNote) === 6) : (Math.abs(note - prevNote) === 7));
-        } else {
-            note = Math.floor(Math.random() * 12);
-        }
-        
-        let gaps = [];
-        for (let o = 0; o < OCTAVES; o++) {
-            gaps.push(canvas.height - ((note + (o * 12)) * laneHeight) - (laneHeight * 2));
-        }
-        pipes.push({ x: canvas.width, gaps: gaps, passed: false, note: note });
-    }
+// Register zone lines (faint)
+function drawZoneLines() {
+    ctx.save();
+    ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1; ctx.setLineDash([6,10]);
+    [H/3, 2*H/3].forEach(y=>{ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); });
+    ctx.setLineDash([]); ctx.restore();
+}
 
-    function drawCoolBird(x, y, radius, colorHistory) {
-        let baseColor = colorHistory.length > 0 ? colorHistory[0] : '#ffcc00';
-        
-        let rayPulse = Math.sin(frames * 0.15) * 4;
-        ctx.fillStyle = baseColor;
-        for(let a = 0; a < Math.PI*2; a += Math.PI/4) {
-            ctx.beginPath();
-            ctx.moveTo(x + Math.cos(a)*radius, y + Math.sin(a)*radius);
-            ctx.lineTo(x + Math.cos(a-0.2)*(radius+8+rayPulse), y + Math.sin(a-0.2)*(radius+8+rayPulse));
-            ctx.lineTo(x + Math.cos(a+0.2)*(radius+8+rayPulse), y + Math.sin(a+0.2)*(radius+8+rayPulse));
-            ctx.fill();
-        }
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME OVER / RESET
+// ─────────────────────────────────────────────────────────────────────────────
+function triggerGameOver() {
+    if(isGameOver) return;
+    isGameOver=true;
+    if(score>best){ best=score; document.getElementById('best-text').innerText=best; }
+    document.getElementById('final-score').innerText=score;
+    document.getElementById('game-over').style.display='block';
+}
 
-        if (colorHistory.length === 0) {
-            ctx.fillStyle = '#ffcc00';
-            ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI*2); ctx.fill();
-        } else {
-            let sliceCount = colorHistory.length;
-            for(let i = 0; i < colorHistory.length; i++) {
-                let r = radius - (i * (radius / sliceCount));
-                ctx.fillStyle = colorHistory[i];
-                ctx.beginPath(); ctx.arc(x, y, Math.max(0, r), 0, Math.PI*2); ctx.fill();
-            }
-        }
+function resetGame() {
+    bird.y=H/2; bird.vy=0; bird.colorHistory=[];
+    pendingFlap=0;
+    pipes=[]; ripples=[]; score=0; frames=0;
+    lastPeak=null; targetNote=-1; isGameOver=false;
+    wave1.fill(0); wave2.fill(0); waveClr.fill(null);
+    document.getElementById('game-over').style.display='none';
+    document.getElementById('score-text').innerText='0';
+    document.getElementById('status-note').innerText='LAST: --';
+    document.getElementById('status-register').innerText='REGISTER: --';
+}
 
-        let lensW = radius * 0.7, lensH = radius * 0.5, bridgeW = radius * 0.4;
-        
-        ctx.fillStyle = '#111';
-        ctx.fillRect(x - radius*0.8, y - radius*0.2, lensW, lensH);
-        ctx.fillRect(x + radius*0.1, y - radius*0.2, lensW, lensH);
-        ctx.fillRect(x - radius*0.1, y, bridgeW, 3);
-        
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(x - radius*0.6, y - radius*0.1, 4, 4);
-        ctx.fillRect(x + radius*0.3, y - radius*0.1, 4, 4);
+document.getElementById('btn-restart').addEventListener('click', resetGame);
+document.getElementById('btn-mode').addEventListener('click', e=>{
+    mode = mode==='EASY'?'HARD':'EASY';
+    e.target.innerText=`MODE: ${mode}`;
+    document.getElementById('status-mode').innerText=`MODE: ${mode==='EASY'?'EASY (HOVER)':'HARD (FLAP)'}`;
+    document.getElementById('status-target').style.display=mode==='HARD'?'block':'none';
+    resetGame();
+});
+document.getElementById('btn-mic').addEventListener('click', async e=>{
+    if(await audio.startMic()){ e.target.style.display='none'; resetGame(); renderFrame(); }
+});
 
-        ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(x, y + radius*0.3, radius*0.3, 0, Math.PI); ctx.stroke();
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN LOOP
+// ─────────────────────────────────────────────────────────────────────────────
+function renderFrame() {
+    if(!audio.isRunning) return;
+    requestAnimationFrame(renderFrame);
+    if(isGameOver) return;
+    frames++;
 
-    // --- 2D WAVE PHYSICS ---
-    function update2DWaves() {
-        for (let y = 1; y < gridRows - 1; y++) {
-            for (let x = 1; x < gridCols - 1; x++) {
-                let i = x + y * gridCols;
-                
-                // Collide with pipes (Pipes act as solid walls for the waves)
-                let isWall = false;
-                let worldX = x * cellSize;
-                let worldY = y * cellSize;
-                
-                for (let p of pipes) {
-                    if (worldX + cellSize > p.x && worldX < p.x + pipeWidth) {
-                        let inGap = false;
-                        for (let gap of p.gaps) {
-                            if (worldY > gap - pipeGap/2 && worldY < gap + pipeGap/2) {
-                                inGap = true; break;
-                            }
-                        }
-                        if (!inGap) { isWall = true; break; }
-                    }
-                }
+    // ── Cycle: day/night every 2000 frames ──────────────────────────────────
+    const cyclePhase = (frames%2000)/2000;
+    const isSun = cyclePhase < 0.5;
+    const flapInterval = isSun ? 7 : 6; // fifth (day) / tritone (night)
 
-                if (isWall) {
-                    wave2[i] = 0; // Wave bounces off pipe structure
-                    continue;
-                }
+    document.getElementById('main-title').innerText = isSun ? 'FLAPPY SUNRISE' : 'FLAPPY TRITONES';
+    document.getElementById('main-title').style.color = isSun ? '#ff8c00' : '#00ffff';
 
-                // 2D Ripple Equation
-                wave2[i] = (wave1[i - 1] + wave1[i + 1] + wave1[i - gridCols] + wave1[i + gridCols]) / 2 - wave2[i];
-                wave2[i] *= dampening;
+    // ── Audio ────────────────────────────────────────────────────────────────
+    const peak = audio.getBestPeak(85);
 
-                // Propagate color along the wave front
-                if (Math.abs(wave2[i]) > 0.1) {
-                    let maxNeighbor = Math.abs(wave1[i-1]); let bestColor = waveColors[i-1];
-                    if (Math.abs(wave1[i+1]) > maxNeighbor) { maxNeighbor = Math.abs(wave1[i+1]); bestColor = waveColors[i+1]; }
-                    if (Math.abs(wave1[i-gridCols]) > maxNeighbor) { maxNeighbor = Math.abs(wave1[i-gridCols]); bestColor = waveColors[i-gridCols]; }
-                    if (Math.abs(wave1[i+gridCols]) > maxNeighbor) { maxNeighbor = Math.abs(wave1[i+gridCols]); bestColor = waveColors[i+gridCols]; }
-                    
-                    if (maxNeighbor > Math.abs(wave2[i]) && bestColor) {
-                        waveColors[i] = bestColor;
-                    }
-                } else {
-                    if (Math.abs(wave2[i]) < 0.05) waveColors[i] = null; // Fade color when wave dies
-                }
-            }
-        }
-        // Swap buffers
-        let temp = wave1; wave1 = wave2; wave2 = temp;
-    }
+    if(peak && peak.pitchClass>=0) {
+        const pc=peak.pitchClass, reg=peak.register;
+        const isNewNote = !lastPeak || pc!==lastPeak.pitchClass;
 
-    function renderFrame() {
-        if (!audio.isRunning) return;
-        requestAnimationFrame(renderFrame);
-        if (isGameOver) return; 
+        if(isNewNote) {
+            bird.colorHistory.unshift(keyHSL(pc));
+            if(bird.colorHistory.length>6) bird.colorHistory.pop();
 
-        // --- SUN & MOON CYCLE LOGIC ---
-        let cyclePhase = (frames % 2000) / 2000;
-        let isSun = cyclePhase < 0.5;
-        
-        let bgColor = isSun ? '#1a0b2e' : '#05050a'; 
-        ctx.fillStyle = bgColor; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('status-note').innerText=`LAST: ${noteNames[pc]}`;
+            document.getElementById('status-register').innerText=`REGISTER: ${reg.label}`;
 
-        document.getElementById('main-title').innerText = isSun ? "FLAPPY FIFTHS (DAY)" : "FLAPPY TRITONES (NIGHT)";
-        document.getElementById('main-title').style.color = isSun ? "#ff8c00" : "#00ffff";
-        
-        let flapTargetInterval = isSun ? 7 : 6;
-        let targetLabel = document.getElementById('status-target');
-        targetLabel.style.color = isSun ? "#ff8c00" : "#00ffff";
-
-        // --- AUDIO DETECTION & WAVE TRIGGER ---
-        let currentNote = -1;
-        let peaks = audio.getPeaks(90);
-        if (peaks.length > 0) {
-            currentNote = hzToPitchClass(peaks[0].hz);
-        }
-
-        if (currentNote !== -1 && currentNote !== lastPlayedNote) {
-            bird.colorHistory.unshift(laneColors[currentNote]);
-            if (bird.colorHistory.length > 6) bird.colorHistory.pop();
-
-            document.getElementById('status-note').innerText = `LAST: ${notes[currentNote]}`;
-            
-            if (mode === 'HARD') {
-                if (lastPlayedNote === -1 || currentNote === targetNote) {
-                    bird.velocity = bird.flapPower; 
-                    targetNote = (currentNote + flapTargetInterval) % 12; 
-                    targetLabel.innerText = isSun ? `TARGET (P5): ${notes[targetNote]}` : `TARGET (TT): ${notes[targetNote]}`;
-                }
-            }
-
-            // DROP STONE INTO RIPPLE GRID
-            let bx = Math.floor(bird.x / cellSize);
-            let by = Math.floor(bird.y / cellSize);
-            for(let dy=-2; dy<=2; dy++) {
-                for(let dx=-2; dx<=2; dx++) {
-                    let px = bx + dx, py = by + dy;
-                    if (px > 0 && px < gridCols-1 && py > 0 && py < gridRows-1) {
-                        let idx = py * gridCols + px;
-                        wave1[idx] = 400; // Big splash
-                        waveColors[idx] = laneColors[currentNote];
-                    }
-                }
-            }
-
-            // ADD SECONDARY VISUAL RIPPLE
-            visualRipples.push({
-                x: bird.x,
-                y: bird.y,
-                radius: bird.radius,
-                color: laneColors[currentNote],
-                alpha: 1.0
+            // Highlight active register label
+            ['high','mid','bass'].forEach(id=>{
+                const el=document.getElementById('lbl-'+id);
+                el.style.opacity = reg.label.toLowerCase()===id ? '1' : '0.3';
             });
 
-            lastPlayedNote = currentNote;
-        }
+            // Set Munker targets from pitch
+            munkerT1=KEY_HUES[pc];
+            munkerT2=KEY_HUES[(pc+7)%12];
+            document.getElementById('pitch-accent').style.background=
+                `linear-gradient(90deg,hsl(${munkerT1},100%,55%),hsl(${munkerT2},100%,55%))`;
+            document.getElementById('hud-box').style.borderColor=keyHSL(pc,70,55);
 
-        // --- 2D WAVE RENDER ---
-        update2DWaves();
-        for (let y = 0; y < gridRows; y++) {
-            for (let x = 0; x < gridCols; x++) {
-                let i = x + y * gridCols;
-                let val = wave1[i];
-                if (Math.abs(val) > 1 && waveColors[i]) {
-                    let intensity = Math.min(0.8, Math.abs(val) / 50); // Convert wave height to opacity
-                    ctx.globalAlpha = intensity;
-                    ctx.fillStyle = waveColors[i];
-                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-                }
-            }
-        }
-        ctx.globalAlpha = 1.0;
-
-        // Faint 3-Octave Grid
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-        for(let i=0; i < (12 * OCTAVES); i+=2) ctx.fillRect(0, i * laneHeight, canvas.width, laneHeight);
-
-        // --- BIRD PHYSICS ---
-        if (mode === 'EASY') {
-            if (currentNote !== -1) {
-                let targetY = canvas.height - ((currentNote + 12) * laneHeight) - (laneHeight * 2);
-                bird.y += (targetY - bird.y) * 0.15; 
-            }
-        } else {
-            bird.velocity += bird.gravity; bird.y += bird.velocity;
-        }
-
-        // --- PIPES ---
-        if (frames % baseSpawnRate === 0) spawnPipe(isSun); 
-
-        ctx.fillStyle = isSun ? '#ff8c00' : '#00ffff';
-        for (let i = pipes.length - 1; i >= 0; i--) {
-            let p = pipes[i]; p.x -= basePipeSpeed;
-
-            let currentY = 0;
-            let sortedGaps = [...p.gaps].sort((a, b) => a - b);
-            
-            for(let gap of sortedGaps) {
-                ctx.fillRect(p.x, currentY, pipeWidth, (gap - pipeGap/2) - currentY);
-                let targetN = mode === 'EASY' ? p.note : targetNote;
-                if (targetN !== -1) {
-                    ctx.fillStyle = '#000'; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText(notes[targetN], p.x + pipeWidth/2, gap);
-                    ctx.fillStyle = isSun ? '#ff8c00' : '#00ffff'; 
-                }
-                currentY = gap + pipeGap/2;
-            }
-            ctx.fillRect(p.x, currentY, pipeWidth, canvas.height - currentY);
-
-            // Collision
-            let inAnyGap = false;
-            for(let gap of sortedGaps) {
-                if (bird.y - bird.radius > gap - pipeGap/2 && bird.y + bird.radius < gap + pipeGap/2) {
-                    inAnyGap = true; break;
-                }
-            }
-            
-            if (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + pipeWidth) {
-                if (!inAnyGap) { isGameOver = true; document.getElementById('game-over').style.display = 'block'; }
-            }
-
-            if (bird.y + bird.radius >= canvas.height || bird.y - bird.radius <= 0) {
-                isGameOver = true; document.getElementById('game-over').style.display = 'block';
-            }
-
-            if (p.x + pipeWidth < bird.x && !p.passed) { score++; document.getElementById('score-text').innerText = score; p.passed = true; }
-            if (p.x + pipeWidth < 0) pipes.splice(i, 1);
-        }
-
-        // --- DRAW VISUAL RIPPLES ---
-        for(let i = visualRipples.length - 1; i >= 0; i--) {
-            let r = visualRipples[i];
-            r.radius += 5;
-            r.alpha -= 0.02;
-            if(r.alpha <= 0) {
-                visualRipples.splice(i, 1);
+            // ── Bird movement ────────────────────────────────────────────────
+            if(mode==='EASY') {
+                // Map register to Y zone: bass→bottom, mid→mid, high→top
+                const targetY = gapY(reg.gap) + (Math.random()-0.5)*20;
+                // Gentle spring — smooth not teleport
+                bird.vy += (targetY - bird.y) * 0.12;
+                bird.vy *= 0.7;
             } else {
-                ctx.strokeStyle = r.color;
-                ctx.globalAlpha = r.alpha;
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.arc(r.x, r.y, r.radius, 0, Math.PI*2);
-                ctx.stroke();
-                ctx.globalAlpha = 1.0;
+                // Hard mode: flap on correct interval
+                if(!lastPeak || lastPeak.pitchClass===-1 || pc===targetNote) {
+                    pendingFlap = FLAP_POWER;
+                    targetNote = (pc+flapInterval)%12;
+                    document.getElementById('status-target').innerText=
+                        `TARGET (${isSun?'P5':'TT'}): ${noteNames[targetNote]}`;
+                }
             }
+
+            // Wave splash
+            splashWave(bird.x, bird.y, 380, reg.color);
+            addRipple(bird.x, bird.y, reg.color);
+
+            lastPeak = { pitchClass:pc, register:reg };
         }
-
-        drawCoolBird(bird.x, bird.y, bird.radius, bird.colorHistory);
-
-        frames++;
     }
+
+    // ── Physics ──────────────────────────────────────────────────────────────
+    if(mode==='HARD') {
+        // Apply pending flap smoothly (3-frame ease-in)
+        if(pendingFlap!==0){
+            bird.vy += pendingFlap * 0.5;
+            pendingFlap *= 0.3;
+            if(Math.abs(pendingFlap)<0.1) pendingFlap=0;
+        }
+        bird.vy += GRAVITY;
+        bird.vy = Math.max(-VELOCITY_CAP, Math.min(VELOCITY_CAP, bird.vy));
+        bird.y += bird.vy;
+    } else {
+        // Easy: spring applied in note handler, add mild gravity to keep it honest
+        bird.vy += GRAVITY * 0.25;
+        bird.y += bird.vy;
+        bird.vy *= 0.92;
+    }
+
+    // ── Munker interpolation ─────────────────────────────────────────────────
+    munkerH1 = lerpHue(munkerH1, munkerT1, 0.05);
+    munkerH2 = lerpHue(munkerH2, munkerT2, 0.05);
+
+    // ── Ruliad (step every 4 frames) ─────────────────────────────────────────
+    if(frames%4===0) stepRuliad();
+    drawRuliad(lastPeak ? lastPeak.pitchClass : -1);
+
+    // ── Stars (every 3 frames) ───────────────────────────────────────────────
+    if(frames%3===0) drawStars(lastPeak ? lastPeak.pitchClass : -1);
+
+    // ── Clear game layer ─────────────────────────────────────────────────────
+    ctx.clearRect(0,0,W,H);
+
+    // ── Waves ────────────────────────────────────────────────────────────────
+    drawWaves();
+
+    // ── Zone dividers ────────────────────────────────────────────────────────
+    drawZoneLines();
+
+    // ── Pipes ────────────────────────────────────────────────────────────────
+    if(frames%PIPE_SPAWN_BASE===0) spawnPipe();
+    drawPipes(isSun);
+
+    // ── Ripples ──────────────────────────────────────────────────────────────
+    drawRipples();
+
+    // ── Sun ──────────────────────────────────────────────────────────────────
+    drawSun(bird.x, bird.y, bird.radius, bird.colorHistory);
+
+    // ── Munker overlay ───────────────────────────────────────────────────────
+    if(frames%2===0) drawMunker(munkerH1, munkerH2, 0.5);
+
+    // ── Day/night sky tint (very subtle, under stars) ────────────────────────
+    // Applied once per cycle change rather than every frame — stars handle atmosphere
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────────────────────
+resize();
 </script>
 </body>
 </html>
