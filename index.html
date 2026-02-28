@@ -5,420 +5,745 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Harmonic Sunrise</title>
     <link rel="apple-touch-icon" href="icon-192.png">
-
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
-        
-        /* 64-Bit Retro Pixelation */
-        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; image-rendering: pixelated; }
-        
-        #c-main { z-index: 1; }
-        
-        /* Munker-White Illusion overlay layer */
-        #munker-overlay { z-index: 5; pointer-events: none; opacity: 0.85; }
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
-        .hud { text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; font-size: 12px; pointer-events: auto; display: flex; justify-content: space-between; width: 100%; }
-        .title { font-size: 20px; font-weight: bold; color: #fff; letter-spacing: 2px; }
-        .subtitle { color: #ccc; font-size: 10px; margin-top: 5px; }
-        .score-display { font-size: 24px; color: #fff; font-weight: bold; text-align: right; }
-        .controls { display: flex; justify-content: flex-start; width: 100%; pointer-events: auto; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        button { background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; text-decoration: none; display: inline-block; box-sizing: border-box; }
-        button:active { transform: translate(2px, 2px); }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Space Mono', monospace;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw; height: 100vh;
+            position: absolute; top: 0; left: 0;
+            image-rendering: pixelated;
+        }
+
+        /* Layer order */
+        #c-stars    { z-index: 1; }
+        #c-ruliad   { z-index: 2; }
+        #c-main     { z-index: 3; background: transparent; }
+        #c-munker   { z-index: 4; pointer-events: none; }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+            display: flex; flex-direction: column;
+            justify-content: space-between;
+            padding: 110px 20px 20px 20px;
+            pointer-events: none;
+        }
+
+        .hud {
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+            font-size: 11px;
+            pointer-events: auto;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .title       { font-size: 18px; font-weight: bold; color: #fff; letter-spacing: 3px; }
+        .subtitle    { color: #aaa; font-size: 9px; margin-top: 4px; letter-spacing: 1px; }
+        .score-disp  { font-size: 28px; color: #fff; font-weight: bold; text-align: right; }
+        .hud-ratios  { margin-top: 12px; font-size: 10px; }
+
+        .ratio-box {
+            padding: 6px 10px;
+            border-left: 3px solid #fff;
+            margin-bottom: 6px;
+            background: rgba(0,0,0,0.75);
+            letter-spacing: 1px;
+            transition: border-color 0.4s ease;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: flex-start;
+            width: 100%;
+            pointer-events: auto;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        button {
+            background: rgba(0,0,0,0.85);
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px 16px;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.15s;
+        }
+        button:active { transform: translate(2px,2px); }
         #btn-mic { border-color: #0f0; color: #0f0; }
-        .hud-ratios { margin-top: 15px; font-size: 12px; }
-        .ratio-box { padding: 8px; border-left: 3px solid #fff; margin-bottom: 8px; background: rgba(0,0,0,0.8); }
-        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.95); padding: 40px; border: 4px solid #fff; }
-        #game-over h1 { color: #fff; margin: 0 0 10px 0; font-size: 24px;}
+
+        #game-over {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            text-align: center;
+            display: none;
+            z-index: 20;
+            pointer-events: auto;
+            background: rgba(0,0,0,0.96);
+            padding: 40px 50px;
+            border: 3px solid #fff;
+        }
+        #game-over h1 { color: #fff; margin: 0 0 12px 0; font-size: 22px; letter-spacing: 3px; }
+
+        /* pitch-colour accent that bleeds into UI chrome */
+        #pitch-accent {
+            position: absolute; top: 0; left: 0; width: 100%; height: 3px;
+            z-index: 15; pointer-events: none;
+            transition: background 0.6s ease;
+        }
     </style>
 </head>
 <body>
 
-    <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.9); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
-        <a href="index.html" style="color: #fff; text-decoration: none; font-weight: bold;">[1] SUNRISE</a> <span style="color: #555;">|</span>
-        <a href="flappy.html" style="color: #fff; text-decoration: none; font-weight: bold;">[2] FLAPPY</a> <span style="color: #555;">|</span>
-        <a href="billiards.html" style="color: #fff; text-decoration: none; font-weight: bold;">[3] WINDING</a> <span style="color: #555;">|</span>
-        <a href="invaders.html" style="color: #fff; text-decoration: none; font-weight: bold;">[4] INVADERS</a> <span style="color: #555;">|</span>
-        <a href="weaver.html" style="color: #fff; text-decoration: none; font-weight: bold;">[5] WEAVER</a> <span style="color: #555;">|</span>
-        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold;">[6] SIMON</a>
-    </div>
+<div id="global-nav" style="
+    position:absolute; top:0; left:0; width:100%; z-index:100;
+    display:flex; justify-content:center; gap:10px; padding:14px 5px;
+    background:rgba(0,0,0,0.92); border-bottom:2px solid #222;
+    pointer-events:auto; font-family:'Space Mono',monospace;
+    box-sizing:border-box; flex-wrap:wrap; font-size:11px; letter-spacing:1px;">
+    <a href="index.html"    style="color:#fff;text-decoration:none;font-weight:bold;">[1] SUNRISE</a>  <span style="color:#444;">|</span>
+    <a href="flappy.html"   style="color:#fff;text-decoration:none;font-weight:bold;">[2] FLAPPY</a>   <span style="color:#444;">|</span>
+    <a href="billiards.html"style="color:#fff;text-decoration:none;font-weight:bold;">[3] WINDING</a>  <span style="color:#444;">|</span>
+    <a href="invaders.html" style="color:#fff;text-decoration:none;font-weight:bold;">[4] INVADERS</a> <span style="color:#444;">|</span>
+    <a href="weaver.html"   style="color:#fff;text-decoration:none;font-weight:bold;">[5] WEAVER</a>   <span style="color:#444;">|</span>
+    <a href="simon.html"    style="color:#fff;text-decoration:none;font-weight:bold;">[6] SIMON</a>
+</div>
 
-    <!-- Base layer for GREY moving objects -->
-    <canvas id="c-main"></canvas>
-    
-    <!-- Top layer for static MUNKER-WHITE colored stripes -->
-    <canvas id="munker-overlay"></canvas>
+<div id="pitch-accent"></div>
 
-    <div id="ui-layer">
-        <div class="hud">
-            <div>
-                <div class="title">HARMONIC SUNRISE</div>
-                <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO...</div>
-                <div class="hud-ratios">
-                    <div class="ratio-box" id="hud-last">LAST NOTE: --</div>
-                    <div class="ratio-box" id="hud-rise">BOOST THRUST (P5): --</div>
-                    <div class="ratio-box" id="hud-dawn">DIVE THRUST (P4/TT): --</div>
-                </div>
-            </div>
-            <div>
-                <div class="subtitle" style="text-align: right;">BEST: <span id="high-score-text">0</span></div>
-                <div class="subtitle" style="text-align: right; margin-top: 10px;">DAYS ORBITED</div>
-                <div class="score-display" id="score-text">0</div>
+<!-- Render layers: stars → ruliad grid → game objects → munker overlay -->
+<canvas id="c-stars"></canvas>
+<canvas id="c-ruliad"></canvas>
+<canvas id="c-main"></canvas>
+<canvas id="c-munker"></canvas>
+
+<div id="ui-layer">
+    <div class="hud">
+        <div>
+            <div class="title">HARMONIC SUNRISE</div>
+            <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO…</div>
+            <div class="hud-ratios">
+                <div class="ratio-box" id="hud-last">LAST NOTE: --</div>
+                <div class="ratio-box" id="hud-rise">BOOST THRUST (P5): --</div>
+                <div class="ratio-box" id="hud-dawn">DIVE THRUST (P4/TT): --</div>
             </div>
         </div>
-        <div class="controls">
-            <button id="btn-mic">START MIC</button>
+        <div>
+            <div class="subtitle" style="text-align:right;">BEST: <span id="high-score-text">0</span></div>
+            <div class="subtitle" style="text-align:right;margin-top:8px;">DAYS ORBITED</div>
+            <div class="score-disp" id="score-text">0</div>
         </div>
     </div>
-
-    <div id="game-over">
-        <h1 id="death-reason">CRASHED!</h1>
-        <p>Days Orbited: <span id="final-score" style="font-weight:bold;">0</span></p>
-        <button id="btn-restart" style="border-color:#fff; color:#fff; margin-top:20px;">LAUNCH NEW SUN</button>
+    <div class="controls">
+        <button id="btn-mic">START MIC</button>
     </div>
+</div>
+
+<div id="game-over">
+    <h1 id="death-reason">CRASHED!</h1>
+    <p style="letter-spacing:1px;">Days Orbited: <span id="final-score" style="font-weight:bold;">0</span></p>
+    <button id="btn-restart" style="margin-top:20px;">LAUNCH NEW SUN</button>
+</div>
 
 <script>
-    // --- INLINED AUDIO ENGINE ---
-    const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    
-    function hzToPitchClass(hz) {
-        if (hz <= 0) return -1;
-        const c0 = 16.35;
-        let halfSteps = Math.round(12 * Math.log2(hz / c0));
-        return (halfSteps % 12 + 12) % 12;
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIO ENGINE
+// ─────────────────────────────────────────────────────────────────────────────
+const noteNames = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 
-    class AudioEngine {
-        constructor() {
-            this.audioContext = null; this.analyser = null; this.microphone = null;
-            this.isRunning = false; this.dataArray = null;
+function hzToPitchClass(hz) {
+    if (hz <= 0) return -1;
+    const c0 = 16.35;
+    let h = Math.round(12 * Math.log2(hz / c0));
+    return ((h % 12) + 12) % 12;
+}
+
+class AudioEngine {
+    constructor() {
+        this.audioContext = null;
+        this.analyser = null;
+        this.microphone = null;
+        this.isRunning = false;
+        this.dataArray = null;
+    }
+    async startMic() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.microphone = this.audioContext.createMediaStreamSource(stream);
+            this.analyser = this.audioContext.createAnalyser();
+            this.analyser.fftSize = 4096; // higher resolution
+            this.microphone.connect(this.analyser);
+            this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+            this.isRunning = true;
+            return true;
+        } catch (err) { console.error("Mic error:", err); return false; }
+    }
+    getPeaks(threshold = 90) {
+        if (!this.isRunning) return [];
+        this.analyser.getByteFrequencyData(this.dataArray);
+        let maxVal = 0, maxIdx = -1;
+        // Focus on musical range 80 Hz – 2000 Hz
+        const sr = this.audioContext.sampleRate;
+        const binHz = sr / this.analyser.fftSize;
+        const loIdx = Math.floor(80 / binHz);
+        const hiIdx = Math.floor(2000 / binHz);
+        for (let i = loIdx; i < hiIdx && i < this.dataArray.length; i++) {
+            if (this.dataArray[i] > maxVal) { maxVal = this.dataArray[i]; maxIdx = i; }
         }
-        async startMic() {
-            try {
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                this.microphone = this.audioContext.createMediaStreamSource(stream);
-                this.analyser = this.audioContext.createAnalyser();
-                this.analyser.fftSize = 2048;
-                this.microphone.connect(this.analyser);
-                this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-                this.isRunning = true;
-                return true;
-            } catch (err) { console.error("Mic error:", err); return false; }
+        if (maxVal > threshold) {
+            return [{ hz: maxIdx * binHz, amp: maxVal }];
         }
-        getPeaks(threshold = 95) {
-            if (!this.isRunning) return [];
-            this.analyser.getByteFrequencyData(this.dataArray);
-            let maxVal = 0; let maxIdx = -1;
-            for (let i = 0; i < this.dataArray.length; i++) {
-                if (this.dataArray[i] > maxVal) { maxVal = this.dataArray[i]; maxIdx = i; }
-            }
-            if (maxVal > threshold) {
-                let hz = maxIdx * this.audioContext.sampleRate / this.analyser.fftSize;
-                return [{ hz: hz, amp: maxVal }];
-            }
-            return [];
-        }
+        return [];
     }
+}
 
-    const canvas = document.getElementById('c-main');
-    const ctx = canvas.getContext('2d');
-    const audio = new AudioEngine();
+const audio = new AudioEngine();
 
-    // Vibrant Neon Palette for the Illusion Stripes
-    const laneColors = [
-        '#FF0055', '#FF3300', '#FF6600', '#FF9900', 
-        '#FFCC00', '#FFFF00', '#CCFF00', '#00FF00', 
-        '#00FFCC', '#00CCFF', '#0055FF', '#B366FF'  
-    ];
+// ─────────────────────────────────────────────────────────────────────────────
+// 12-KEY COLOUR MAP  (hue carefully chosen so each is perceptually distinct)
+// ─────────────────────────────────────────────────────────────────────────────
+// C  C# D   D#  E    F   F#   G   G#   A   A#   B
+const KEY_HUES = [0, 30, 55, 80, 110, 145, 175, 200, 230, 265, 295, 330];
 
-    const btnMic = document.getElementById('btn-mic');
-    const btnRestart = document.getElementById('btn-restart');
-    const gameOverPanel = document.getElementById('game-over');
-    
-    // Munker-White Overlay Context
-    const munkerCanvas = document.getElementById('munker-overlay');
-    const munkerCtx = munkerCanvas.getContext('2d');
+function keyColor(pitchClass, sat = 100, lit = 55) {
+    if (pitchClass < 0) return `hsl(0,0%,40%)`;
+    return `hsl(${KEY_HUES[pitchClass]},${sat}%,${lit}%)`;
+}
 
-    let state = 'IDLE'; 
-    let days = 0;
-    let frames = 0;
-    let lastPlayedNote = -1;
-    let targetRise = -1; let targetDawn1 = -1; let targetDawn2 = -1; 
-    
-    // Physics
-    let cx, cy;
-    let earthRadius = 30;
-    let sunRadius = 15;
-    
-    let orbitRadius = 120;
-    let radialVelocity = 0; 
-    let gravity = 0.01;     
-    let orbitAngle = 0;
-    let orbitSpeed = 0.005; 
-    
-    let minRadius = earthRadius + sunRadius + 5; 
-    let maxRadius = 0; 
-    let sunX = 0, sunY = 0;
+function keyColorRGB(pitchClass) {
+    // Returns [r,g,b] via canvas trick
+    return hslToRgb(KEY_HUES[pitchClass] / 360, 1, 0.55);
+}
 
-    // 2D Wave Grid (Greyscale)
-    let cellSize = 12; // Tighter grid for 64-bit look
-    let gridCols = 0;
-    let gridRows = 0;
-    let wave1 = new Float32Array(0);
-    let wave2 = new Float32Array(0);
-    
-    // Meteors
-    let meteors = [];
-
-    function resize() { 
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
-        munkerCanvas.width = window.innerWidth; munkerCanvas.height = window.innerHeight;
-        cx = canvas.width / 2; cy = canvas.height / 2;
-        maxRadius = Math.max(0, Math.min(canvas.width, canvas.height) / 2 - 20); 
-        
-        gridCols = Math.ceil(canvas.width / cellSize);
-        gridRows = Math.ceil(canvas.height / cellSize);
-        wave1 = new Float32Array(gridCols * gridRows);
-        wave2 = new Float32Array(gridCols * gridRows);
-        
-        // Draw initial neutral illusion
-        drawMunkerFilter('#00ffcc', '#ff0055');
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s === 0) { r = g = b = l; }
+    else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1; if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
     }
-    window.addEventListener('resize', resize); resize();
-    
-    // --- MUNKER-WHITE ILLUSION GENERATOR ---
-    function drawMunkerFilter(color1, color2) {
-        munkerCtx.clearRect(0, 0, munkerCanvas.width, munkerCanvas.height);
-        
-        // 12-pixel repeating optical illusion pattern
-        for (let y = 0; y < munkerCanvas.height; y++) {
-            let mod = y % 12;
-            
-            if (mod === 0 || mod === 1) {
-                munkerCtx.fillStyle = color1;          // Top color stripe
-                munkerCtx.fillRect(0, y, munkerCanvas.width, 1);
-            } else if (mod === 2 || mod === 5 || mod === 8 || mod === 11) {
-                munkerCtx.fillStyle = '#000';          // Thin isolating black line
-                munkerCtx.fillRect(0, y, munkerCanvas.width, 1);
-            } else if (mod === 6 || mod === 7) {
-                munkerCtx.fillStyle = color2;          // Bottom color stripe (Harmonic)
-                munkerCtx.fillRect(0, y, munkerCanvas.width, 1);
-            }
-            // mod 3, 4, 9, 10 remain TRANSPARENT.
-            // The underlying GREY objects will shine through these transparent gaps
-            // and the brain will optically mix them with color1 and color2!
-        }
-    }
+    return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+}
 
-    function resetGame() {
-        orbitRadius = (maxRadius + minRadius) / 2; 
-        radialVelocity = 0;
-        orbitAngle = 0; gravity = 0.01; orbitSpeed = 0.005;
-        days = 0; lastPlayedNote = -1; targetRise = -1; targetDawn1 = -1; targetDawn2 = -1;
-        state = 'IDLE'; gameOverPanel.style.display = 'none';
-        
-        wave1.fill(0); wave2.fill(0);
-        meteors = []; 
-        
-        document.getElementById('score-text').innerText = days;
-        document.getElementById('status-text').innerText = "STATUS: PLAY A BASELINE NOTE TO START";
-        drawMunkerFilter('#00ffcc', '#ff0055'); // Reset to default colors
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// CANVAS SETUP
+// ─────────────────────────────────────────────────────────────────────────────
+const cStars  = document.getElementById('c-stars');
+const cRuliad = document.getElementById('c-ruliad');
+const cMain   = document.getElementById('c-main');
+const cMunker = document.getElementById('c-munker');
 
-    btnRestart.addEventListener('click', resetGame);
-    btnMic.addEventListener('click', async () => { if (await audio.startMic()) { btnMic.style.display = 'none'; resetGame(); } });
+const ctxStars  = cStars.getContext('2d');
+const ctxRuliad = cRuliad.getContext('2d');
+const ctx       = cMain.getContext('2d');
+const ctxMunker = cMunker.getContext('2d');
 
-    function triggerGameOver(reason) {
-        state = 'DEAD';
-        document.getElementById('death-reason').innerText = reason;
-        document.getElementById('final-score').innerText = days;
-        gameOverPanel.style.display = 'block';
-    }
+let W, H, cx, cy;
 
-    // 64-Bit Chunky Planet Renderer (Drawn in Pure GREY for the illusion)
-    function drawPixelCircle(ctx, x, y, r, greyShade) {
-        ctx.fillStyle = greyShade;
-        let pixel = 4;
-        for (let py = -r; py <= r; py += pixel) {
-            for (let px = -r; px <= r; px += pixel) {
-                if (px*px + py*py <= r*r) {
-                    ctx.fillRect(x + px, y + py, pixel, pixel);
-                }
-            }
-        }
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let state = 'IDLE';
+let days = 0, frames = 0;
+let highScore = 0;
+let lastPlayedNote = -1;
+let targetRise = -1, targetDawn1 = -1, targetDawn2 = -1;
 
-    // 2D Wave Physics
-    function update2DWaves() {
-        for (let y = 1; y < gridRows - 1; y++) {
-            for (let x = 1; x < gridCols - 1; x++) {
-                let i = x + y * gridCols;
-                
-                let worldX = x * cellSize;
-                let worldY = y * cellSize;
-                
-                // Earth acts as a solid wave blocker
-                if (Math.hypot(worldX - cx, worldY - cy) < earthRadius) {
-                    wave2[i] = 0;
-                    continue;
-                }
+// ── PHYSICS: Floaty zero-g feel ──────────────────────────────────────────────
+let earthRadius = 30, sunRadius = 18;
+let orbitRadius = 150;
+let radialVelocity = 0;
+let orbitAngle = 0;
+let orbitSpeed = 0.0045;
 
-                // Ripple propagation
-                wave2[i] = (wave1[i - 1] + wave1[i + 1] + wave1[i - gridCols] + wave1[i + gridCols]) / 2 - wave2[i];
-                wave2[i] *= 0.98; // Dampening
-            }
-        }
-        let temp = wave1; wave1 = wave2; wave2 = temp;
-    }
+// Very low gravity, high damping → floaty momentum
+const GRAVITY_BASE    = 0.004;   // gentle pull inward
+const DAMPING         = 0.995;   // near-zero energy loss → long drifts
+const THRUST_BOOST    = 2.8;     // fifth = rise
+const THRUST_DIVE     = 2.8;     // fourth/tritone = fall
+const METEOR_IMPACT   = 5.0;     // meteor hit = sudden fall
 
-    function spawnMeteor() {
-        let angle = Math.random() * Math.PI * 2;
-        let dist = maxRadius + 100;
-        let x = cx + Math.cos(angle) * dist;
-        let y = cy + Math.sin(angle) * dist;
-        
-        let aimAngle = angle + Math.PI + (Math.random() - 0.5);
-        let speed = 2 + Math.random() * 2;
-        
-        meteors.push({
-            x: x, y: y,
-            vx: Math.cos(aimAngle) * speed,
-            vy: Math.sin(aimAngle) * speed,
-            size: Math.floor(Math.random() * 3) * 4 + 8 
+let gravity = GRAVITY_BASE;
+let minRadius, maxRadius;
+let sunX = 0, sunY = 0;
+
+// ── WAVE GRID ────────────────────────────────────────────────────────────────
+const CELL = 14;
+let gridCols = 0, gridRows = 0;
+let wave1, wave2;
+
+// ── METEORS ──────────────────────────────────────────────────────────────────
+let meteors = [];
+
+// ── RULIAD GRID (cellular automaton) ─────────────────────────────────────────
+let ruliadCells, ruliadNext;
+let ruliadCols, ruliadRows;
+const RULIAD_CELL = 10;
+// Rule 110 on 1D but applied in 2D slabs — gives organic texture
+let ruliadFrame = 0;
+
+// ── STARS ────────────────────────────────────────────────────────────────────
+let stars = [];
+
+// ── MUNKER INTERPOLATION ─────────────────────────────────────────────────────
+let munkerHue1 = 0;    // current displayed hue (interpolated)
+let munkerHue2 = 200;
+let munkerTargetHue1 = 0;
+let munkerTargetHue2 = 200;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESIZE
+// ─────────────────────────────────────────────────────────────────────────────
+function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    [cStars, cRuliad, cMain, cMunker].forEach(c => { c.width = W; c.height = H; });
+    cx = W / 2; cy = H / 2;
+
+    minRadius = earthRadius + sunRadius + 8;
+    maxRadius = Math.min(W, H) / 2 - 30;
+    if (orbitRadius < minRadius) orbitRadius = (minRadius + maxRadius) / 2;
+
+    gridCols = Math.ceil(W / CELL) + 1;
+    gridRows = Math.ceil(H / CELL) + 1;
+    wave1 = new Float32Array(gridCols * gridRows);
+    wave2 = new Float32Array(gridCols * gridRows);
+
+    ruliadCols = Math.ceil(W / RULIAD_CELL) + 1;
+    ruliadRows = Math.ceil(H / RULIAD_CELL) + 1;
+    ruliadCells = new Uint8Array(ruliadCols * ruliadRows);
+    ruliadNext  = new Uint8Array(ruliadCols * ruliadRows);
+    // Seed ruliad with noise
+    for (let i = 0; i < ruliadCells.length; i++) ruliadCells[i] = Math.random() < 0.35 ? 1 : 0;
+
+    // Generate stars
+    stars = [];
+    for (let i = 0; i < 280; i++) {
+        stars.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: Math.random() < 0.15 ? 2 : 1,
+            bri: 0.2 + Math.random() * 0.8,
+            twinkle: Math.random() * Math.PI * 2
         });
     }
 
-    function renderFrame() {
-        requestAnimationFrame(renderFrame); 
-        frames++;
+    drawStars(0);
+    drawMunkerOverlay(munkerHue1, munkerHue2, 0.55);
+}
+window.addEventListener('resize', resize);
 
-        // Base Layer Background (Solid Black forces contrast for the illusion)
-        ctx.fillStyle = '#050505'; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+// ─────────────────────────────────────────────────────────────────────────────
+// STAR FIELD
+// ─────────────────────────────────────────────────────────────────────────────
+function drawStars(pitchHue) {
+    ctxStars.fillStyle = '#000';
+    ctxStars.fillRect(0, 0, W, H);
+    stars.forEach(s => {
+        const twink = 0.6 + 0.4 * Math.sin(s.twinkle + frames * 0.02);
+        // Tint stars very subtly toward current pitch hue
+        const tint = pitchHue >= 0 ? `hsla(${KEY_HUES[pitchHue]},60%,80%,${s.bri * twink * 0.9})` 
+                                    : `rgba(255,255,255,${s.bri * twink * 0.9})`;
+        ctxStars.fillStyle = tint;
+        ctxStars.fillRect(s.x, s.y, s.r, s.r);
+    });
+}
 
-        sunX = cx + Math.cos(orbitAngle) * orbitRadius; 
-        sunY = cy + Math.sin(orbitAngle) * orbitRadius;
-
-        let currentNote = -1;
-        let peaks = audio.getPeaks(95);
-        if (peaks.length > 0) currentNote = hzToPitchClass(peaks[0].hz);
-
-        if (audio.isRunning && state !== 'DEAD') {
-            if (currentNote !== -1 && currentNote !== lastPlayedNote) {
-                if (state === 'IDLE') {
-                    state = 'ORBITING';
-                    document.getElementById('status-text').innerText = "STATUS: MAINTAIN HABITABLE ORBIT"; 
-                } else {
-                    let diff = (currentNote - lastPlayedNote + 12) % 12;
-                    if (diff === 7) radialVelocity += 3.5; // Boost
-                    else if (diff === 5 || diff === 6) radialVelocity -= 3.5; // Dive
-                }
-
-                // DYNAMIC OPTICAL ILLUSION SHIFT: Change overlay colors based on note!
-                let c1 = laneColors[currentNote];
-                let c2 = laneColors[(currentNote + 7) % 12]; // P5 harmonic
-                drawMunkerFilter(c1, c2);
-
-                // Splash the GREY wave at the sun's location
-                let bx = Math.floor(sunX / cellSize);
-                let by = Math.floor(sunY / cellSize);
-                for(let dy=-2; dy<=2; dy++) {
-                    for(let dx=-2; dx<=2; dx++) {
-                        let px = bx + dx, py = by + dy;
-                        if (px > 0 && px < gridCols-1 && py > 0 && py < gridRows-1) {
-                            let idx = py * gridCols + px;
-                            wave1[idx] = 300; // Drop energy
-                        }
-                    }
-                }
-
-                lastPlayedNote = currentNote;
-                targetRise = (lastPlayedNote + 7) % 12;
-                targetDawn1 = (lastPlayedNote + 5) % 12;
-                targetDawn2 = (lastPlayedNote + 6) % 12;
-                
-                document.getElementById('hud-last').innerText = `LAST: ${notes[lastPlayedNote]}`;
-                document.getElementById('hud-rise').innerText = `BOOST (P5): ${notes[targetRise]}`;
-                document.getElementById('hud-dawn').innerText = `DIVE (P4/TT): ${notes[targetDawn1]}/${notes[targetDawn2]}`;
-            }
-        }
-
-        // Render Greyscale Waves
-        update2DWaves();
-        for (let y = 0; y < gridRows; y++) {
-            for (let x = 0; x < gridCols; x++) {
-                let i = x + y * gridCols;
-                let val = wave1[i];
-                if (Math.abs(val) > 1) {
-                    let intensity = Math.min(1.0, Math.abs(val) / 40);
-                    // Waves are drawn in flat GREY. The overlay handles the coloring!
-                    ctx.fillStyle = `rgba(180, 180, 180, ${intensity})`;
-                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+// ─────────────────────────────────────────────────────────────────────────────
+// RULIAD GRID (Game of Life variant — gives ruliad/pixel texture)
+// ─────────────────────────────────────────────────────────────────────────────
+function stepRuliad() {
+    for (let y = 0; y < ruliadRows; y++) {
+        for (let x = 0; x < ruliadCols; x++) {
+            const i = y * ruliadCols + x;
+            // Count Moore neighbours
+            let n = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = (x + dx + ruliadCols) % ruliadCols;
+                    const ny = (y + dy + ruliadRows) % ruliadRows;
+                    n += ruliadCells[ny * ruliadCols + nx];
                 }
             }
-        }
-
-        // Meteor Physics & Greyscale Rendering
-        if (state === 'ORBITING' && frames % 120 === 0) spawnMeteor();
-        
-        for (let i = meteors.length - 1; i >= 0; i--) {
-            let m = meteors[i];
-            m.x += m.vx; m.y += m.vy;
-            
-            drawPixelCircle(ctx, m.x, m.y, m.size, '#dddddd'); // Light grey meteor
-            ctx.fillStyle = '#888888'; // Dark grey trail
-            ctx.fillRect(m.x - m.vx*2, m.y - m.vy*2, m.size/2, m.size/2);
-
-            if (state === 'ORBITING' && Math.hypot(m.x - sunX, m.y - sunY) < sunRadius + m.size) {
-                radialVelocity -= 8; 
-                let bx = Math.floor(sunX / cellSize); let by = Math.floor(sunY / cellSize);
-                let idx = by * gridCols + bx;
-                if(wave1[idx] !== undefined) { wave1[idx] = 400; }
-                meteors.splice(i, 1);
-                continue;
+            // Biased Game-of-Life rule: survives at 2-3, born at 3, extra birth at 6 → organic
+            const alive = ruliadCells[i];
+            if (alive) {
+                ruliadNext[i] = (n === 2 || n === 3) ? 1 : 0;
+            } else {
+                ruliadNext[i] = (n === 3 || n === 6) ? 1 : 0;
             }
-
-            if (Math.hypot(m.x - cx, m.y - cy) > maxRadius + 300) meteors.splice(i, 1);
-        }
-
-        // Orbital Physics
-        if (state === 'ORBITING') {
-            radialVelocity -= gravity; 
-            radialVelocity *= 0.98; 
-            orbitRadius += radialVelocity; 
-            
-            let previousAngle = orbitAngle;
-            orbitAngle += orbitSpeed;
-            
-            if (previousAngle % (Math.PI * 2) > orbitAngle % (Math.PI * 2)) {
-                days++; document.getElementById('score-text').innerText = days;
-                orbitSpeed += 0.0005; gravity += 0.001; 
-            }
-
-            if (orbitRadius <= minRadius) triggerGameOver("CRASHED INTO EARTH!");
-            if (orbitRadius >= maxRadius) triggerGameOver("LOST IN DEEP SPACE!");
-        }
-
-        // Faint Grey Orbits
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(cx, cy, Math.max(0, minRadius + 10), 0, Math.PI*2); ctx.stroke();
-        ctx.beginPath(); ctx.arc(cx, cy, Math.max(0, maxRadius - 10), 0, Math.PI*2); ctx.stroke();
-
-        // 64-bit Planets (Rendered in GREY)
-        drawPixelCircle(ctx, cx, cy, earthRadius, '#888888'); // Dark Grey Earth
-        drawPixelCircle(ctx, sunX, sunY, sunRadius, '#dddddd'); // Light Grey Sun
-        
-        // Grey Pixel Trail
-        if (state === 'ORBITING') {
-            ctx.fillStyle = '#aaaaaa';
-            ctx.fillRect(cx + Math.cos(orbitAngle - 0.2) * orbitRadius, cy + Math.sin(orbitAngle - 0.2) * orbitRadius, 4, 4);
-            ctx.fillRect(cx + Math.cos(orbitAngle - 0.4) * orbitRadius, cy + Math.sin(orbitAngle - 0.4) * orbitRadius, 2, 2);
         }
     }
-    
-    renderFrame();
+    let tmp = ruliadCells; ruliadCells = ruliadNext; ruliadNext = tmp;
+}
+
+function drawRuliad(pitchClass) {
+    ctxRuliad.clearRect(0, 0, W, H);
+    if (!ruliadCells) return;
+
+    const baseHue = pitchClass >= 0 ? KEY_HUES[pitchClass] : 180;
+    // Draw alive cells as faint coloured pixels
+    for (let y = 0; y < ruliadRows; y++) {
+        for (let x = 0; x < ruliadCols; x++) {
+            if (ruliadCells[y * ruliadCols + x]) {
+                ctxRuliad.fillStyle = `hsla(${baseHue},70%,55%,0.18)`;
+                ctxRuliad.fillRect(x * RULIAD_CELL, y * RULIAD_CELL, RULIAD_CELL - 1, RULIAD_CELL - 1);
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MUNKER-WHITE ILLUSION OVERLAY  (interpolates between pitch colours)
+// ─────────────────────────────────────────────────────────────────────────────
+function lerpHue(a, b, t) {
+    // Shortest-path hue lerp
+    let d = b - a;
+    if (d > 180) d -= 360;
+    if (d < -180) d += 360;
+    return (a + d * t + 360) % 360;
+}
+
+function drawMunkerOverlay(h1, h2, opacity) {
+    ctxMunker.clearRect(0, 0, W, H);
+
+    // Horizontal stripe pattern — 16px repeat
+    // Transparent gaps let the grey game objects through; coloured bands tint them optically
+    const STRIPE = 16;
+    for (let y = 0; y < H; y++) {
+        const mod = y % STRIPE;
+        if (mod < 2) {
+            ctxMunker.fillStyle = `hsla(${h1},100%,58%,${opacity})`;
+            ctxMunker.fillRect(0, y, W, 1);
+        } else if (mod >= STRIPE/2 && mod < STRIPE/2 + 2) {
+            ctxMunker.fillStyle = `hsla(${h2},100%,58%,${opacity})`;
+            ctxMunker.fillRect(0, y, W, 1);
+        } else if (mod === 3 || mod === STRIPE/2 - 1) {
+            ctxMunker.fillStyle = `rgba(0,0,0,0.6)`;
+            ctxMunker.fillRect(0, y, W, 1);
+        }
+        // remaining rows: transparent → grey objects bleed through and get tinted
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WAVE PHYSICS
+// ─────────────────────────────────────────────────────────────────────────────
+function updateWaves() {
+    for (let y = 1; y < gridRows - 1; y++) {
+        for (let x = 1; x < gridCols - 1; x++) {
+            const i = x + y * gridCols;
+            const wx = x * CELL, wy = y * CELL;
+            if (Math.hypot(wx - cx, wy - cy) < earthRadius) { wave2[i] = 0; continue; }
+            wave2[i] = (wave1[i-1] + wave1[i+1] + wave1[i-gridCols] + wave1[i+gridCols]) / 2 - wave2[i];
+            wave2[i] *= 0.97;
+        }
+    }
+    let t = wave1; wave1 = wave2; wave2 = t;
+}
+
+function splashWave(wx, wy, energy) {
+    const bx = Math.floor(wx / CELL);
+    const by = Math.floor(wy / CELL);
+    for (let dy = -3; dy <= 3; dy++) {
+        for (let dx = -3; dx <= 3; dx++) {
+            const px = bx + dx, py = by + dy;
+            if (px > 0 && px < gridCols-1 && py > 0 && py < gridRows-1) {
+                wave1[py * gridCols + px] = energy * (1 - Math.hypot(dx, dy) / 5);
+            }
+        }
+    }
+}
+
+function drawWaves() {
+    updateWaves();
+    for (let y = 0; y < gridRows; y++) {
+        for (let x = 0; x < gridCols; x++) {
+            const val = wave1[x + y * gridCols];
+            if (Math.abs(val) > 1.5) {
+                const intensity = Math.min(1, Math.abs(val) / 35);
+                ctx.fillStyle = `rgba(200,200,200,${intensity * 0.85})`;
+                ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIXEL CIRCLE RENDERER
+// ─────────────────────────────────────────────────────────────────────────────
+function drawPixelCircle(context, x, y, r, shade, px = 4) {
+    context.fillStyle = shade;
+    for (let py = -r; py <= r; py += px) {
+        for (let ppx = -r; ppx <= r; ppx += px) {
+            if (ppx*ppx + py*py <= r*r) {
+                context.fillRect(Math.round(x + ppx), Math.round(y + py), px, px);
+            }
+        }
+    }
+}
+
+// Draw planet with highlight + shadow for depth
+function drawPlanet(context, x, y, r, baseShade, hiShade, px = 4) {
+    for (let py = -r; py <= r; py += px) {
+        for (let ppx = -r; ppx <= r; ppx += px) {
+            if (ppx*ppx + py*py <= r*r) {
+                // Top-left quadrant brighter
+                const bright = (ppx < 0 && py < 0) ? hiShade : baseShade;
+                context.fillStyle = bright;
+                context.fillRect(Math.round(x + ppx), Math.round(y + py), px, px);
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// METEOR
+// ─────────────────────────────────────────────────────────────────────────────
+function spawnMeteor() {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = maxRadius + 120;
+    const mx = cx + Math.cos(angle) * dist;
+    const my = cy + Math.sin(angle) * dist;
+    const aim = angle + Math.PI + (Math.random() - 0.5) * 0.8;
+    const speed = 1.2 + Math.random() * 1.5; // Slower meteors → more time to react
+
+    meteors.push({
+        x: mx, y: my,
+        vx: Math.cos(aim) * speed,
+        vy: Math.sin(aim) * speed,
+        size: (Math.floor(Math.random() * 3) + 1) * 4 + 6,
+        trail: []
+    });
+}
+
+function updateMeteors() {
+    for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        m.trail.unshift({ x: m.x, y: m.y });
+        if (m.trail.length > 10) m.trail.pop();
+
+        m.x += m.vx; m.y += m.vy;
+
+        // Pixel trail
+        m.trail.forEach((pt, ti) => {
+            const alpha = (1 - ti / m.trail.length) * 0.7;
+            ctx.fillStyle = `rgba(200,200,200,${alpha})`;
+            ctx.fillRect(pt.x, pt.y, Math.max(1, m.size * 0.3 * (1 - ti / m.trail.length)), Math.max(1, m.size * 0.3 * (1 - ti / m.trail.length)));
+        });
+
+        // Draw meteor body
+        drawPlanet(ctx, m.x, m.y, m.size, '#b0b0b0', '#e0e0e0', 3);
+
+        // Collision with sun
+        if (state === 'ORBITING' && Math.hypot(m.x - sunX, m.y - sunY) < sunRadius + m.size) {
+            radialVelocity -= METEOR_IMPACT;
+            splashWave(sunX, sunY, 500);
+            meteors.splice(i, 1);
+            continue;
+        }
+
+        if (Math.hypot(m.x - cx, m.y - cy) > maxRadius + 400) meteors.splice(i, 1);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME OVER / RESET
+// ─────────────────────────────────────────────────────────────────────────────
+function triggerGameOver(reason) {
+    state = 'DEAD';
+    if (days > highScore) {
+        highScore = days;
+        document.getElementById('high-score-text').innerText = highScore;
+    }
+    document.getElementById('death-reason').innerText = reason;
+    document.getElementById('final-score').innerText = days;
+    document.getElementById('game-over').style.display = 'block';
+}
+
+function resetGame() {
+    orbitRadius = (minRadius + maxRadius) / 2;
+    radialVelocity = 0;
+    orbitAngle = 0;
+    gravity = GRAVITY_BASE;
+    orbitSpeed = 0.0045;
+    days = 0; frames = 0;
+    lastPlayedNote = -1; targetRise = -1; targetDawn1 = -1; targetDawn2 = -1;
+    state = 'IDLE';
+    document.getElementById('game-over').style.display = 'none';
+    document.getElementById('score-text').innerText = '0';
+    document.getElementById('status-text').innerText = 'STATUS: PLAY A BASELINE NOTE TO START';
+    wave1.fill(0); wave2.fill(0);
+    meteors = [];
+    munkerHue1 = 0; munkerHue2 = 200;
+    munkerTargetHue1 = 0; munkerTargetHue2 = 200;
+}
+
+document.getElementById('btn-restart').addEventListener('click', resetGame);
+document.getElementById('btn-mic').addEventListener('click', async () => {
+    const ok = await audio.startMic();
+    if (ok) { document.getElementById('btn-mic').style.display = 'none'; resetGame(); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN RENDER LOOP
+// ─────────────────────────────────────────────────────────────────────────────
+function renderFrame() {
+    requestAnimationFrame(renderFrame);
+    frames++;
+
+    // ── Audio / pitch detection ──────────────────────────────────────────────
+    let currentNote = -1;
+    if (audio.isRunning) {
+        const peaks = audio.getPeaks(90);
+        if (peaks.length > 0) currentNote = hzToPitchClass(peaks[0].hz);
+    }
+
+    if (audio.isRunning && state !== 'DEAD' && currentNote !== -1 && currentNote !== lastPlayedNote) {
+        if (state === 'IDLE') {
+            state = 'ORBITING';
+            document.getElementById('status-text').innerText = 'STATUS: MAINTAIN HABITABLE ORBIT';
+        } else {
+            const diff = (currentNote - lastPlayedNote + 12) % 12;
+            if (diff === 7)                  radialVelocity += THRUST_BOOST;  // P5 → rise
+            else if (diff === 5 || diff === 6) radialVelocity -= THRUST_DIVE;  // P4/TT → fall
+        }
+
+        // Set Munker target colours from pitch
+        munkerTargetHue1 = KEY_HUES[currentNote];
+        munkerTargetHue2 = KEY_HUES[(currentNote + 7) % 12]; // P5 complement
+
+        // Update UI accent bar
+        document.getElementById('pitch-accent').style.background =
+            `linear-gradient(90deg, hsl(${munkerTargetHue1},100%,55%), hsl(${munkerTargetHue2},100%,55%))`;
+
+        // HUD colour accent on ratio boxes
+        const rc = `hsl(${munkerTargetHue1},80%,55%)`;
+        document.querySelectorAll('.ratio-box').forEach(b => b.style.borderColor = rc);
+
+        // Wave splash
+        splashWave(sunX, sunY, 350);
+
+        lastPlayedNote = currentNote;
+        targetRise  = (currentNote + 7) % 12;
+        targetDawn1 = (currentNote + 5) % 12;
+        targetDawn2 = (currentNote + 6) % 12;
+
+        document.getElementById('hud-last').innerText  = `LAST: ${noteNames[lastPlayedNote]}`;
+        document.getElementById('hud-rise').innerText  = `BOOST (P5): ${noteNames[targetRise]}`;
+        document.getElementById('hud-dawn').innerText  = `DIVE (P4/TT): ${noteNames[targetDawn1]}/${noteNames[targetDawn2]}`;
+    }
+
+    // ── Interpolate Munker colours (smooth chromatic drift) ──────────────────
+    munkerHue1 = lerpHue(munkerHue1, munkerTargetHue1, 0.04);
+    munkerHue2 = lerpHue(munkerHue2, munkerTargetHue2, 0.04);
+
+    // ── Clear main canvas (transparent background — stars + ruliad show through)
+    ctx.clearRect(0, 0, W, H);
+
+    // ── Ruliad grid: step every 4 frames to slow it down ─────────────────────
+    if (frames % 4 === 0) stepRuliad();
+    drawRuliad(lastPlayedNote);
+
+    // ── Starfield (redraw every 3 frames for twinkle) ─────────────────────────
+    if (frames % 3 === 0) drawStars(lastPlayedNote);
+
+    // ── Wave grid ─────────────────────────────────────────────────────────────
+    drawWaves();
+
+    // ── Orbit boundary rings ──────────────────────────────────────────────────
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+    ctx.setLineDash([4, 8]);
+    ctx.beginPath(); ctx.arc(cx, cy, minRadius + 10, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, maxRadius - 10, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ── Sun position ──────────────────────────────────────────────────────────
+    sunX = cx + Math.cos(orbitAngle) * orbitRadius;
+    sunY = cy + Math.sin(orbitAngle) * orbitRadius;
+
+    // ── Meteors ───────────────────────────────────────────────────────────────
+    if (state === 'ORBITING' && frames % 150 === 0) spawnMeteor();
+    updateMeteors();
+
+    // ── Orbital physics (floaty zero-g) ───────────────────────────────────────
+    if (state === 'ORBITING') {
+        radialVelocity -= gravity;      // gentle inward pull
+        radialVelocity *= DAMPING;      // very slow energy bleed → long drifts
+        orbitRadius    += radialVelocity;
+
+        const prevAngle = orbitAngle;
+        orbitAngle += orbitSpeed;
+
+        // Day counter (one full orbit)
+        if (Math.floor(prevAngle / (Math.PI * 2)) < Math.floor(orbitAngle / (Math.PI * 2))) {
+            days++;
+            document.getElementById('score-text').innerText = days;
+            orbitSpeed += 0.0003;
+            gravity    += 0.0008;
+        }
+
+        if (orbitRadius <= minRadius) triggerGameOver("CRASHED INTO EARTH!");
+        if (orbitRadius >= maxRadius) triggerGameOver("LOST IN DEEP SPACE!");
+    }
+
+    // ── Sun orbit trail ───────────────────────────────────────────────────────
+    if (state === 'ORBITING') {
+        for (let i = 1; i <= 5; i++) {
+            const ta = orbitAngle - i * 0.07;
+            const tx = cx + Math.cos(ta) * orbitRadius;
+            const ty = cy + Math.sin(ta) * orbitRadius;
+            ctx.fillStyle = `rgba(220,220,220,${0.6 / i})`;
+            ctx.fillRect(tx - 2, ty - 2, 4 - i, 4 - i);
+        }
+    }
+
+    // ── Earth ─────────────────────────────────────────────────────────────────
+    drawPlanet(ctx, cx, cy, earthRadius, '#606060', '#909090', 4);
+
+    // ── Sun (grey so Munker colours it) ───────────────────────────────────────
+    drawPlanet(ctx, sunX, sunY, sunRadius, '#cccccc', '#f0f0f0', 3);
+
+    // ── Munker overlay (smooth chromatic glide) ───────────────────────────────
+    // Redraw every 2 frames — smooth but not expensive
+    if (frames % 2 === 0) {
+        drawMunkerOverlay(munkerHue1, munkerHue2, 0.52);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────────────────────
+resize();
+renderFrame();
 </script>
 </body>
 </html>
