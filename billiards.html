@@ -6,215 +6,714 @@
     <title>The Winding Room</title>
     <link rel="apple-touch-icon" href="icon-192.png">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
-        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; touch-action: manipulation; }
-        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 110px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
-        .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
-        .hud-box { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        .data-text { font-size: 12px; color: #00ffcc; margin-top: 5px; }
-        .score-text { font-size: 24px; color: #ff8c00; font-weight: bold; text-align: right; }
-        .high-score { font-size: 14px; color: #ff00ff; text-align: right; margin-bottom: 5px; }
-        .controls { display: flex; gap: 10px; pointer-events: auto; margin-bottom: 20px; }
-        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono'; cursor: pointer; text-transform: uppercase; font-size: 10px; }
-        #result-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 20; pointer-events: auto; background: rgba(0,0,0,0.95); padding: 40px; border: 2px solid #ff00ff; box-shadow: 0 0 30px rgba(255,0,255,0.4); }
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+        * { box-sizing: border-box; }
+        body { margin:0; padding:0; background:#000; color:#fff; font-family:'Space Mono',monospace; overflow:hidden; touch-action:manipulation; }
+
+        canvas { display:block; width:100vw; height:100vh; position:absolute; top:0; left:0; image-rendering:pixelated; }
+        #c-stars  { z-index:1; }
+        #c-ruliad { z-index:2; }
+        #c-game   { z-index:3; background:transparent; }
+        #c-munker { z-index:4; pointer-events:none; }
+
+        #global-nav {
+            position:absolute; top:0; left:0; width:100%; z-index:100;
+            display:flex; justify-content:center; gap:10px; padding:14px 5px;
+            background:rgba(0,0,0,0.92); border-bottom:2px solid #222;
+            pointer-events:auto; font-family:'Space Mono',monospace;
+            box-sizing:border-box; flex-wrap:wrap; font-size:11px; letter-spacing:1px;
+        }
+
+        #mode-tabs {
+            position:absolute; top:52px; left:0; width:100%; z-index:99;
+            display:flex; justify-content:center; gap:0;
+            background:rgba(0,0,0,0.88); border-bottom:2px solid #333;
+            pointer-events:auto;
+        }
+        .tab-btn {
+            background:transparent; border:none; border-right:1px solid #333;
+            color:#555; padding:8px 14px; font-family:'Space Mono',monospace;
+            font-size:9px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;
+            transition:all 0.2s;
+        }
+        .tab-btn:last-child { border-right:none; }
+        .tab-btn.active { color:#ff00ff; border-bottom:2px solid #ff00ff; background:rgba(255,0,255,0.08); }
+        .tab-btn:hover:not(.active) { color:#aaa; }
+
+        #ui-layer {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            z-index:10; display:flex; flex-direction:column;
+            justify-content:space-between; padding:116px 20px 20px 20px;
+            pointer-events:none;
+        }
+        .hud { display:flex; justify-content:space-between; width:100%; pointer-events:auto; }
+        .hud-box {
+            background:rgba(0,0,0,0.78); padding:8px 12px;
+            border:1px solid #333; font-size:10px; letter-spacing:1px;
+            transition:border-color 0.4s;
+        }
+        .score-text  { font-size:26px; color:#ff8c00; font-weight:bold; text-align:right; }
+        .high-score  { font-size:11px; color:#ff00ff; text-align:right; margin-bottom:4px; }
+        .controls    { display:flex; gap:10px; pointer-events:auto; margin-bottom:20px; flex-wrap:wrap; }
+        button {
+            background:rgba(0,0,0,0.8); border:2px solid #fff; color:#fff;
+            padding:9px 14px; font-family:'Space Mono',monospace; font-size:10px;
+            cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition:all 0.15s;
+        }
+        button:active { transform:translate(2px,2px); }
+
+        #result-panel {
+            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            text-align:center; display:none; z-index:20; pointer-events:auto;
+            background:rgba(0,0,0,0.96); padding:40px 50px;
+            border:3px solid #ff00ff; box-shadow:0 0 30px rgba(255,0,255,0.3);
+        }
+        #result-panel h1 { color:#ff00ff; margin:0 0 12px 0; font-size:20px; letter-spacing:3px; }
+
+        #pitch-accent {
+            position:absolute; top:0; left:0; width:100%; height:3px;
+            z-index:15; pointer-events:none; transition:background 0.5s;
+        }
+
+        /* Mode-specific hint overlays */
+        #mode-hint {
+            position:absolute; bottom:80px; left:50%; transform:translateX(-50%);
+            z-index:11; pointer-events:none; font-size:10px; letter-spacing:1px;
+            color:#aaa; text-align:center; text-shadow:1px 1px 0 #000;
+        }
     </style>
 </head>
 <body>
 
-    <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
-        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold;">[1] SUNRISE</a> <span style="color: #555;">|</span>
-        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold;">[2] FLAPPY</a> <span style="color: #555;">|</span>
-        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold;">[3] WINDING</a> <span style="color: #555;">|</span>
-        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold;">[4] INVADERS</a> <span style="color: #555;">|</span>
-        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold;">[5] WEAVER</a> <span style="color: #555;">|</span>
-        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold;">[6] SIMON</a>
-    </div>
+<div id="global-nav">
+    <a href="index.html"     style="color:#ff8c00;text-decoration:none;font-weight:bold;">[1] SUNRISE</a>  <span style="color:#444;">|</span>
+    <a href="flappy.html"    style="color:#00ffcc;text-decoration:none;font-weight:bold;">[2] FLAPPY</a>   <span style="color:#444;">|</span>
+    <a href="billiards.html" style="color:#ff00ff;text-decoration:none;font-weight:bold;">[3] WINDING</a>  <span style="color:#444;">|</span>
+    <a href="invaders.html"  style="color:#ff0055;text-decoration:none;font-weight:bold;">[4] INVADERS</a> <span style="color:#444;">|</span>
+    <a href="weaver.html"    style="color:#b366ff;text-decoration:none;font-weight:bold;">[5] WEAVER</a>   <span style="color:#444;">|</span>
+    <a href="simon.html"     style="color:#fff;text-decoration:none;font-weight:bold;">[6] SIMON</a>
+</div>
 
-    <canvas id="c-billiards"></canvas>
+<div id="mode-tabs">
+    <button class="tab-btn active" data-mode="freeplay">FREE PLAY</button>
+    <button class="tab-btn" data-mode="dodge">WAVE DODGE</button>
+    <button class="tab-btn" data-mode="resonance">RESONANCE</button>
+    <button class="tab-btn" data-mode="chaos">CHAOS</button>
+</div>
 
-    <div id="ui-layer">
-        <div class="hud">
-            <div class="hud-box">
-                <div style="color:#ff00ff; font-weight: bold; font-size: 16px;">THE WINDING ROOM</div>
-                <div id="hud-ratio" class="data-text">WAVE RATIO: --</div>
-                <div id="launch-warn" style="color: #ff0055; font-size: 10px; margin-top: 10px;">PLAY SAME NOTE TWICE TO LAUNCH</div>
-            </div>
-            <div>
-                <div class="high-score">BEST: <span id="high-score-text">0</span></div>
-                <div style="font-size: 10px; color: #aaa; text-align: right;">BOUNCES</div>
-                <div id="score-text" class="score-text">0</div>
-            </div>
+<div id="pitch-accent"></div>
+
+<canvas id="c-stars"></canvas>
+<canvas id="c-ruliad"></canvas>
+<canvas id="c-game"></canvas>
+<canvas id="c-munker"></canvas>
+
+<div id="ui-layer">
+    <div class="hud">
+        <div class="hud-box" id="hud-box">
+            <div style="color:#ff00ff;font-weight:bold;font-size:14px;" id="mode-title">THE WINDING ROOM</div>
+            <div id="hud-ratio"  style="color:#00ffcc;margin-top:4px;">WAVE RATIO: --</div>
+            <div id="hud-extra"  style="color:#ff8c00;margin-top:2px;font-size:9px;"></div>
+            <div id="launch-warn" style="color:#ff0055;font-size:9px;margin-top:6px;">PLAY SAME NOTE TWICE TO LAUNCH</div>
         </div>
-
-        <div class="controls">
-            <button id="btn-mic">START MIC</button>
-            <button id="btn-shoot" style="display:none; border-color:#ff8c00; color:#ff8c00;">MANUAL LAUNCH</button>
+        <div>
+            <div class="high-score">BEST: <span id="high-score-text">0</span></div>
+            <div style="font-size:9px;color:#aaa;text-align:right;" id="score-label">BOUNCES</div>
+            <div id="score-text" class="score-text">0</div>
         </div>
     </div>
-
-    <div id="result-panel">
-        <h1 style="color: #ff00ff;">CORNER STRIKE!</h1>
-        <p>You survived <span id="res-winding" style="color:#0f0; font-weight:bold; font-size: 20px;">0</span> bounces.</p>
-        <button id="btn-reset" style="border-color:#fff; color:#fff; margin-top:20px;">RESET ARENA</button>
+    <div class="controls">
+        <button id="btn-mic" style="border-color:#0f0;color:#0f0;">START MIC</button>
+        <button id="btn-shoot" style="display:none;border-color:#ff8c00;color:#ff8c00;">MANUAL LAUNCH</button>
+        <button id="btn-reset" style="display:none;border-color:#ff00ff;color:#ff00ff;">RESET</button>
     </div>
+</div>
 
-<script type="module">
-    import { AudioEngine } from './audio.js';
-    const canvas = document.getElementById('c-billiards');
-    const ctx = canvas.getContext('2d');
-    const audio = new AudioEngine();
+<div id="mode-hint"></div>
 
-    const btnMic = document.getElementById('btn-mic');
-    const btnShoot = document.getElementById('btn-shoot');
-    const btnReset = document.getElementById('btn-reset');
-    const resultPanel = document.getElementById('result-panel');
-    const highScoreText = document.getElementById('high-score-text');
+<div id="result-panel">
+    <h1 id="result-title">CORNER STRIKE!</h1>
+    <p id="result-body">You survived <span id="res-score" style="color:#0f0;font-weight:bold;font-size:20px;">0</span> bounces.</p>
+    <button id="btn-result-reset" style="border-color:#fff;color:#fff;margin-top:20px;">PLAY AGAIN</button>
+</div>
 
-    let sqSize, sqX, sqY;
-    let ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 6, active: false };
-    let bounces = 0, pathHistory = [];
-    
-    let lastHz = 0;
-    let lastTime = 0;
-    let launchHz = 261.63; 
-    let currentRatio = 1.0;
-    let hearingAudio = false;
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIO ENGINE (inlined, no import)
+// ─────────────────────────────────────────────────────────────────────────────
+const noteNames = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const KEY_HUES  = [0,30,55,80,110,145,175,200,230,265,295,330];
 
-    let highScore = 0;
-    try { highScore = localStorage.getItem('windingHighScore') || 0; } catch(e) {}
-    highScoreText.innerText = highScore;
+function hzToPitchClass(hz) {
+    if(hz<=0) return -1;
+    let h=Math.round(12*Math.log2(hz/16.35));
+    return((h%12)+12)%12;
+}
+function lerpHue(a,b,t){let d=b-a;if(d>180)d-=360;if(d<-180)d+=360;return(a+d*t+360)%360;}
+function keyHSL(pc,s=100,l=55){return`hsl(${KEY_HUES[pc]},${s}%,${l}%)`;}
 
-    function resize() {
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        sqSize = Math.min(canvas.width, canvas.height) * 0.85;
-        sqX = (canvas.width - sqSize) / 2; sqY = (canvas.height - sqSize) / 2 + 30;
-        if(!ball.active) resetBall();
+class AudioEngine {
+    constructor(){ this.audioContext=null;this.analyser=null;this.microphone=null;this.isRunning=false;this.dataArray=null; }
+    async startMic(){
+        try{
+            this.audioContext=new(window.AudioContext||window.webkitAudioContext)();
+            const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+            this.microphone=this.audioContext.createMediaStreamSource(stream);
+            this.analyser=this.audioContext.createAnalyser();
+            this.analyser.fftSize=8192;
+            this.analyser.smoothingTimeConstant=0.75;
+            this.microphone.connect(this.analyser);
+            this.dataArray=new Uint8Array(this.analyser.frequencyBinCount);
+            this.isRunning=true; return true;
+        }catch(e){console.error(e);return false;}
     }
-    window.addEventListener('resize', resize); resize();
-
-    function resetBall() {
-        ball.active = false; ball.x = sqX + 20; ball.y = sqY + sqSize - 20;
-        pathHistory = []; bounces = 0; currentRatio = 1.0;
-        resultPanel.style.display = 'none'; btnShoot.style.display = 'block'; 
-        document.getElementById('launch-warn').style.display = 'block';
-        document.getElementById('score-text').innerText = bounces;
+    getPeaks(threshold=85){
+        if(!this.isRunning) return [];
+        this.analyser.getByteFrequencyData(this.dataArray);
+        const sr=this.audioContext.sampleRate, binHz=sr/this.analyser.fftSize;
+        const lo=Math.floor(80/binHz), hi=Math.floor(3000/binHz);
+        let maxVal=0,maxIdx=-1;
+        for(let i=lo;i<hi&&i<this.dataArray.length;i++){
+            if(this.dataArray[i]>maxVal){maxVal=this.dataArray[i];maxIdx=i;}
+        }
+        if(maxVal>threshold) return [{hz:maxIdx*binHz,amp:maxVal}];
+        return [];
     }
+}
 
-    btnReset.addEventListener('click', resetBall);
+const audio = new AudioEngine();
 
-    btnMic.addEventListener('click', async (e) => {
-        if (await audio.startMic()) { e.target.style.display = 'none'; resetBall(); }
+// ─────────────────────────────────────────────────────────────────────────────
+// CANVAS LAYERS
+// ─────────────────────────────────────────────────────────────────────────────
+const cStars=document.getElementById('c-stars'),   ctxS=cStars.getContext('2d');
+const cRuliad=document.getElementById('c-ruliad'), ctxR=cRuliad.getContext('2d');
+const cGame=document.getElementById('c-game'),     ctx=cGame.getContext('2d');
+const cMunker=document.getElementById('c-munker'), ctxM=cMunker.getContext('2d');
+let W,H;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED VISUALS: stars, ruliad, munker
+// ─────────────────────────────────────────────────────────────────────────────
+let stars=[], rulCells, rulNext, rulCols, rulRows;
+const RUL_CELL=10;
+let munkerH1=270,munkerH2=30,munkerT1=270,munkerT2=30;
+let frames=0;
+
+function initVisuals(){
+    rulCols=Math.ceil(W/RUL_CELL)+1; rulRows=Math.ceil(H/RUL_CELL)+1;
+    rulCells=new Uint8Array(rulCols*rulRows); rulNext=new Uint8Array(rulCols*rulRows);
+    for(let i=0;i<rulCells.length;i++) rulCells[i]=Math.random()<0.32?1:0;
+    stars=[];
+    for(let i=0;i<220;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<0.1?2:1,bri:0.2+Math.random()*0.8,tw:Math.random()*Math.PI*2});
+}
+
+function stepRuliad(){
+    for(let y=0;y<rulRows;y++) for(let x=0;x<rulCols;x++){
+        const i=y*rulCols+x; let n=0;
+        for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+            if(dx===0&&dy===0) continue;
+            n+=rulCells[((y+dy+rulRows)%rulRows)*rulCols+(x+dx+rulCols)%rulCols];
+        }
+        const a=rulCells[i]; rulNext[i]=a?((n===2||n===3)?1:0):((n===3||n===6)?1:0);
+    }
+    let t=rulCells; rulCells=rulNext; rulNext=t;
+}
+
+function drawStars(pc){
+    ctxS.fillStyle='#000'; ctxS.fillRect(0,0,W,H);
+    stars.forEach(s=>{
+        const tw=0.55+0.45*Math.sin(s.tw+frames*0.018);
+        ctxS.fillStyle=pc>=0?`hsla(${KEY_HUES[pc]},55%,82%,${s.bri*tw*0.88})`:`rgba(255,255,255,${s.bri*tw*0.85})`;
+        ctxS.fillRect(s.x,s.y,s.r,s.r);
     });
+}
 
-    function fireBall() {
-        ball.active = true;
-        let speed = 6; let angle = Math.atan(1.0); // 45 degree perfect launch
-        ball.vx = speed * Math.cos(angle); ball.vy = -speed * Math.sin(angle);
-        btnShoot.style.display = 'none'; document.getElementById('launch-warn').style.display = 'none';
+function drawRuliad(pc){
+    ctxR.clearRect(0,0,W,H);
+    const hue=pc>=0?KEY_HUES[pc]:270;
+    for(let y=0;y<rulRows;y++) for(let x=0;x<rulCols;x++){
+        if(rulCells[y*rulCols+x]){
+            ctxR.fillStyle=`hsla(${hue},65%,55%,0.15)`;
+            ctxR.fillRect(x*RUL_CELL,y*RUL_CELL,RUL_CELL-1,RUL_CELL-1);
+        }
+    }
+}
+
+function drawMunker(h1,h2,op=0.48){
+    ctxM.clearRect(0,0,W,H);
+    const S=16;
+    for(let y=0;y<H;y++){
+        const m=y%S;
+        if(m<2)              {ctxM.fillStyle=`hsla(${h1},100%,58%,${op})`;   ctxM.fillRect(0,y,W,1);}
+        else if(m>=S/2&&m<S/2+2){ctxM.fillStyle=`hsla(${h2},100%,58%,${op})`;ctxM.fillRect(0,y,W,1);}
+        else if(m===3||m===S/2-1){ctxM.fillStyle=`rgba(0,0,0,0.5)`;          ctxM.fillRect(0,y,W,1);}
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STANDING WAVE FIELD  (2D Lissajous evaluated per cell → warp force)
+// ─────────────────────────────────────────────────────────────────────────────
+let currentRatio=1.0, wavePhase=0;
+
+function waveForce(x,y,sqX,sqY,sqSize){
+    // Normalise position within square [0,1]
+    const nx=(x-sqX)/sqSize, ny=(y-sqY)/sqSize;
+    // Standing wave: superposition of horizontal + vertical modes set by ratio
+    const wx=Math.sin(nx*Math.PI*2+wavePhase);
+    const wy=Math.sin(ny*Math.PI*2*currentRatio+wavePhase*currentRatio);
+    const grad=wx*wy; // interference term
+    return { fx: Math.cos(nx*Math.PI*2)*wy*0.12, fy: wx*Math.cos(ny*Math.PI*2*currentRatio)*0.12, intensity: Math.abs(grad) };
+}
+
+function drawWaveField(sqX,sqY,sqSize,pc){
+    // Draw Lissajous curve in square
+    const hue=pc>=0?KEY_HUES[pc]:270;
+    ctx.beginPath();
+    ctx.strokeStyle=`hsla(${hue},100%,65%,0.35)`;
+    ctx.lineWidth=1.5;
+    for(let t=0;t<Math.PI*2*10;t+=0.04){
+        const lx=sqX+(0.5+0.5*Math.sin(t+wavePhase))*sqSize;
+        const ly=sqY+(0.5+0.5*Math.sin(t*currentRatio+wavePhase*0.7))*sqSize;
+        t<0.04?ctx.moveTo(lx,ly):ctx.lineTo(lx,ly);
+    }
+    ctx.stroke();
+
+    // Faint wave field overlay — draw intensity grid
+    const step=20;
+    for(let gx=sqX;gx<sqX+sqSize;gx+=step){
+        for(let gy=sqY;gy<sqY+sqSize;gy+=step){
+            const {intensity}=waveForce(gx,gy,sqX,sqY,sqSize);
+            if(intensity>0.5){
+                ctx.fillStyle=`hsla(${hue},100%,70%,${(intensity-0.5)*0.25})`;
+                ctx.fillRect(gx,gy,step-1,step-1);
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIXEL BALL RENDERER
+// ─────────────────────────────────────────────────────────────────────────────
+function drawPixelBall(x,y,r,shade,hi='#eee',px=3){
+    for(let py=-r;py<=r;py+=px) for(let ppx=-r;ppx<=r;ppx+=px){
+        if(ppx*ppx+py*py<=r*r){
+            ctx.fillStyle=(ppx<0&&py<0)?hi:shade;
+            ctx.fillRect(Math.round(x+ppx),Math.round(y+py),px,px);
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let currentMode='freeplay';
+let gameActive=false;
+let score=0, highScores={freeplay:0,dodge:0,resonance:0,chaos:0};
+try{ const s=localStorage.getItem('windingScores'); if(s) Object.assign(highScores,JSON.parse(s)); }catch(e){}
+
+let sqSize,sqX,sqY;
+const CORNER_R=22;
+
+// White ball
+let ball={x:0,y:0,vx:0,vy:0,radius:7,active:false};
+let pathHistory=[];
+let lastHz=0,lastTime=0,launchHz=261.63;
+let hearingAudio=false;
+
+// Black obstacle balls (dodge/chaos)
+let blackBalls=[];
+
+// Resonance target
+let resonanceTarget=1.5, resonanceScore=0, resonanceHits=0, resonanceWindow=0;
+const RESONANCE_TARGETS=[1.0,1.5,2.0,1.333,1.25,1.666,1.2,1.75];
+
+// Chaos state
+let chaosAlive=true, chaosWave=0, chaosTimer=0;
+
+let currentPc=-1;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LAYOUT
+// ─────────────────────────────────────────────────────────────────────────────
+function resize(){
+    W=window.innerWidth; H=window.innerHeight;
+    [cStars,cRuliad,cGame,cMunker].forEach(c=>{c.width=W;c.height=H;});
+    sqSize=Math.min(W,H)*0.78;
+    sqX=(W-sqSize)/2; sqY=(H-sqSize)/2+30;
+    initVisuals();
+    resetForMode();
+}
+window.addEventListener('resize',resize);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODE MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+const hints={
+    freeplay:'SING SAME NOTE TWICE TO LAUNCH · STEER WITH PITCH · HIT A CORNER TO SCORE',
+    dodge:   'BLACK BALLS ORBIT WAVE NODES · SHIFT THE WAVE TO MOVE THEM · DON\'T GET HIT',
+    resonance:'MATCH THE TARGET RATIO · HOLD THE PITCH STEADY · HIT AS MANY AS YOU CAN',
+    chaos:   'SURVIVE EACH WAVE · MORE BLACK BALLS EACH ROUND · SING TO WARP TRAJECTORIES'
+};
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode=btn.dataset.mode;
+        resetForMode();
+    });
+});
+
+function resetForMode(){
+    gameActive=false; ball.active=false; blackBalls=[];
+    pathHistory=[]; score=0; resonanceHits=0; resonanceWindow=0;
+    chaosAlive=true; chaosWave=0; chaosTimer=0;
+
+    document.getElementById('result-panel').style.display='none';
+    document.getElementById('score-text').innerText='0';
+    document.getElementById('mode-hint').innerText=hints[currentMode]||'';
+    document.getElementById('high-score-text').innerText=highScores[currentMode]||0;
+
+    const modeNames={freeplay:'FREE PLAY',dodge:'WAVE DODGE',resonance:'RESONANCE',chaos:'CHAOS'};
+    document.getElementById('mode-title').innerText=modeNames[currentMode];
+
+    const scoreLabels={freeplay:'BOUNCES',dodge:'SURVIVED',resonance:'HITS',chaos:'WAVE'};
+    document.getElementById('score-label').innerText=scoreLabels[currentMode];
+
+    document.getElementById('launch-warn').style.display=
+        (currentMode==='freeplay')?'block':'none';
+    document.getElementById('hud-extra').innerText='';
+
+    document.getElementById('btn-shoot').style.display=
+        (currentMode==='freeplay'&&audio.isRunning)?'block':'none';
+    document.getElementById('btn-reset').style.display=
+        audio.isRunning?'block':'none';
+
+    if(!ball.active){
+        ball.x=sqX+sqSize*0.15; ball.y=sqY+sqSize*0.85;
+        ball.vx=0; ball.vy=0;
     }
 
-    btnShoot.addEventListener('click', fireBall);
+    if(currentMode==='dodge')      spawnBlackBalls(3);
+    if(currentMode==='resonance')  nextResonanceTarget();
+    if(currentMode==='chaos')      spawnBlackBalls(2);
 
-    function render() {
-        requestAnimationFrame(render);
-        ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    gameActive=true;
+}
 
-        ctx.strokeStyle = '#444'; ctx.lineWidth = 3; ctx.strokeRect(sqX, sqY, sqSize, sqSize);
-        ctx.fillStyle = 'rgba(255, 0, 85, 0.5)';
-        let corners = [[sqX, sqY], [sqX+sqSize, sqY], [sqX, sqY+sqSize], [sqX+sqSize, sqY+sqSize]];
-        corners.forEach(c => { ctx.beginPath(); ctx.arc(c[0], c[1], 20, 0, Math.PI*2); ctx.fill(); });
+// ─────────────────────────────────────────────────────────────────────────────
+// BALL HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function fireBall(){
+    ball.active=true;
+    const speed=6, angle=Math.atan(currentRatio||1.0);
+    ball.vx=speed*Math.cos(angle); ball.vy=-speed*Math.sin(angle);
+    document.getElementById('launch-warn').style.display='none';
+    document.getElementById('btn-shoot').style.display='none';
+}
 
-        let now = Date.now();
-        hearingAudio = false;
+function bounceBall(){
+    const r=ball.radius;
+    if(ball.x<=sqX+r||ball.x>=sqX+sqSize-r){
+        ball.vx*=-1; ball.x=Math.max(sqX+r,Math.min(sqX+sqSize-r,ball.x));
+        return true;
+    }
+    if(ball.y<=sqY+r||ball.y>=sqY+sqSize-r){
+        ball.vy*=-1; ball.y=Math.max(sqY+r,Math.min(sqY+sqSize-r,ball.y));
+        return true;
+    }
+    return false;
+}
 
-        if (audio.isRunning) {
-            let peaks = audio.getPeaks(85);
-            if (peaks.length > 0) {
-                let currentHz = peaks[0].hz;
-                hearingAudio = true;
+function checkCorners(){
+    const corners=[[sqX,sqY],[sqX+sqSize,sqY],[sqX,sqY+sqSize],[sqX+sqSize,sqY+sqSize]];
+    return corners.some(c=>Math.hypot(ball.x-c[0],ball.y-c[1])<CORNER_R);
+}
 
-                if (!ball.active) {
-                    currentRatio = 1.0; // Draw 1:1 circle before launch
-                    let centsDiff = 1200 * Math.log2(currentHz / lastHz);
-                    
-                    // Double stop same note logic
-                    if (Math.abs(centsDiff) < 50 && (now - lastTime > 150 && now - lastTime < 800)) {
-                        launchHz = currentHz;
-                        fireBall();
-                    } else if (now - lastTime > 100) {
-                        lastHz = currentHz; lastTime = now;
-                    }
-                } else {
-                    // In-Flight Steering 
-                    currentRatio = currentHz / launchHz;
-                    if (currentRatio > 2.0) currentRatio = currentRatio % 2.0 + 1.0;
-                    if (currentRatio < 0.5) currentRatio = currentRatio * 2.0;
-                    
-                    document.getElementById('hud-ratio').innerText = `WAVE RATIO: ${currentRatio.toFixed(3)}`;
+// ─────────────────────────────────────────────────────────────────────────────
+// BLACK BALLS
+// ─────────────────────────────────────────────────────────────────────────────
+function spawnBlackBalls(n){
+    for(let i=0;i<n;i++){
+        const angle=Math.random()*Math.PI*2;
+        const speed=1.2+Math.random()*1.0;
+        // Spawn away from white ball start
+        const bx=sqX+sqSize*(0.2+Math.random()*0.6);
+        const by=sqY+sqSize*(0.2+Math.random()*0.6);
+        blackBalls.push({x:bx,y:by,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,radius:8,orbitPhase:Math.random()*Math.PI*2});
+    }
+}
 
-                    let forceAngle = Math.atan(currentRatio);
-                    ball.vx += Math.cos(forceAngle) * 0.15;
-                    ball.vy -= Math.sin(forceAngle) * 0.15;
+function updateBlackBalls(){
+    for(let i=blackBalls.length-1;i>=0;i--){
+        const b=blackBalls[i];
+        // Wave warp: standing wave deflects their trajectory
+        const {fx,fy}=waveForce(b.x,b.y,sqX,sqY,sqSize);
+        b.vx+=fx*0.5; b.vy+=fy*0.5;
 
-                    let speed = 6; let currentSpeed = Math.hypot(ball.vx, ball.vy);
-                    ball.vx = (ball.vx / currentSpeed) * speed; ball.vy = (ball.vy / currentSpeed) * speed;
+        // Speed cap
+        const sp=Math.hypot(b.vx,b.vy);
+        if(sp>2.5){b.vx=(b.vx/sp)*2.5; b.vy=(b.vy/sp)*2.5;}
+
+        b.x+=b.vx; b.y+=b.vy;
+
+        // Bounce off walls
+        const r=b.radius;
+        if(b.x<=sqX+r||b.x>=sqX+sqSize-r){b.vx*=-1;b.x=Math.max(sqX+r,Math.min(sqX+sqSize-r,b.x));}
+        if(b.y<=sqY+r||b.y>=sqY+sqSize-r){b.vy*=-1;b.y=Math.max(sqY+r,Math.min(sqY+sqSize-r,b.y));}
+
+        // Draw: dark grey pixel ball (Munker colours it slightly)
+        drawPixelBall(b.x,b.y,b.radius,'#333','#555',3);
+
+        // Collision with white ball
+        if(ball.active&&Math.hypot(ball.x-b.x,ball.y-b.y)<ball.radius+b.radius){
+            if(currentMode==='dodge'||currentMode==='chaos'){
+                triggerGameOver('HIT BY OBSTACLE!');
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESONANCE MODE
+// ─────────────────────────────────────────────────────────────────────────────
+function nextResonanceTarget(){
+    resonanceTarget=RESONANCE_TARGETS[Math.floor(Math.random()*RESONANCE_TARGETS.length)];
+    resonanceWindow=180; // frames to hit it
+    const ratioNames={1.0:'1:1 (UNISON)',1.5:'3:2 (P5)',2.0:'2:1 (OCTAVE)',1.333:'4:3 (P4)',1.25:'5:4 (M3)',1.666:'5:3 (M6)',1.2:'6:5 (m3)',1.75:'7:4 (m7)'};
+    document.getElementById('hud-extra').innerText=`TARGET: ${ratioNames[resonanceTarget]||resonanceTarget.toFixed(3)}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME OVER
+// ─────────────────────────────────────────────────────────────────────────────
+function triggerGameOver(reason){
+    gameActive=false; ball.active=false;
+    if(score>highScores[currentMode]){
+        highScores[currentMode]=score;
+        try{localStorage.setItem('windingScores',JSON.stringify(highScores));}catch(e){}
+        document.getElementById('high-score-text').innerText=score;
+    }
+    document.getElementById('result-title').innerText=reason;
+    document.getElementById('result-body').innerHTML=
+        `Score: <span style="color:#0f0;font-weight:bold;font-size:20px;">${score}</span>`;
+    document.getElementById('result-panel').style.display='block';
+}
+
+document.getElementById('btn-result-reset').addEventListener('click',resetForMode);
+document.getElementById('btn-reset').addEventListener('click',resetForMode);
+document.getElementById('btn-shoot').addEventListener('click',fireBall);
+document.getElementById('btn-mic').addEventListener('click',async e=>{
+    if(await audio.startMic()){
+        e.target.style.display='none';
+        document.getElementById('btn-reset').style.display='block';
+        if(currentMode==='freeplay') document.getElementById('btn-shoot').style.display='block';
+        resetForMode();
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN RENDER LOOP
+// ─────────────────────────────────────────────────────────────────────────────
+function render(){
+    requestAnimationFrame(render);
+    frames++;
+
+    // ── Audio ──────────────────────────────────────────────────────────────
+    hearingAudio=false;
+    let currentHz=0;
+    if(audio.isRunning){
+        const peaks=audio.getPeaks(85);
+        if(peaks.length>0){ currentHz=peaks[0].hz; hearingAudio=true; }
+    }
+
+    if(hearingAudio){
+        currentPc=hzToPitchClass(currentHz);
+        munkerT1=KEY_HUES[currentPc];
+        munkerT2=KEY_HUES[(currentPc+7)%12];
+        document.getElementById('pitch-accent').style.background=
+            `linear-gradient(90deg,hsl(${munkerT1},100%,55%),hsl(${munkerT2},100%,55%))`;
+        document.getElementById('hud-box').style.borderColor=keyHSL(currentPc,70,55);
+
+        if(!ball.active && currentMode==='freeplay'){
+            const now=Date.now();
+            const centsDiff=1200*Math.log2(currentHz/(lastHz||currentHz));
+            if(Math.abs(centsDiff)<50&&(Date.now()-lastTime>150&&Date.now()-lastTime<800)){
+                launchHz=currentHz; fireBall();
+            } else if(now-lastTime>100){ lastHz=currentHz; lastTime=now; }
+        }
+
+        if(ball.active||currentMode!=='freeplay'){
+            currentRatio=currentHz/(launchHz||261.63);
+            if(currentRatio>2.0) currentRatio=currentRatio%2.0+1.0;
+            if(currentRatio<0.5) currentRatio=currentRatio*2.0;
+            document.getElementById('hud-ratio').innerText=`WAVE RATIO: ${currentRatio.toFixed(3)}`;
+
+            if(ball.active){
+                const {fx,fy}=waveForce(ball.x,ball.y,sqX,sqY,sqSize);
+                ball.vx+=fx; ball.vy+=fy;
+                const sp=Math.hypot(ball.vx,ball.vy);
+                if(sp>0){ball.vx=(ball.vx/sp)*6; ball.vy=(ball.vy/sp)*6;}
+            }
+        }
+    } else {
+        currentPc=-1;
+        if(ball.active) document.getElementById('hud-ratio').innerText='WAVE RATIO: --';
+        currentRatio=1.0;
+    }
+
+    // Wave phase advances with ratio
+    wavePhase+=0.025*currentRatio;
+
+    // ── Visuals ─────────────────────────────────────────────────────────────
+    munkerH1=lerpHue(munkerH1,munkerT1,0.05);
+    munkerH2=lerpHue(munkerH2,munkerT2,0.05);
+    if(frames%4===0) stepRuliad();
+    drawRuliad(currentPc);
+    if(frames%3===0) drawStars(currentPc);
+    ctx.clearRect(0,0,W,H);
+    if(frames%2===0) drawMunker(munkerH1,munkerH2);
+
+    // ── Arena ───────────────────────────────────────────────────────────────
+    ctx.strokeStyle='#555'; ctx.lineWidth=3;
+    ctx.strokeRect(sqX,sqY,sqSize,sqSize);
+
+    // Corner pockets
+    const corners=[[sqX,sqY],[sqX+sqSize,sqY],[sqX,sqY+sqSize],[sqX+sqSize,sqY+sqSize]];
+    ctx.fillStyle='rgba(255,0,85,0.55)';
+    corners.forEach(c=>{ctx.beginPath();ctx.arc(c[0],c[1],CORNER_R,0,Math.PI*2);ctx.fill();});
+
+    // ── Wave field ──────────────────────────────────────────────────────────
+    if(hearingAudio) drawWaveField(sqX,sqY,sqSize,currentPc);
+
+    // ── Mode-specific logic ──────────────────────────────────────────────────
+    if(gameActive){
+
+        // ── FREE PLAY ──────────────────────────────────────────────────────
+        if(currentMode==='freeplay'){
+            if(ball.active){
+                ball.x+=ball.vx; ball.y+=ball.vy;
+                if(bounceBall()) score++;
+                document.getElementById('score-text').innerText=score;
+                if(checkCorners()&&score>2) triggerGameOver('CORNER STRIKE!');
+                pathHistory.push({x:ball.x,y:ball.y});
+                if(pathHistory.length>220) pathHistory.shift();
+            }
+            if(pathHistory.length>1){
+                ctx.beginPath(); ctx.strokeStyle='rgba(255,0,255,0.7)'; ctx.lineWidth=1.5;
+                ctx.moveTo(pathHistory[0].x,pathHistory[0].y);
+                pathHistory.forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+            }
+        }
+
+        // ── WAVE DODGE ─────────────────────────────────────────────────────
+        if(currentMode==='dodge'){
+            // Auto-launch ball if not active
+            if(!ball.active){
+                ball.active=true; launchHz=261.63;
+                ball.vx=3.5; ball.vy=-3.5;
+            }
+            ball.x+=ball.vx; ball.y+=ball.vy;
+            bounceBall();
+
+            // Score = frames survived (in seconds)
+            score=Math.floor(frames/60);
+            document.getElementById('score-text').innerText=score;
+
+            updateBlackBalls();
+
+            // Every 15s add a black ball
+            if(frames%900===0) spawnBlackBalls(1);
+        }
+
+        // ── RESONANCE ─────────────────────────────────────────────────────
+        if(currentMode==='resonance'){
+            if(!ball.active){
+                ball.active=true; launchHz=261.63;
+                ball.vx=4; ball.vy=-4;
+            }
+            ball.x+=ball.vx; ball.y+=ball.vy;
+            bounceBall();
+
+            resonanceWindow--;
+            const timeLeft=Math.ceil(resonanceWindow/60);
+            document.getElementById('hud-extra').innerHTML=
+                `TARGET: ${resonanceTarget.toFixed(3)} &nbsp; TIME: ${timeLeft}s`;
+
+            // Check if player is holding the right ratio
+            if(hearingAudio){
+                const diff=Math.abs(currentRatio-resonanceTarget);
+                if(diff<0.08){
+                    // Holding it! Fill a ring around ball
+                    ctx.strokeStyle='rgba(0,255,100,0.8)'; ctx.lineWidth=3;
+                    ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.radius+6,0,Math.PI*2); ctx.stroke();
+                    // Register hit on wall bounce
                 }
+            }
+
+            // On bounce while holding correct ratio → score
+            if(hearingAudio&&Math.abs(currentRatio-resonanceTarget)<0.08){
+                // Check recent bounce (vx/vy sign flipped recently) — use a flag
+                // Simple proxy: score increments when near wall
+                const nr=ball.radius+2;
+                if(ball.x<=sqX+nr||ball.x>=sqX+sqSize-nr||ball.y<=sqY+nr||ball.y>=sqY+sqSize-nr){
+                    resonanceHits++; score=resonanceHits;
+                    document.getElementById('score-text').innerText=score;
+                }
+            }
+
+            if(resonanceWindow<=0) nextResonanceTarget();
+
+            // Corner pockets disabled in resonance — instead use as bonus targets
+            if(checkCorners()){
+                if(hearingAudio&&Math.abs(currentRatio-resonanceTarget)<0.15){
+                    score+=5; document.getElementById('score-text').innerText=score;
+                }
+                // Respawn from opposite side
+                ball.x=sqX+sqSize/2; ball.y=sqY+sqSize/2;
+            }
+        }
+
+        // ── CHAOS ──────────────────────────────────────────────────────────
+        if(currentMode==='chaos'){
+            if(!ball.active){
+                ball.active=true; launchHz=261.63;
+                ball.vx=4; ball.vy=-4;
+            }
+            ball.x+=ball.vx; ball.y+=ball.vy;
+            bounceBall();
+
+            chaosTimer++;
+            // Wave cycle = 8 seconds
+            if(chaosTimer>=480){
+                chaosTimer=0; chaosWave++;
+                score=chaosWave;
+                document.getElementById('score-text').innerText=score;
+                spawnBlackBalls(chaosWave+1);
+                document.getElementById('hud-extra').innerText=`WAVE ${chaosWave} — ${blackBalls.length} BALLS`;
             } else {
-                if(ball.active) document.getElementById('hud-ratio').innerText = `WAVE RATIO: --`;
-                currentRatio = 1.0; 
-            }
-        }
-
-        // Draw In-Flight OR Pre-Launch Standing Wave (Lissajous)
-        if (hearingAudio) {
-            ctx.beginPath(); ctx.strokeStyle = ball.active ? 'rgba(0, 255, 204, 0.4)' : 'rgba(255, 0, 255, 0.4)'; 
-            ctx.lineWidth = 2;
-            for (let t = 0; t < 100; t += 0.1) {
-                let lx = sqX + (0.5 + 0.5 * Math.sin(t)) * sqSize;
-                let ly = sqY + (0.5 + 0.5 * Math.sin(t * currentRatio)) * sqSize;
-                t === 0 ? ctx.moveTo(lx, ly) : ctx.lineTo(lx, ly);
-            }
-            ctx.stroke();
-        }
-
-        if (ball.active) {
-            ball.x += ball.vx; ball.y += ball.vy;
-
-            if (ball.x <= sqX + ball.radius || ball.x >= sqX + sqSize - ball.radius) { 
-                ball.vx *= -1; bounces++; 
-                ball.x = Math.max(sqX + ball.radius, Math.min(sqX + sqSize - ball.radius, ball.x));
-            }
-            if (ball.y <= sqY + ball.radius || ball.y >= sqY + sqSize - ball.radius) { 
-                ball.vy *= -1; bounces++; 
-                ball.y = Math.max(sqY + ball.radius, Math.min(sqY + sqSize - ball.radius, ball.y));
+                const tLeft=Math.ceil((480-chaosTimer)/60);
+                document.getElementById('hud-extra').innerText=`WAVE ${chaosWave+1} — NEXT IN ${tLeft}s`;
             }
 
-            document.getElementById('score-text').innerText = bounces;
-
-            corners.forEach(c => {
-                if (Math.hypot(ball.x - c[0], ball.y - c[1]) < 25 && bounces > 2) {
-                    ball.active = false;
-                    document.getElementById('res-winding').innerText = bounces;
-                    if (bounces > highScore) { highScore = bounces; try { localStorage.setItem('windingHighScore', highScore); } catch(e) {} highScoreText.innerText = highScore; }
-                    resultPanel.style.display = 'block';
-                }
-            });
-
-            pathHistory.push({x: ball.x, y: ball.y});
-            if (pathHistory.length > 200) pathHistory.shift(); 
+            updateBlackBalls();
         }
-
-        if (pathHistory.length > 1) {
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 0, 255, 0.8)'; ctx.lineWidth = 2;
-            ctx.moveTo(pathHistory[0].x, pathHistory[0].y);
-            pathHistory.forEach(p => ctx.lineTo(p.x, p.y));
-            ctx.stroke();
-        }
-
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); ctx.fill();
     }
-    render();
+
+    // ── White ball render ────────────────────────────────────────────────────
+    if(ball.active||!gameActive){
+        drawPixelBall(ball.x,ball.y,ball.radius,'#cccccc','#eeeeee',3);
+    } else if(!ball.active&&currentMode==='freeplay'){
+        drawPixelBall(ball.x,ball.y,ball.radius,'#888','#aaa',3);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────────────────────
+resize();
+render();
 </script>
 </body>
 </html>
