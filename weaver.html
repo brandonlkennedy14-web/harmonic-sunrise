@@ -2,340 +2,478 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Constellation Weaver</title>
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Harmonics">
-
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+        if('serviceWorker' in navigator){
+            window.addEventListener('load',()=>{
                 navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker registered!', reg))
-                    .catch(err => console.error('Service Worker failed!', err));
+                    .then(r=>console.log('SW registered'))
+                    .catch(e=>console.error('SW failed',e));
             });
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+        * { box-sizing:border-box; }
+        body { margin:0; padding:0; background:#000; color:#fff; font-family:'Space Mono',monospace; overflow:hidden; touch-action:manipulation; }
 
-        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Space Mono', monospace; overflow: hidden; }
-        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        canvas { display:block; width:100vw; height:100vh; position:absolute; top:0; left:0; image-rendering:pixelated; }
+        #c-stars  { z-index:1; }
+        #c-ruliad { z-index:2; }
+        #c-game   { z-index:3; background:transparent; }
+        #c-munker { z-index:4; pointer-events:none; }
 
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 70px 20px 20px 20px; box-sizing: border-box; pointer-events: none; }
-        .hud { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; }
-        .title { font-size: 20px; font-weight: bold; color: #b366ff; letter-spacing: 2px; }
-        .score-display { font-size: 24px; color: #00ffcc; font-weight: bold; text-shadow: 0 0 10px #00ffcc; }
-        
-        .hud-box { background: rgba(0,0,0,0.7); padding: 15px; border: 1px solid #b366ff; margin-top: 10px; width: fit-content; border-radius: 5px; box-shadow: 0 0 15px rgba(179, 102, 255, 0.2); }
-        .data-text { font-size: 14px; margin-bottom: 5px; }
-        .data-label { color: #aaa; font-size: 10px; }
-        .data-value { font-weight: bold; font-size: 16px; }
-        
-        #val-current { color: #ff8c00; }
-        #val-interval { color: #ff00ff; }
-        #val-target { color: #0f0; }
+        #ui-layer {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            z-index:10; display:flex; flex-direction:column;
+            justify-content:space-between; padding:110px 20px 20px 20px; pointer-events:none;
+        }
+        .hud { display:flex; justify-content:space-between; width:100%; pointer-events:auto; }
+        .title { font-size:18px; font-weight:bold; color:#b366ff; letter-spacing:3px; }
+        .hud-box {
+            background:rgba(0,0,0,0.8); padding:8px 12px;
+            border:2px solid #b366ff; margin-top:8px;
+            font-size:10px; letter-spacing:1px; transition:border-color 0.4s;
+        }
+        .data-label { color:#888; font-size:9px; }
+        .data-value { font-weight:bold; font-size:13px; }
+        .controls { display:flex; gap:10px; pointer-events:auto; }
+        button { background:rgba(0,0,0,0.8); border:2px solid #fff; color:#fff; padding:10px 15px; font-family:'Space Mono',monospace; font-size:10px; cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition:all 0.15s; }
+        button:active { transform:translate(2px,2px); }
+        #btn-mic  { border-color:#0f0; color:#0f0; }
+        #btn-mode { border-color:#b366ff; color:#b366ff; }
 
-        .controls { display: flex; gap: 10px; pointer-events: auto; }
-        button { background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
-        button:active { transform: translate(2px, 2px); }
+        #pitch-accent { position:absolute; top:0; left:0; width:100%; height:3px; z-index:15; pointer-events:none; transition:background 0.5s; }
 
-        #btn-mic { border-color: #0f0; color: #0f0; }
-        #btn-mode { border-color: #b366ff; color: #b366ff; }
+        /* Monolith ambient glow bleeds through page */
+        #monolith-ambient {
+            position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+            width:200px; height:60vh; z-index:0; pointer-events:none;
+            background:radial-gradient(ellipse at bottom, rgba(180,180,255,0.06) 0%, transparent 70%);
+            transition:opacity 1s;
+        }
     </style>
 </head>
 <body>
 
-        <div id="global-nav" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 100; display: flex; justify-content: center; gap: 10px; padding: 15px 5px; background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; pointer-events: auto; font-family: 'Space Mono', monospace; box-sizing: border-box; flex-wrap: wrap; font-size: 12px;">
-        <a href="index.html" style="color: #ff8c00; text-decoration: none; font-weight: bold; transition: color 0.2s;">[1] SUNRISE</a>
-        <span style="color: #555;">|</span>
-        <a href="flappy.html" style="color: #00ffcc; text-decoration: none; font-weight: bold; transition: color 0.2s;">[2] FLAPPY</a>
-        <span style="color: #555;">|</span>
-        <a href="billiards.html" style="color: #ff00ff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[3] WINDING</a>
-        <span style="color: #555;">|</span>
-        <a href="invaders.html" style="color: #ff0055; text-decoration: none; font-weight: bold; transition: color 0.2s;">[4] INVADERS</a>
-        <span style="color: #555;">|</span>
-        <a href="weaver.html" style="color: #b366ff; text-decoration: none; font-weight: bold; transition: color 0.2s;">[5] WEAVER</a>
-        <span style="color: #555;">|</span>
-        <a href="simon.html" style="color: #fff; text-decoration: none; font-weight: bold; transition: color 0.2s; text-shadow: 0 0 5px #fff;">[6] SIMON</a>
-    </div>
-    <canvas id="c-weaver"></canvas>
+<div id="global-nav" style="position:absolute;top:0;left:0;width:100%;z-index:100;display:flex;justify-content:center;gap:10px;padding:14px 5px;background:rgba(0,0,0,0.92);border-bottom:2px solid #222;pointer-events:auto;font-family:'Space Mono',monospace;box-sizing:border-box;flex-wrap:wrap;font-size:11px;letter-spacing:1px;">
+    <a href="index.html"     style="color:#ff8c00;text-decoration:none;font-weight:bold;">[1] SUNRISE</a>  <span style="color:#444;">|</span>
+    <a href="flappy.html"    style="color:#00ffcc;text-decoration:none;font-weight:bold;">[2] FLAPPY</a>   <span style="color:#444;">|</span>
+    <a href="billiards.html" style="color:#ff00ff;text-decoration:none;font-weight:bold;">[3] WINDING</a>  <span style="color:#444;">|</span>
+    <a href="invaders.html"  style="color:#ff0055;text-decoration:none;font-weight:bold;">[4] INVADERS</a> <span style="color:#444;">|</span>
+    <a href="weaver.html"    style="color:#b366ff;text-decoration:none;font-weight:bold;">[5] WEAVER</a>   <span style="color:#444;">|</span>
+    <a href="simon.html"     style="color:#fff;text-decoration:none;font-weight:bold;">[6] SIMON</a>
+</div>
 
-    <div id="ui-layer">
-        <div class="hud">
-            <div>
-                <div class="title">CONSTELLATION WEAVER</div>
-                <div class="hud-box">
-                    <div class="data-text"><span class="data-label">STARTING STAR: </span><span class="data-value" id="val-current">--</span></div>
-                    <div class="data-text"><span class="data-label">JUMP REQUIRED: </span><span class="data-value" id="val-interval">--</span></div>
-                    <div class="data-text" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px;">
-                        <span class="data-label">TARGET NOTE: </span><span class="data-value" id="val-target">--</span>
-                    </div>
+<div id="monolith-ambient"></div>
+<div id="pitch-accent"></div>
+<canvas id="c-stars"></canvas>
+<canvas id="c-ruliad"></canvas>
+<canvas id="c-game"></canvas>
+<canvas id="c-munker"></canvas>
+
+<div id="ui-layer">
+    <div class="hud">
+        <div>
+            <div class="title">CONSTELLATION WEAVER</div>
+            <div class="hud-box" id="hud-box">
+                <div><span class="data-label">FROM: </span><span class="data-value" id="val-current" style="color:#ff8c00;">--</span></div>
+                <div style="margin-top:3px;"><span class="data-label">INTERVAL: </span><span class="data-value" id="val-interval" style="color:#ff00ff;">--</span></div>
+                <div style="margin-top:6px;border-top:1px solid #333;padding-top:6px;">
+                    <span class="data-label">TARGET: </span><span class="data-value" id="val-target" style="color:#0f0;">--</span>
                 </div>
             </div>
-            <div class="score-display">STARS LINKED: <span id="score-text">0</span></div>
         </div>
-
-        <div class="controls">
-            <button id="btn-mic">START SCANNER (MIC)</button>
-            <button id="btn-mode">MODE: STUDY</button>
+        <div style="text-align:right;">
+            <div style="font-size:9px;color:#aaa;letter-spacing:1px;">STARS LINKED</div>
+            <div id="score-text" style="font-size:28px;color:#00ffcc;font-weight:bold;text-shadow:0 0 10px #00ffcc;">0</div>
         </div>
     </div>
+    <div class="controls">
+        <button id="btn-mic">START SCANNER</button>
+        <button id="btn-mode">MODE: STUDY</button>
+    </div>
+</div>
 
-<script type="module">
-    import { AudioEngine } from './audio.js';
-    import { notes, hzToPitchClass } from './theory.js';
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIO ENGINE
+// ─────────────────────────────────────────────────────────────────────────────
+const noteNames = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const KEY_HUES  = [0,30,55,80,110,145,175,200,230,265,295,330];
+function keyHSL(pc,s=100,l=55){ return `hsl(${KEY_HUES[pc]},${s}%,${l}%)`; }
+function lerpHue(a,b,t){ let d=b-a; if(d>180)d-=360; if(d<-180)d+=360; return(a+d*t+360)%360; }
+function hzToPitchClass(hz){ if(hz<=0)return -1; let h=Math.round(12*Math.log2(hz/16.35)); return((h%12)+12)%12; }
 
-    const canvas = document.getElementById('c-weaver');
-    const ctx = canvas.getContext('2d');
-    const audio = new AudioEngine();
+const INTERVAL_DICT=[
+    {name:"Minor 2nd",st:1},{name:"Major 2nd",st:2},
+    {name:"Minor 3rd",st:3},{name:"Major 3rd",st:4},
+    {name:"Perfect 4th",st:5},{name:"Tritone",st:6},
+    {name:"Perfect 5th",st:7},{name:"Minor 6th",st:8},
+    {name:"Major 6th",st:9},{name:"Minor 7th",st:10},
+    {name:"Major 7th",st:11}
+];
 
-    // UI Elements
-    const btnMic = document.getElementById('btn-mic');
-    const btnMode = document.getElementById('btn-mode');
-    const scoreText = document.getElementById('score-text');
-    const valCurrent = document.getElementById('val-current');
-    const valInterval = document.getElementById('val-interval');
-    const valTarget = document.getElementById('val-target');
-
-    // Interval Dictionary
-    const intervalDict = [
-        { name: "Minor 2nd", st: 1 }, { name: "Major 2nd", st: 2 },
-        { name: "Minor 3rd", st: 3 }, { name: "Major 3rd", st: 4 },
-        { name: "Perfect 4th", st: 5 }, { name: "Tritone", st: 6 },
-        { name: "Perfect 5th", st: 7 }, { name: "Minor 6th", st: 8 },
-        { name: "Major 6th", st: 9 }, { name: "Minor 7th", st: 10 },
-        { name: "Major 7th", st: 11 }
-    ];
-
-    // Game State
-    let mode = 'STUDY'; // 'STUDY' or 'BLIND'
-    let score = 0;
-    let bgStars = [];
-    let constellation = []; // History of played stars
-    let currentStar = null;
-    let targetStar = null;
-    
-    // Anti-spam
-    let hitCooldown = 0;
-
-    function resize() { 
-        canvas.width = window.innerWidth; 
-        canvas.height = window.innerHeight; 
-        generateBgStars();
+class AudioEngine {
+    constructor(){ this.audioContext=null;this.analyser=null;this.microphone=null;this.isRunning=false;this.dataArray=null; }
+    async startMic(){
+        try{
+            this.audioContext=new(window.AudioContext||window.webkitAudioContext)();
+            const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+            this.microphone=this.audioContext.createMediaStreamSource(stream);
+            this.analyser=this.audioContext.createAnalyser();
+            this.analyser.fftSize=8192; this.analyser.smoothingTimeConstant=0.75;
+            this.microphone.connect(this.analyser);
+            this.dataArray=new Uint8Array(this.analyser.frequencyBinCount);
+            this.isRunning=true; return true;
+        }catch(e){ console.error(e); return false; }
     }
-    window.addEventListener('resize', resize);
+    getPeaks(threshold=90){
+        if(!this.isRunning)return[];
+        this.analyser.getByteFrequencyData(this.dataArray);
+        const sr=this.audioContext.sampleRate, binHz=sr/this.analyser.fftSize;
+        const lo=Math.floor(80/binHz), hi=Math.floor(3000/binHz);
+        let maxVal=0,maxIdx=-1;
+        for(let i=lo;i<hi&&i<this.dataArray.length;i++){
+            if(this.dataArray[i]>maxVal){maxVal=this.dataArray[i];maxIdx=i;}
+        }
+        if(maxVal>threshold)return[{hz:maxIdx*binHz,amp:maxVal}];
+        return[];
+    }
+}
+const audio = new AudioEngine();
 
-    function generateBgStars() {
-        bgStars = [];
-        for (let i = 0; i < 150; i++) {
-            bgStars.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                size: Math.random() * 2,
-                alpha: Math.random()
-            });
+// ─────────────────────────────────────────────────────────────────────────────
+// CANVAS
+// ─────────────────────────────────────────────────────────────────────────────
+const cStars=document.getElementById('c-stars'),   ctxS=cStars.getContext('2d');
+const cRuliad=document.getElementById('c-ruliad'), ctxR=cRuliad.getContext('2d');
+const cGame=document.getElementById('c-game'),     ctx=cGame.getContext('2d');
+const cMunker=document.getElementById('c-munker'), ctxM=cMunker.getContext('2d');
+let W,H,cx,cy,frames=0;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED VISUALS
+// ─────────────────────────────────────────────────────────────────────────────
+let stars=[],rulCells,rulNext,rulCols,rulRows;
+const RUL=10;
+let munkerH1=265,munkerH2=30,munkerT1=265,munkerT2=30;
+let currentPc=-1;
+
+function initVisuals(){
+    rulCols=Math.ceil(W/RUL)+1; rulRows=Math.ceil(H/RUL)+1;
+    rulCells=new Uint8Array(rulCols*rulRows); rulNext=new Uint8Array(rulCols*rulRows);
+    for(let i=0;i<rulCells.length;i++) rulCells[i]=Math.random()<0.32?1:0;
+    stars=[];
+    for(let i=0;i<300;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<0.08?2:1,bri:0.1+Math.random()*0.9,tw:Math.random()*Math.PI*2});
+}
+function stepRuliad(){
+    for(let y=0;y<rulRows;y++) for(let x=0;x<rulCols;x++){
+        const i=y*rulCols+x; let n=0;
+        for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+            if(dx===0&&dy===0)continue;
+            n+=rulCells[((y+dy+rulRows)%rulRows)*rulCols+(x+dx+rulCols)%rulCols];
+        }
+        const a=rulCells[i]; rulNext[i]=a?((n===2||n===3)?1:0):((n===3||n===6)?1:0);
+    }
+    let t=rulCells;rulCells=rulNext;rulNext=t;
+}
+function drawStars(pc){
+    ctxS.fillStyle='#000'; ctxS.fillRect(0,0,W,H);
+    stars.forEach(s=>{
+        const tw=0.45+0.55*Math.sin(s.tw+frames*0.012);
+        ctxS.fillStyle=pc>=0?`hsla(${KEY_HUES[pc]},50%,85%,${s.bri*tw*0.88})`:`rgba(255,255,255,${s.bri*tw*0.82})`;
+        ctxS.fillRect(s.x,s.y,s.r,s.r);
+    });
+}
+function drawRuliad(pc){
+    ctxR.clearRect(0,0,W,H);
+    const hue=pc>=0?KEY_HUES[pc]:265;
+    for(let y=0;y<rulRows;y++) for(let x=0;x<rulCols;x++){
+        if(rulCells[y*rulCols+x]){
+            ctxR.fillStyle=`hsla(${hue},60%,55%,0.12)`;
+            ctxR.fillRect(x*RUL,y*RUL,RUL-1,RUL-1);
         }
     }
+}
+function drawMunker(h1,h2,op=0.44){
+    ctxM.clearRect(0,0,W,H);
+    const S=16;
+    for(let y=0;y<H;y++){
+        const m=y%S;
+        if(m<2)               {ctxM.fillStyle=`hsla(${h1},100%,58%,${op})`;  ctxM.fillRect(0,y,W,1);}
+        else if(m>=S/2&&m<S/2+2){ctxM.fillStyle=`hsla(${h2},100%,58%,${op})`;ctxM.fillRect(0,y,W,1);}
+        else if(m===3||m===S/2-1){ctxM.fillStyle=`rgba(0,0,0,0.5)`;          ctxM.fillRect(0,y,W,1);}
+    }
+}
 
-    function generateNextStar() {
-        // Pick a random interval
-        let intObj = intervalDict[Math.floor(Math.random() * intervalDict.length)];
-        
-        // Calculate the target note (modulo 12 wraps it around the octave)
-        let targetNoteIdx = (currentStar.noteIdx + intObj.st) % 12;
+// ─────────────────────────────────────────────────────────────────────────────
+// 2001 MONOLITH — the teacher
+// Perfect 4:9:1 ratio slab, jet black, ground-anchored, with light scatter halo
+// ─────────────────────────────────────────────────────────────────────────────
+let monolithPulse=0; // 0–1 flares when player hits a correct note
 
-        // Pick a random spot on the canvas for the new star (keep away from edges/UI)
-        let paddingX = 100;
-        let paddingY = 200;
-        let newX = paddingX + Math.random() * (canvas.width - paddingX * 2);
-        let newY = paddingY + Math.random() * (canvas.height - paddingY * 2.5);
+function drawMonolith2001(activePc){
+    // Exact 2001 proportions: 1:4:9
+    const mW = Math.min(80, W*0.1);
+    const mH = mW * 4;
+    const mx = cx;
+    const groundY = H - 40; // sits on floor
+    const topY = groundY - mH;
 
-        targetStar = {
-            x: newX,
-            y: newY,
-            noteIdx: targetNoteIdx,
-            intervalName: intObj.name,
-            pulse: 0
-        };
+    // Ground shadow — oval beneath slab
+    const shadowW=mW*2.5+monolithPulse*30;
+    const grd=ctx.createRadialGradient(mx,groundY,0,mx,groundY,shadowW);
+    grd.addColorStop(0,`rgba(140,120,255,${0.15+monolithPulse*0.2})`);
+    grd.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grd;
+    ctx.beginPath(); ctx.ellipse(mx,groundY,shadowW,shadowW*0.25,0,0,Math.PI*2); ctx.fill();
 
-        // Update HUD
-        valCurrent.innerText = notes[currentStar.noteIdx];
-        valInterval.innerText = `+ ${targetStar.intervalName}`;
-        
-        if (mode === 'STUDY') {
-            valTarget.innerText = notes[targetNoteIdx];
-            valTarget.style.color = "#0f0";
+    // Halo: the monolith radiates faint light outward when active
+    if(monolithPulse>0.05){
+        const haloGrd=ctx.createRadialGradient(mx,topY+mH/2,mW/2,mx,topY+mH/2,mW*4);
+        const hue=activePc>=0?KEY_HUES[activePc]:265;
+        haloGrd.addColorStop(0,`hsla(${hue},80%,70%,${monolithPulse*0.18})`);
+        haloGrd.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=haloGrd;
+        ctx.fillRect(mx-mW*4,topY-mH*0.5,mW*8,mH*2);
+    }
+
+    // The slab itself — absolute black with razor-thin lighter edges
+    // Main face
+    ctx.fillStyle='#000';
+    ctx.fillRect(mx-mW/2, topY, mW, mH);
+
+    // Left edge catch-light (1px) — shows the slab exists in 3D space
+    ctx.fillStyle=`rgba(60,60,80,${0.4+monolithPulse*0.4})`;
+    ctx.fillRect(mx-mW/2-2, topY+4, 2, mH-8);
+
+    // Top edge
+    ctx.fillStyle=`rgba(80,80,100,${0.3+monolithPulse*0.5})`;
+    ctx.fillRect(mx-mW/2, topY, mW, 2);
+
+    // Right edge — thicker, perspective
+    ctx.fillStyle=`rgba(30,30,45,${0.3+monolithPulse*0.3})`;
+    ctx.fillRect(mx+mW/2, topY+8, 5, mH-12);
+
+    // Starfield reflection: a tiny smear of stars on the face
+    // (achieved by a very dark linear gradient that catches the Munker stripes)
+    const reflGrd=ctx.createLinearGradient(mx-mW/2,topY,mx+mW/2,topY+mH);
+    reflGrd.addColorStop(0,'rgba(8,8,20,0.85)');
+    reflGrd.addColorStop(0.4,'rgba(2,2,8,0.9)');
+    reflGrd.addColorStop(0.6,'rgba(5,5,15,0.88)');
+    reflGrd.addColorStop(1,'rgba(2,2,6,0.92)');
+    ctx.fillStyle=reflGrd;
+    ctx.fillRect(mx-mW/2, topY, mW, mH);
+
+    // Inscription: current note glows on the slab face when it's teaching
+    if(activePc>=0 && monolithPulse>0.1){
+        const hue=KEY_HUES[activePc];
+        ctx.save();
+        ctx.fillStyle=`hsla(${hue},100%,70%,${monolithPulse*0.9})`;
+        ctx.shadowBlur=12*monolithPulse; ctx.shadowColor=`hsl(${hue},100%,60%)`;
+        ctx.font=`bold ${Math.floor(mW*0.4)}px monospace`;
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(noteNames[activePc], mx, topY+mH*0.45);
+        // Interval name below
+        ctx.font=`${Math.floor(mW*0.22)}px monospace`;
+        ctx.fillStyle=`hsla(${hue},80%,65%,${monolithPulse*0.7})`;
+        ctx.fillText(currentIntervalName||'', mx, topY+mH*0.62);
+        ctx.restore();
+    }
+
+    monolithPulse=Math.max(0,monolithPulse-0.018);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let mode='STUDY';
+let score=0, constellation=[], currentStar=null, targetStar=null, hitCooldown=0;
+let currentIntervalName='';
+
+function generateNextStar(){
+    const intObj=INTERVAL_DICT[Math.floor(Math.random()*INTERVAL_DICT.length)];
+    const targetNoteIdx=(currentStar.noteIdx+intObj.st)%12;
+    const padX=120, padY=220;
+    targetStar={
+        x:padX+Math.random()*(W-padX*2),
+        y:padY+Math.random()*(H-padY*2),
+        noteIdx:targetNoteIdx,
+        intervalName:intObj.name,
+        pulse:0
+    };
+    currentIntervalName=intObj.name;
+
+    document.getElementById('val-current').innerText=noteNames[currentStar.noteIdx];
+    document.getElementById('val-interval').innerText=`+ ${intObj.name}`;
+    if(mode==='STUDY'){
+        document.getElementById('val-target').innerText=noteNames[targetNoteIdx];
+        document.getElementById('val-target').style.color='#0f0';
+    } else {
+        document.getElementById('val-target').innerText='???';
+        document.getElementById('val-target').style.color='#aaa';
+    }
+
+    // Monolith "teaches" — pulse with the target note
+    monolithPulse=0.85;
+}
+
+function initGame(){
+    score=0; constellation=[]; hitCooldown=0;
+    document.getElementById('score-text').innerText='0';
+    currentStar={ x:cx, y:cy, noteIdx:Math.floor(Math.random()*12) };
+    constellation.push(currentStar);
+    generateNextStar();
+}
+
+document.getElementById('btn-mic').addEventListener('click',async e=>{
+    if(await audio.startMic()){ e.target.style.display='none'; initGame(); }
+});
+
+document.getElementById('btn-mode').addEventListener('click',()=>{
+    mode=mode==='STUDY'?'BLIND':'STUDY';
+    const btn=document.getElementById('btn-mode');
+    btn.innerText=`MODE: ${mode}`;
+    if(targetStar){
+        if(mode==='STUDY'){
+            document.getElementById('val-target').innerText=noteNames[targetStar.noteIdx];
+            document.getElementById('val-target').style.color='#0f0';
         } else {
-            valTarget.innerText = "???";
-            valTarget.style.color = "#aaa";
+            document.getElementById('val-target').innerText='???';
+            document.getElementById('val-target').style.color='#aaa';
+        }
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESIZE
+// ─────────────────────────────────────────────────────────────────────────────
+function resize(){
+    W=window.innerWidth; H=window.innerHeight; cx=W/2; cy=H/2;
+    [cStars,cRuliad,cGame,cMunker].forEach(c=>{c.width=W;c.height=H;});
+    initVisuals();
+}
+window.addEventListener('resize',resize);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIXEL STAR RENDERER
+// ─────────────────────────────────────────────────────────────────────────────
+function drawConstellationStar(x,y,pc,isCurrent,isTarget,pulse){
+    const hue=KEY_HUES[pc];
+    const r=isTarget?(6+Math.sin(pulse)*3):isCurrent?9:5;
+
+    // Grey fill — Munker tints it
+    ctx.shadowBlur=isCurrent?20:isTarget?15:8;
+    ctx.shadowColor=`hsla(${hue},100%,65%,0.8)`;
+    ctx.fillStyle=isCurrent?'#ccc':isTarget?'#ddd':'#888';
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+
+    // Pixel cross / spike for the current star
+    if(isCurrent){
+        const sp=6+Math.sin(frames*0.08)*2;
+        ctx.fillStyle='rgba(200,200,220,0.7)';
+        ctx.fillRect(x-1,y-sp-r,2,sp);
+        ctx.fillRect(x-1,y+r,2,sp);
+        ctx.fillRect(x-sp-r,y-1,sp,2);
+        ctx.fillRect(x+r,y-1,sp,2);
+    }
+
+    // Note label
+    ctx.fillStyle=isCurrent?'#fff':isTarget?'#ccc':'#999';
+    ctx.font=isCurrent?'bold 13px monospace':isTarget?'bold 11px monospace':'9px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    const label=isTarget&&mode==='BLIND'?'???':noteNames[pc];
+    ctx.fillText(label,x,y-r-4);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN LOOP
+// ─────────────────────────────────────────────────────────────────────────────
+function renderFrame(){
+    requestAnimationFrame(renderFrame);
+    frames++;
+
+    // Visuals
+    munkerH1=lerpHue(munkerH1,munkerT1,0.05);
+    munkerH2=lerpHue(munkerH2,munkerT2,0.05);
+    if(frames%4===0) stepRuliad();
+    drawRuliad(currentPc);
+    if(frames%3===0) drawStars(currentPc);
+    ctx.clearRect(0,0,W,H);
+    if(frames%2===0) drawMunker(munkerH1,munkerH2);
+
+    // Monolith (always rendered, anchored bottom-centre)
+    drawMonolith2001(targetStar?targetStar.noteIdx:-1);
+
+    if(!audio.isRunning) return;
+
+    // Audio
+    if(hitCooldown>0) hitCooldown--;
+    const peaks=audio.getPeaks(90);
+    let playedPc=-1;
+    if(peaks.length>0){
+        playedPc=hzToPitchClass(peaks[0].hz);
+        currentPc=playedPc;
+        if(playedPc>=0){
+            munkerT1=KEY_HUES[playedPc]; munkerT2=KEY_HUES[(playedPc+7)%12];
+            document.getElementById('pitch-accent').style.background=
+                `linear-gradient(90deg,hsl(${munkerT1},100%,55%),hsl(${munkerT2},100%,55%))`;
+            document.getElementById('hud-box').style.borderColor=keyHSL(playedPc,70,55);
         }
     }
 
-    function initGame() {
-        generateBgStars();
-        
-        // Start in the center with a random root note
-        currentStar = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            noteIdx: Math.floor(Math.random() * 12)
-        };
+    // Note hit check
+    if(targetStar&&playedPc===targetStar.noteIdx&&hitCooldown===0){
+        score++;
+        document.getElementById('score-text').innerText=score;
+        monolithPulse=1.0; // Monolith flares on correct answer
+
+        currentStar={ x:targetStar.x, y:targetStar.y, noteIdx:targetStar.noteIdx };
         constellation.push(currentStar);
-        
+        if(constellation.length>16) constellation.shift();
         generateNextStar();
+        hitCooldown=60;
     }
 
-    btnMode.addEventListener('click', () => {
-        if (mode === 'STUDY') {
-            mode = 'BLIND';
-            btnMode.innerText = 'MODE: BLIND';
-            if (targetStar) {
-                valTarget.innerText = "???";
-                valTarget.style.color = "#aaa";
-            }
-        } else {
-            mode = 'STUDY';
-            btnMode.innerText = 'MODE: STUDY';
-            if (targetStar) {
-                valTarget.innerText = notes[targetStar.noteIdx];
-                valTarget.style.color = "#0f0";
-            }
-        }
-    });
-
-    btnMic.addEventListener('click', async () => {
-        const started = await audio.startMic();
-        if (started) {
-            btnMic.style.display = 'none';
-            initGame();
-            renderFrame();
-        }
-    });
-
-    function renderFrame() {
-        if (!audio.isRunning) return;
-        requestAnimationFrame(renderFrame);
-        
-        // Clear canvas with deep space blue/black
-        ctx.fillStyle = '#02000a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Draw background stars
-        bgStars.forEach(s => {
-            s.alpha += (Math.random() - 0.5) * 0.05;
-            if (s.alpha > 1) s.alpha = 1;
-            if (s.alpha < 0.2) s.alpha = 0.2;
-            
-            ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
-            ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
-        });
-
-        // --- AUDIO PROCESSING ---
-        if (hitCooldown > 0) hitCooldown--;
-
-        let peaks = audio.getPeaks(95); 
-        let playedNoteIdx = -1;
-        
-        if (peaks.length > 0) {
-            playedNoteIdx = hzToPitchClass(peaks[0].hz);
-        }
-
-        // Logic Check: Did they play the target note?
-        if (playedNoteIdx !== -1 && playedNoteIdx === targetStar.noteIdx && hitCooldown === 0) {
-            score++;
-            scoreText.innerText = score;
-            
-            // The target becomes the new current star
-            currentStar = {
-                x: targetStar.x,
-                y: targetStar.y,
-                noteIdx: targetStar.noteIdx
-            };
-            constellation.push(currentStar);
-            
-            // Keep the constellation array from getting infinitely long to save memory
-            if (constellation.length > 15) constellation.shift();
-
-            generateNextStar();
-            hitCooldown = 60; // Wait 1 second before accepting the next note to prevent double-triggers
-        }
-
-        // --- DRAW CONSTELLATION LINES ---
-        if (constellation.length > 1) {
-            ctx.strokeStyle = 'rgba(179, 102, 255, 0.4)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(constellation[0].x, constellation[0].y);
-            for (let i = 1; i < constellation.length; i++) {
-                ctx.lineTo(constellation[i].x, constellation[i].y);
-            }
-            ctx.stroke();
-        }
-
-        // Draw the connection line bridging current star to target star (dashed)
-        if (currentStar && targetStar) {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 10]); // Dashed line
-            ctx.beginPath();
-            ctx.moveTo(currentStar.x, currentStar.y);
-            ctx.lineTo(targetStar.x, targetStar.y);
-            ctx.stroke();
-            ctx.setLineDash([]); // Reset to solid
-        }
-
-        // --- DRAW STARS ---
-        // Draw History Nodes
-        constellation.forEach((star, index) => {
-            let isCurrent = (index === constellation.length - 1);
-            
-            ctx.beginPath(); 
-            ctx.arc(star.x, star.y, isCurrent ? 8 : 4, 0, Math.PI * 2);
-            
-            if (isCurrent) {
-                ctx.fillStyle = '#ff8c00'; // Current star glows orange
-                ctx.shadowBlur = 20; ctx.shadowColor = '#ff8c00';
-            } else {
-                ctx.fillStyle = '#b366ff'; // History stars are purple
-                ctx.shadowBlur = 10; ctx.shadowColor = '#b366ff';
-            }
-            
-            ctx.fill(); ctx.shadowBlur = 0;
-
-            // Draw text for the nodes
-            ctx.fillStyle = '#fff'; ctx.font = isCurrent ? 'bold 16px monospace' : '10px monospace';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-            ctx.fillText(notes[star.noteIdx], star.x, star.y - 12);
-        });
-
-        // Draw Target Star
-        if (targetStar) {
-            targetStar.pulse += 0.05;
-            let pSize = 5 + Math.sin(targetStar.pulse) * 3;
-
-            ctx.beginPath(); ctx.arc(targetStar.x, targetStar.y, pSize, 0, Math.PI * 2);
-            ctx.fillStyle = '#0f0';
-            ctx.shadowBlur = 20; ctx.shadowColor = '#0f0';
-            ctx.fill(); ctx.shadowBlur = 0;
-
-            if (mode === 'STUDY') {
-                ctx.fillStyle = '#0f0'; ctx.font = 'bold 14px monospace';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-                ctx.fillText(notes[targetStar.noteIdx], targetStar.x, targetStar.y - 12);
-            } else {
-                ctx.fillStyle = '#aaa'; ctx.font = 'bold 14px monospace';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-                ctx.fillText("???", targetStar.x, targetStar.y - 12);
-            }
-        }
+    // Constellation lines
+    if(constellation.length>1){
+        ctx.strokeStyle='rgba(179,102,255,0.35)'; ctx.lineWidth=1.5;
+        ctx.beginPath();
+        ctx.moveTo(constellation[0].x,constellation[0].y);
+        for(let i=1;i<constellation.length;i++) ctx.lineTo(constellation[i].x,constellation[i].y);
+        ctx.stroke();
     }
-    
-    // Safety check to ensure init runs if user resizes window before clicking start
-    resize();
+
+    // Dashed guide to target
+    if(currentStar&&targetStar){
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1;
+        ctx.setLineDash([5,10]);
+        ctx.beginPath(); ctx.moveTo(currentStar.x,currentStar.y); ctx.lineTo(targetStar.x,targetStar.y); ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Draw constellation stars
+    constellation.forEach((s,idx)=>{
+        const isCurrent=(idx===constellation.length-1);
+        if(!isCurrent) drawConstellationStar(s.x,s.y,s.noteIdx,false,false,0);
+    });
+    if(currentStar) drawConstellationStar(currentStar.x,currentStar.y,currentStar.noteIdx,true,false,0);
+    if(targetStar){
+        targetStar.pulse+=0.05;
+        drawConstellationStar(targetStar.x,targetStar.y,targetStar.noteIdx,false,true,targetStar.pulse);
+    }
+}
+
+// Boot
+resize();
+renderFrame();
 </script>
 </body>
 </html>
