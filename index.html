@@ -6,7 +6,7 @@
     <title>The Harmonic Sunrise</title>
     <link rel="apple-touch-icon" href="icon-192.png">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
 
         * { box-sizing: border-box; }
         body {
@@ -108,7 +108,174 @@
             z-index: 15; pointer-events: none;
             transition: background 0.6s ease;
         }
-    </style>
+    
+    
+
+    /* ── MATRIX TERMINAL SKIN ──────────────────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+    :root {
+        --m-green: #00ff41;
+        --m-mid:   #00cc33;
+        --m-dim:   #00661a;
+        --m-bg:    #000300;
+        --m-panel: #010a01;
+        --m-glow:  0 0 8px #00ff41, 0 0 20px rgba(0,255,65,0.5);
+        --m-font:  'VT323', 'Courier New', monospace;
+    }
+
+    * {
+        font-family: var(--m-font) !important;
+        letter-spacing: 2px !important;
+    }
+
+    body {
+        background: var(--m-bg) !important;
+        color: var(--m-green) !important;
+        font-family: var(--m-font) !important;
+        font-size: 16px !important;
+    }
+
+    #global-nav {
+        background: rgba(0,3,0,0.95) !important;
+        border-bottom: 1px solid var(--m-dim) !important;
+        font-family: var(--m-font) !important;
+        font-size: 14px !important;
+    }
+    #global-nav a {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 14px !important;
+    }
+    #global-nav span { color: #003311 !important; }
+
+    #mode-tabs { background: rgba(0,3,0,0.95) !important; border-bottom-color: #003311 !important; }
+    .tab-btn {
+        font-family: var(--m-font) !important;
+        font-size: 13px !important;
+        color: #003311 !important;
+    }
+    .tab-btn.active {
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        border-bottom-color: var(--m-green) !important;
+        background: rgba(0,255,65,0.05) !important;
+    }
+
+    .title, #main-title, #mode-title {
+        font-family: var(--m-font) !important;
+        font-size: 26px !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        letter-spacing: 5px !important;
+    }
+
+    .hud-box, #hud-box {
+        font-family: var(--m-font) !important;
+        background: var(--m-panel) !important;
+        border: 1px solid var(--m-dim) !important;
+    }
+    .hud-box *, #hud-box * {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 15px !important;
+    }
+
+    .ratio-box {
+        font-family: var(--m-font) !important;
+        background: var(--m-panel) !important;
+        border-left: 3px solid var(--m-green) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 15px !important;
+    }
+
+    #score-text, .score-display, .score-text {
+        font-family: var(--m-font) !important;
+        font-size: 42px !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        letter-spacing: 4px !important;
+    }
+
+    .subtitle, .high-score, #best-text, #high-score-text {
+        font-family: var(--m-font) !important;
+        color: var(--m-mid) !important;
+        font-size: 13px !important;
+    }
+
+    button {
+        font-family: var(--m-font) !important;
+        font-size: 15px !important;
+        background: var(--m-panel) !important;
+        border: 1px solid var(--m-green) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        box-shadow: 0 0 8px rgba(0,255,65,0.2),
+                    inset 0 0 10px rgba(0,255,65,0.05) !important;
+        letter-spacing: 3px !important;
+        border-radius: 0 !important;
+        padding: 10px 16px !important;
+    }
+    button:hover {
+        background: rgba(0,255,65,0.08) !important;
+        box-shadow: 0 0 14px rgba(0,255,65,0.35) !important;
+    }
+
+    #status-text, #status-mode, #status-note, #status-register,
+    #hud-ratio, #hud-extra, #hud-level, #hud-note, #hud-upgrade,
+    #launch-warn, #status-health, #power-meter,
+    #val-current, #val-interval, #val-target,
+    .data-text, .data-value, .data-label,
+    .target-text, .reg-label, #mode-hint,
+    #harmony-feedback, #hud-last, #hud-rise, #hud-dawn {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 15px !important;
+    }
+
+    #game-over, #result-panel, #rules-overlay {
+        font-family: var(--m-font) !important;
+        background: #000500 !important;
+        border: 1px solid var(--m-green) !important;
+        box-shadow: 0 0 40px rgba(0,255,65,0.25),
+                    inset 0 0 30px rgba(0,255,65,0.03) !important;
+        color: var(--m-green) !important;
+    }
+    #game-over *, #result-panel *, #rules-overlay * {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+    }
+    #game-over h1, #result-title {
+        font-size: 36px !important;
+        letter-spacing: 6px !important;
+    }
+
+    #level-banner {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+    }
+
+    .reg-label, #lbl-high, #lbl-mid, #lbl-bass {
+        font-family: var(--m-font) !important;
+        font-size: 14px !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+    }
+
+    #pitch-accent { opacity: 0.6 !important; filter: hue-rotate(80deg) saturate(2) !important; }
+
+    #monolith-ambient {
+        background: radial-gradient(ellipse at bottom,
+            rgba(0,255,65,0.06) 0%, transparent 70%) !important;
+    }
+    /* ── END MATRIX TERMINAL SKIN ─────────────────────────────────────────── */
+</style>
 </head>
 <body>
 
@@ -319,6 +486,10 @@ let munkerHue2 = 200;
 let munkerTargetHue1 = 0;
 let munkerTargetHue2 = 200;
 
+// ── COLOUR RIPPLES — radiate from sun on each new note ───────────────────────
+let ripples = [];   // { x, y, r, maxR, hue, alpha }
+let sunHue = 0;     // current sun colour hue (interpolated)
+
 // ─────────────────────────────────────────────────────────────────────────────
 // RESIZE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -485,15 +656,34 @@ function splashWave(wx, wy, energy) {
 
 function drawWaves() {
     updateWaves();
+    // Use current pitch hue to colour the wave cells
+    const wHue = lastPlayedNote >= 0 ? KEY_HUES[lastPlayedNote] : 200;
     for (let y = 0; y < gridRows; y++) {
         for (let x = 0; x < gridCols; x++) {
             const val = wave1[x + y * gridCols];
             if (Math.abs(val) > 1.5) {
                 const intensity = Math.min(1, Math.abs(val) / 35);
-                ctx.fillStyle = `rgba(200,200,200,${intensity * 0.85})`;
+                ctx.fillStyle = `hsla(${wHue},90%,65%,${intensity * 0.75})`;
                 ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
             }
         }
+    }
+}
+
+// ── COLOUR RIPPLES ────────────────────────────────────────────────────────────
+function spawnRipple(x, y, hue) {
+    ripples.push({ x, y, r: sunRadius, maxR: sunRadius * 6, hue, alpha: 0.8 });
+}
+
+function drawRipples() {
+    for (let i = ripples.length - 1; i >= 0; i--) {
+        const rp = ripples[i];
+        rp.r += 3.5;
+        rp.alpha -= 0.022;
+        if (rp.alpha <= 0 || rp.r > rp.maxR) { ripples.splice(i, 1); continue; }
+        ctx.strokeStyle = `hsla(${rp.hue},100%,65%,${rp.alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2); ctx.stroke();
     }
 }
 
@@ -603,6 +793,8 @@ function resetGame() {
     document.getElementById('status-text').innerText = 'STATUS: PLAY A BASELINE NOTE TO START';
     wave1.fill(0); wave2.fill(0);
     meteors = [];
+    ripples = [];
+    sunHue = 0;
     munkerHue1 = 0; munkerHue2 = 200;
     munkerTargetHue1 = 0; munkerTargetHue2 = 200;
 }
@@ -641,6 +833,9 @@ function renderFrame() {
         munkerTargetHue1 = KEY_HUES[currentNote];
         munkerTargetHue2 = KEY_HUES[(currentNote + 7) % 12]; // P5 complement
 
+        // Spawn coloured ripple radiating from sun
+        spawnRipple(sunX, sunY, KEY_HUES[currentNote]);
+
         // Update UI accent bar
         document.getElementById('pitch-accent').style.background =
             `linear-gradient(90deg, hsl(${munkerTargetHue1},100%,55%), hsl(${munkerTargetHue2},100%,55%))`;
@@ -665,6 +860,7 @@ function renderFrame() {
     // ── Interpolate Munker colours (smooth chromatic drift) ──────────────────
     munkerHue1 = lerpHue(munkerHue1, munkerTargetHue1, 0.04);
     munkerHue2 = lerpHue(munkerHue2, munkerTargetHue2, 0.04);
+    sunHue     = lerpHue(sunHue, lastPlayedNote >= 0 ? KEY_HUES[lastPlayedNote] : sunHue, 0.06);
 
     // ── Clear main canvas (transparent background — stars + ruliad show through)
     ctx.clearRect(0, 0, W, H);
@@ -715,22 +911,27 @@ function renderFrame() {
         if (orbitRadius >= maxRadius) triggerGameOver("LOST IN DEEP SPACE!");
     }
 
-    // ── Sun orbit trail ───────────────────────────────────────────────────────
+    // ── Sun orbit trail — coloured by current pitch ───────────────────────────
     if (state === 'ORBITING') {
         for (let i = 1; i <= 5; i++) {
             const ta = orbitAngle - i * 0.07;
             const tx = cx + Math.cos(ta) * orbitRadius;
             const ty = cy + Math.sin(ta) * orbitRadius;
-            ctx.fillStyle = `rgba(220,220,220,${0.6 / i})`;
+            ctx.fillStyle = `hsla(${sunHue},90%,65%,${0.55 / i})`;
             ctx.fillRect(tx - 2, ty - 2, 4 - i, 4 - i);
         }
     }
 
+    // ── Colour ripples radiating from sun ────────────────────────────────────
+    drawRipples();
+
     // ── Earth ─────────────────────────────────────────────────────────────────
     drawPlanet(ctx, cx, cy, earthRadius, '#606060', '#909090', 4);
 
-    // ── Sun (grey so Munker colours it) ───────────────────────────────────────
-    drawPlanet(ctx, sunX, sunY, sunRadius, '#cccccc', '#f0f0f0', 3);
+    // ── Sun — coloured by pitch hue, grey base so Munker still tints it ───────
+    const sunBase = `hsl(${sunHue},70%,60%)`;
+    const sunHi   = `hsl(${sunHue},90%,80%)`;
+    drawPlanet(ctx, sunX, sunY, sunRadius, sunBase, sunHi, 3);
 
     // ── Munker overlay (smooth chromatic glide) ───────────────────────────────
     // Redraw every 2 frames — smooth but not expensive
