@@ -1,950 +1,391 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Harmonic Sunrise</title>
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
-
-        * { box-sizing: border-box; }
-        body {
-            margin: 0; padding: 0;
-            background: #000;
-            color: #fff;
-            font-family: 'Space Mono', monospace;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-
-        canvas {
-            display: block;
-            width: 100vw; height: 100vh;
-            position: absolute; top: 0; left: 0;
-            image-rendering: pixelated;
-        }
-
-        /* Layer order */
-        #c-stars    { z-index: 1; }
-        #c-ruliad   { z-index: 2; }
-        #c-main     { z-index: 3; background: transparent; }
-        #c-munker   { z-index: 4; pointer-events: none; }
-
-        #ui-layer {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 10;
-            display: flex; flex-direction: column;
-            justify-content: space-between;
-            padding: 110px 20px 20px 20px;
-            pointer-events: none;
-        }
-
-        .hud {
-            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
-            font-size: 11px;
-            pointer-events: auto;
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-        }
-
-        .title       { font-size: 18px; font-weight: bold; color: #fff; letter-spacing: 3px; }
-        .subtitle    { color: #aaa; font-size: 9px; margin-top: 4px; letter-spacing: 1px; }
-        .score-disp  { font-size: 28px; color: #fff; font-weight: bold; text-align: right; }
-        .hud-ratios  { margin-top: 12px; font-size: 10px; }
-
-        .ratio-box {
-            padding: 6px 10px;
-            border-left: 3px solid #fff;
-            margin-bottom: 6px;
-            background: rgba(0,0,0,0.75);
-            letter-spacing: 1px;
-            transition: border-color 0.4s ease;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: flex-start;
-            width: 100%;
-            pointer-events: auto;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        button {
-            background: rgba(0,0,0,0.85);
-            border: 2px solid #fff;
-            color: #fff;
-            padding: 10px 16px;
-            font-family: 'Space Mono', monospace;
-            font-size: 10px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.15s;
-        }
-        button:active { transform: translate(2px,2px); }
-        #btn-mic { border-color: #0f0; color: #0f0; }
-
-        #game-over {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%,-50%);
-            text-align: center;
-            display: none;
-            z-index: 20;
-            pointer-events: auto;
-            background: rgba(0,0,0,0.96);
-            padding: 40px 50px;
-            border: 3px solid #fff;
-        }
-        #game-over h1 { color: #fff; margin: 0 0 12px 0; font-size: 22px; letter-spacing: 3px; }
-
-        /* pitch-colour accent that bleeds into UI chrome */
-        #pitch-accent {
-            position: absolute; top: 0; left: 0; width: 100%; height: 3px;
-            z-index: 15; pointer-events: none;
-            transition: background 0.6s ease;
-        }
-    
-    
-
-    /* ── MATRIX TERMINAL SKIN ──────────────────────────────────────────────── */
-    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-
-    :root {
-        --m-green: #00ff41;
-        --m-mid:   #00cc33;
-        --m-dim:   #00661a;
-        --m-bg:    #000300;
-        --m-panel: #010a01;
-        --m-glow:  0 0 8px #00ff41, 0 0 20px rgba(0,255,65,0.5);
-        --m-font:  'VT323', 'Courier New', monospace;
-    }
-
-    * {
-        font-family: var(--m-font) !important;
-        letter-spacing: 2px !important;
-    }
-
-    body {
-        background: var(--m-bg) !important;
-        color: var(--m-green) !important;
-        font-family: var(--m-font) !important;
-        font-size: 16px !important;
-    }
-
-    #global-nav {
-        background: rgba(0,3,0,0.95) !important;
-        border-bottom: 1px solid var(--m-dim) !important;
-        font-family: var(--m-font) !important;
-        font-size: 14px !important;
-    }
-    #global-nav a {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 14px !important;
-    }
-    #global-nav span { color: #003311 !important; }
-
-    #mode-tabs { background: rgba(0,3,0,0.95) !important; border-bottom-color: #003311 !important; }
-    .tab-btn {
-        font-family: var(--m-font) !important;
-        font-size: 13px !important;
-        color: #003311 !important;
-    }
-    .tab-btn.active {
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        border-bottom-color: var(--m-green) !important;
-        background: rgba(0,255,65,0.05) !important;
-    }
-
-    .title, #main-title, #mode-title {
-        font-family: var(--m-font) !important;
-        font-size: 26px !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        letter-spacing: 5px !important;
-    }
-
-    .hud-box, #hud-box {
-        font-family: var(--m-font) !important;
-        background: var(--m-panel) !important;
-        border: 1px solid var(--m-dim) !important;
-    }
-    .hud-box *, #hud-box * {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 15px !important;
-    }
-
-    .ratio-box {
-        font-family: var(--m-font) !important;
-        background: var(--m-panel) !important;
-        border-left: 3px solid var(--m-green) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 15px !important;
-    }
-
-    #score-text, .score-display, .score-text {
-        font-family: var(--m-font) !important;
-        font-size: 42px !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        letter-spacing: 4px !important;
-    }
-
-    .subtitle, .high-score, #best-text, #high-score-text {
-        font-family: var(--m-font) !important;
-        color: var(--m-mid) !important;
-        font-size: 13px !important;
-    }
-
-    button {
-        font-family: var(--m-font) !important;
-        font-size: 15px !important;
-        background: var(--m-panel) !important;
-        border: 1px solid var(--m-green) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        box-shadow: 0 0 8px rgba(0,255,65,0.2),
-                    inset 0 0 10px rgba(0,255,65,0.05) !important;
-        letter-spacing: 3px !important;
-        border-radius: 0 !important;
-        padding: 10px 16px !important;
-    }
-    button:hover {
-        background: rgba(0,255,65,0.08) !important;
-        box-shadow: 0 0 14px rgba(0,255,65,0.35) !important;
-    }
-
-    #status-text, #status-mode, #status-note, #status-register,
-    #hud-ratio, #hud-extra, #hud-level, #hud-note, #hud-upgrade,
-    #launch-warn, #status-health, #power-meter,
-    #val-current, #val-interval, #val-target,
-    .data-text, .data-value, .data-label,
-    .target-text, .reg-label, #mode-hint,
-    #harmony-feedback, #hud-last, #hud-rise, #hud-dawn {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 15px !important;
-    }
-
-    #game-over, #result-panel, #rules-overlay {
-        font-family: var(--m-font) !important;
-        background: #000500 !important;
-        border: 1px solid var(--m-green) !important;
-        box-shadow: 0 0 40px rgba(0,255,65,0.25),
-                    inset 0 0 30px rgba(0,255,65,0.03) !important;
-        color: var(--m-green) !important;
-    }
-    #game-over *, #result-panel *, #rules-overlay * {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-    }
-    #game-over h1, #result-title {
-        font-size: 36px !important;
-        letter-spacing: 6px !important;
-    }
-
-    #level-banner {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-    }
-
-    .reg-label, #lbl-high, #lbl-mid, #lbl-bass {
-        font-family: var(--m-font) !important;
-        font-size: 14px !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-    }
-
-    #pitch-accent { opacity: 0.6 !important; filter: hue-rotate(80deg) saturate(2) !important; }
-
-    #monolith-ambient {
-        background: radial-gradient(ellipse at bottom,
-            rgba(0,255,65,0.06) 0%, transparent 70%) !important;
-    }
-    /* ── END MATRIX TERMINAL SKIN ─────────────────────────────────────────── */
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Harmonic Sunrise</title>
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+:root{--g:#00ff41;--d:#00661a;--bg:#000300;--p:#010a01;--glow:0 0 8px #00ff41,0 0 20px rgba(0,255,65,.5);--f:'VT323','Courier New',monospace}
+*{box-sizing:border-box;font-family:var(--f)!important;letter-spacing:1px!important}
+body{margin:0;padding:0;background:var(--bg)!important;color:var(--g)!important;overflow:hidden;touch-action:manipulation}
+canvas{display:block;width:100vw;height:100vh;position:absolute;top:0;left:0;image-rendering:pixelated}
+#c-stars{z-index:1}#c-ruliad{z-index:2}#c-main{z-index:3;background:transparent}#c-munker{z-index:4;pointer-events:none}
+#ui{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;display:flex;flex-direction:column;justify-content:space-between;padding:100px 14px 14px;pointer-events:none}
+.hud{display:flex;justify-content:space-between;width:100%;pointer-events:auto}
+.title{font-size:22px;color:var(--g)!important;text-shadow:var(--glow)!important;letter-spacing:4px!important}
+.sub{color:#00cc33!important;font-size:12px;margin-top:3px}
+.rb{padding:3px 8px;border-left:3px solid var(--g);margin-bottom:3px;background:var(--p);color:var(--g)!important;text-shadow:var(--glow)!important;font-size:13px;transition:border-color .3s}
+.sc{font-size:34px;color:var(--g)!important;text-shadow:var(--glow)!important;text-align:right}
+.ctrls{display:flex;pointer-events:auto;margin-bottom:12px;flex-wrap:wrap;gap:7px}
+btn,button{background:var(--p)!important;border:1px solid var(--g)!important;color:var(--g)!important;text-shadow:var(--glow)!important;padding:8px 13px;font-size:14px;cursor:pointer;text-transform:uppercase;letter-spacing:2px!important;border-radius:0!important}
+#hard-cfg{background:var(--p);border:1px solid var(--d);padding:8px 12px;margin-top:5px;display:none;font-size:13px}
+#hard-cfg label{color:#00cc33!important;min-width:55px;display:inline-block;font-size:11px}
+#hard-cfg input,#hard-cfg select{background:#000!important;border:1px solid var(--g)!important;color:var(--g)!important;width:52px;padding:1px 3px;font-size:13px;font-family:var(--f)!important}
+#go{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:none;z-index:20;pointer-events:auto;background:#000500!important;padding:32px 44px;border:1px solid var(--g)!important;box-shadow:0 0 40px rgba(0,255,65,.25)}
+#go h1{color:var(--g)!important;text-shadow:var(--glow)!important;margin:0 0 8px;font-size:26px;letter-spacing:4px}
+#go p{color:#00cc33!important;font-size:15px}
+#pa{position:absolute;top:0;left:0;width:100%;height:3px;z-index:15;pointer-events:none;transition:background .5s;opacity:.7}
+#nav{position:absolute;top:0;left:0;width:100%;z-index:100;display:flex;justify-content:center;gap:8px;padding:11px 4px;background:rgba(0,3,0,.95);border-bottom:1px solid #003311;pointer-events:auto;box-sizing:border-box;flex-wrap:wrap;font-size:12px}
+#nav a{color:var(--g)!important;text-decoration:none;text-shadow:var(--glow)!important}#nav span{color:#003311}
 </style>
 </head>
 <body>
-
-<div id="global-nav" style="
-    position:absolute; top:0; left:0; width:100%; z-index:100;
-    display:flex; justify-content:center; gap:10px; padding:14px 5px;
-    background:rgba(0,0,0,0.92); border-bottom:2px solid #222;
-    pointer-events:auto; font-family:'Space Mono',monospace;
-    box-sizing:border-box; flex-wrap:wrap; font-size:11px; letter-spacing:1px;">
-    <a href="index.html"    style="color:#fff;text-decoration:none;font-weight:bold;">[1] SUNRISE</a>  <span style="color:#444;">|</span>
-    <a href="flappy.html"   style="color:#fff;text-decoration:none;font-weight:bold;">[2] FLAPPY</a>   <span style="color:#444;">|</span>
-    <a href="billiards.html"style="color:#fff;text-decoration:none;font-weight:bold;">[3] WINDING</a>  <span style="color:#444;">|</span>
-    <a href="invaders.html" style="color:#fff;text-decoration:none;font-weight:bold;">[4] INVADERS</a> <span style="color:#444;">|</span>
-    <a href="weaver.html"   style="color:#fff;text-decoration:none;font-weight:bold;">[5] WEAVER</a>   <span style="color:#444;">|</span>
-    <a href="simon.html"    style="color:#fff;text-decoration:none;font-weight:bold;">[6] SIMON</a>
+<div id="nav">
+<a href="index.html">[1]SUNRISE</a><span>|</span><a href="flappy.html">[2]FLAPPY</a><span>|</span><a href="billiards.html">[3]WINDING</a><span>|</span><a href="invaders.html">[4]INVADERS</a><span>|</span><a href="weaver.html">[5]WEAVER</a><span>|</span><a href="simon.html">[6]SIMON</a>
 </div>
-
-<div id="pitch-accent"></div>
-
-<!-- Render layers: stars → ruliad grid → game objects → munker overlay -->
-<canvas id="c-stars"></canvas>
-<canvas id="c-ruliad"></canvas>
-<canvas id="c-main"></canvas>
-<canvas id="c-munker"></canvas>
-
-<div id="ui-layer">
-    <div class="hud">
-        <div>
-            <div class="title">HARMONIC SUNRISE</div>
-            <div class="subtitle" id="status-text">STATUS: AWAITING AUDIO…</div>
-            <div class="hud-ratios">
-                <div class="ratio-box" id="hud-last">LAST NOTE: --</div>
-                <div class="ratio-box" id="hud-rise">BOOST THRUST (P5): --</div>
-                <div class="ratio-box" id="hud-dawn">DIVE THRUST (P4/TT): --</div>
-            </div>
-        </div>
-        <div>
-            <div class="subtitle" style="text-align:right;">BEST: <span id="high-score-text">0</span></div>
-            <div class="subtitle" style="text-align:right;margin-top:8px;">DAYS ORBITED</div>
-            <div class="score-disp" id="score-text">0</div>
-        </div>
+<div id="pa"></div>
+<canvas id="c-stars"></canvas><canvas id="c-ruliad"></canvas><canvas id="c-main"></canvas><canvas id="c-munker"></canvas>
+<div id="ui">
+  <div class="hud">
+    <div>
+      <div class="title">HARMONIC SUNRISE</div>
+      <div class="sub" id="st">AWAITING AUDIO…</div>
+      <div style="margin-top:8px">
+        <div class="rb" id="hn">NOTE: --</div>
+        <div class="rb" id="hr">P5 RISE → --</div>
+        <div class="rb" id="hd">P4/TT DIVE → --</div>
+        <div class="rb" id="hv">SPD: -- | VEL: --</div>
+        <div class="rb" id="hb" style="display:none">BEAT: --</div>
+      </div>
+      <div id="hard-cfg">
+        <div style="color:var(--g);margin-bottom:5px;font-size:13px">── HARD MODE ──</div>
+        <label>BPM</label><input type="number" id="ibpm" value="120" min="40" max="240">&nbsp;
+        <label>METER</label><select id="imeter"><option value="4">4/4</option><option value="3">3/4</option><option value="5">5/4</option></select>&nbsp;
+        <label>SWING%</label><input type="number" id="iswing" value="50" min="50" max="75" step="5">
+      </div>
     </div>
-    <div class="controls">
-        <button id="btn-mic">START MIC</button>
+    <div>
+      <div class="sub" style="text-align:right">BEST: <span id="hs">0</span></div>
+      <div class="sub" style="text-align:right;margin-top:5px">DAYS</div>
+      <div class="sc" id="sc">0</div>
     </div>
+  </div>
+  <div class="ctrls">
+    <button id="bmic">START MIC</button>
+    <button id="bhard">HARD: OFF</button>
+  </div>
 </div>
-
-<div id="game-over">
-    <h1 id="death-reason">CRASHED!</h1>
-    <p style="letter-spacing:1px;">Days Orbited: <span id="final-score" style="font-weight:bold;">0</span></p>
-    <button id="btn-restart" style="margin-top:20px;">LAUNCH NEW SUN</button>
+<div id="go">
+  <h1 id="gr">CRASHED!</h1>
+  <p>Days: <span id="gf" style="font-size:20px;color:var(--g)!important">0</span></p>
+  <p id="ghp" style="display:none"></p>
+  <button id="brst" style="margin-top:14px">RELAUNCH</button>
 </div>
-
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// AUDIO ENGINE
-// ─────────────────────────────────────────────────────────────────────────────
-const noteNames = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const HUE=[0,30,55,80,110,145,175,200,230,265,295,330];
+function pc(hz){if(hz<=0)return -1;let h=Math.round(12*Math.log2(hz/16.35));return((h%12)+12)%12}
+function lh(a,b,t){let d=b-a;if(d>180)d-=360;if(d<-180)d+=360;return(a+d*t+360)%360}
 
-function hzToPitchClass(hz) {
-    if (hz <= 0) return -1;
-    const c0 = 16.35;
-    let h = Math.round(12 * Math.log2(hz / c0));
-    return ((h % 12) + 12) % 12;
+// ── AUDIO ────────────────────────────────────────────────────────────────────
+class Mic{
+  constructor(){this.ctx=null;this.an=null;this.isRunning=false;this.buf=null}
+  async start(){
+    try{
+      this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+      const s=await navigator.mediaDevices.getUserMedia({audio:true});
+      const src=this.ctx.createMediaStreamSource(s);
+      this.an=this.ctx.createAnalyser();
+      this.an.fftSize=8192;this.an.smoothingTimeConstant=0.82;
+      src.connect(this.an);this.buf=new Uint8Array(this.an.frequencyBinCount);
+      this.isRunning=true;return true;
+    }catch(e){return false}
+  }
+  // Returns pitch class or -1. High threshold + requires 80-2000 Hz.
+  read(thr=110){
+    if(!this.isRunning)return -1;
+    this.an.getByteFrequencyData(this.buf);
+    const bHz=this.ctx.sampleRate/this.an.fftSize;
+    const lo=Math.floor(80/bHz),hi=Math.min(Math.floor(2000/bHz),this.buf.length-1);
+    let mx=0,mi=-1;
+    for(let i=lo;i<=hi;i++)if(this.buf[i]>mx){mx=this.buf[i];mi=i}
+    return mx>thr?pc(mi*bHz):-1;
+  }
+}
+const mic=new Mic();
+
+// ── CANVAS ───────────────────────────────────────────────────────────────────
+const cS=document.getElementById('c-stars'),xS=cS.getContext('2d');
+const cR=document.getElementById('c-ruliad'),xR=cR.getContext('2d');
+const cG=document.getElementById('c-main'),ctx=cG.getContext('2d');
+const cM=document.getElementById('c-munker'),xM=cM.getContext('2d');
+let W,H,cx,cy;
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let state='IDLE',days=0,frames=0;
+let hi=0;try{hi=parseInt(localStorage.getItem('sunriseHi')||'0')}catch(e){}
+document.getElementById('hs').innerText=hi;
+
+// note gate: require NOTE_HOLD frames stable before commit
+let lastNote=-1,cand=-1,candF=0,silF=0;
+const NOTE_HOLD=4,SIL_RST=30;
+let tRise=-1,tDive1=-1,tDive2=-1;
+let consecutiveP5=0; // track power chord (two P5s in a row = velocity burst)
+
+// physics
+const ER=30,SR=18;
+let oR=150,rV=0,oA=0,oSpd=0.0045,grav=0.004;
+const G0=0.004,DAMP=0.995,TUP=2.8,TDOWN=2.8,MHIT=5;
+const VGAIN=0.001,VLOSE=0.0007,VMAX=0.016,VMIN=0.002;
+let minR,maxR,sX=0,sY=0;
+
+// hard mode
+let hard=false,bpm=120,meter=4;
+let bi=0,bt=0,bwin=0,bcount=0,bstreak=0,bhp=0,bflash=0;
+function setBeat(){bpm=+document.getElementById('ibpm').value||120;meter=+document.getElementById('imeter').value||4;bi=Math.round(60/bpm*60);bwin=Math.max(5,Math.round(bi*.18));bt=0;bcount=0;bstreak=0;bhp=0}
+
+// wave grid
+const CL=14;let gC,gR,w1,w2;
+// ruliad
+const RC=10;let rCl,rNx,rco,rro;
+// visuals
+let stars=[],meteors=[],ripples=[];
+let mh1=0,mh2=200,mt1=0,mt2=200,sHue=0;
+
+// ── RESIZE ───────────────────────────────────────────────────────────────────
+function resize(){
+  W=window.innerWidth;H=window.innerHeight;
+  [cS,cR,cG,cM].forEach(c=>{c.width=W;c.height=H});
+  cx=W/2;cy=H/2;minR=ER+SR+8;maxR=Math.min(W,H)/2-30;
+  if(oR<minR)oR=(minR+maxR)/2;
+  gC=Math.ceil(W/CL)+1;gR=Math.ceil(H/CL)+1;w1=new Float32Array(gC*gR);w2=new Float32Array(gC*gR);
+  rco=Math.ceil(W/RC)+1;rro=Math.ceil(H/RC)+1;
+  rCl=new Uint8Array(rco*rro);rNx=new Uint8Array(rco*rro);
+  for(let i=0;i<rCl.length;i++)rCl[i]=Math.random()<.35?1:0;
+  stars=[];for(let i=0;i<280;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<.15?2:1,b:.2+Math.random()*.8,tw:Math.random()*Math.PI*2});
+}
+window.addEventListener('resize',resize);
+
+// ── STARFIELD ────────────────────────────────────────────────────────────────
+function drawStars(p){
+  xS.fillStyle='#000';xS.fillRect(0,0,W,H);
+  stars.forEach(s=>{const tw=.6+.4*Math.sin(s.tw+frames*.02);xS.fillStyle=p>=0?`hsla(${HUE[p]},60%,80%,${s.b*tw*.9})`:`rgba(255,255,255,${s.b*tw*.9})`;xS.fillRect(s.x,s.y,s.r,s.r)});
 }
 
-class AudioEngine {
-    constructor() {
-        this.audioContext = null;
-        this.analyser = null;
-        this.microphone = null;
-        this.isRunning = false;
-        this.dataArray = null;
-    }
-    async startMic() {
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            this.microphone = this.audioContext.createMediaStreamSource(stream);
-            this.analyser = this.audioContext.createAnalyser();
-            this.analyser.fftSize = 4096; // higher resolution
-            this.microphone.connect(this.analyser);
-            this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-            this.isRunning = true;
-            return true;
-        } catch (err) { console.error("Mic error:", err); return false; }
-    }
-    getPeaks(threshold = 90) {
-        if (!this.isRunning) return [];
-        this.analyser.getByteFrequencyData(this.dataArray);
-        let maxVal = 0, maxIdx = -1;
-        // Focus on musical range 80 Hz – 2000 Hz
-        const sr = this.audioContext.sampleRate;
-        const binHz = sr / this.analyser.fftSize;
-        const loIdx = Math.floor(80 / binHz);
-        const hiIdx = Math.floor(2000 / binHz);
-        for (let i = loIdx; i < hiIdx && i < this.dataArray.length; i++) {
-            if (this.dataArray[i] > maxVal) { maxVal = this.dataArray[i]; maxIdx = i; }
-        }
-        if (maxVal > threshold) {
-            return [{ hz: maxIdx * binHz, amp: maxVal }];
-        }
-        return [];
-    }
+// ── RULIAD ───────────────────────────────────────────────────────────────────
+function stepRuliad(){
+  for(let y=0;y<rro;y++)for(let x=0;x<rco;x++){
+    const i=y*rco+x;let n=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;n+=rCl[((y+dy+rro)%rro)*rco+(x+dx+rco)%rco]}
+    const a=rCl[i];rNx[i]=a?((n===2||n===3)?1:0):((n===3||n===6)?1:0);
+  }
+  let t=rCl;rCl=rNx;rNx=t;
+}
+function drawRuliad(p){
+  xR.clearRect(0,0,W,H);const h=p>=0?HUE[p]:180;
+  for(let y=0;y<rro;y++)for(let x=0;x<rco;x++){if(rCl[y*rco+x]){xR.fillStyle=`hsla(${h},70%,55%,.18)`;xR.fillRect(x*RC,y*RC,RC-1,RC-1)}}
 }
 
-const audio = new AudioEngine();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 12-KEY COLOUR MAP  (hue carefully chosen so each is perceptually distinct)
-// ─────────────────────────────────────────────────────────────────────────────
-// C  C# D   D#  E    F   F#   G   G#   A   A#   B
-const KEY_HUES = [0, 30, 55, 80, 110, 145, 175, 200, 230, 265, 295, 330];
-
-function keyColor(pitchClass, sat = 100, lit = 55) {
-    if (pitchClass < 0) return `hsl(0,0%,40%)`;
-    return `hsl(${KEY_HUES[pitchClass]},${sat}%,${lit}%)`;
+// ── MUNKER ───────────────────────────────────────────────────────────────────
+function drawMunker(h1,h2,op){
+  xM.clearRect(0,0,W,H);const S=16;
+  for(let y=0;y<H;y++){const m=y%S;
+    if(m<2){xM.fillStyle=`hsla(${h1},100%,58%,${op})`;xM.fillRect(0,y,W,1)}
+    else if(m>=S/2&&m<S/2+2){xM.fillStyle=`hsla(${h2},100%,58%,${op})`;xM.fillRect(0,y,W,1)}
+    else if(m===3||m===S/2-1){xM.fillStyle='rgba(0,0,0,.6)';xM.fillRect(0,y,W,1)}
+  }
 }
 
-function keyColorRGB(pitchClass) {
-    // Returns [r,g,b] via canvas trick
-    return hslToRgb(KEY_HUES[pitchClass] / 360, 1, 0.55);
+// ── WAVES ────────────────────────────────────────────────────────────────────
+function stepWave(){
+  for(let y=1;y<gR-1;y++)for(let x=1;x<gC-1;x++){
+    const i=x+y*gC;if(Math.hypot(x*CL-cx,y*CL-cy)<ER){w2[i]=0;continue}
+    w2[i]=(w1[i-1]+w1[i+1]+w1[i-gC]+w1[i+gC])/2-w2[i];w2[i]*=.97;
+  }
+  let t=w1;w1=w2;w2=t;
+}
+function splash(wx,wy,e){
+  const bx=Math.floor(wx/CL),by=Math.floor(wy/CL);
+  for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const px=bx+dx,py=by+dy;if(px>0&&px<gC-1&&py>0&&py<gR-1)w1[py*gC+px]=e*(1-Math.hypot(dx,dy)/5)}
+}
+function drawWave(){
+  stepWave();const wh=lastNote>=0?HUE[lastNote]:200;
+  for(let y=0;y<gR;y++)for(let x=0;x<gC;x++){const v=w1[x+y*gC];if(Math.abs(v)>1.5){ctx.fillStyle=`hsla(${wh},90%,65%,${Math.min(1,Math.abs(v)/35)*.75})`;ctx.fillRect(x*CL,y*CL,CL,CL)}}
 }
 
-function hslToRgb(h, s, l) {
-    let r, g, b;
-    if (s === 0) { r = g = b = l; }
-    else {
-        const hue2rgb = (p, q, t) => {
-            if (t < 0) t += 1; if (t > 1) t -= 1;
-            if (t < 1/6) return p + (q - p) * 6 * t;
-            if (t < 1/2) return q;
-            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-            return p;
-        };
-        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        const p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1/3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1/3);
-    }
-    return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+// ── RIPPLES ──────────────────────────────────────────────────────────────────
+function ripple(x,y,hue){ripples.push({x,y,r:SR,maxR:SR*6,hue,a:.8})}
+function drawRipples(){
+  for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.r+=3.5;r.a-=.022;if(r.a<=0||r.r>r.maxR){ripples.splice(i,1);continue}
+    ctx.strokeStyle=`hsla(${r.hue},100%,65%,${r.a})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.stroke()}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CANVAS SETUP
-// ─────────────────────────────────────────────────────────────────────────────
-const cStars  = document.getElementById('c-stars');
-const cRuliad = document.getElementById('c-ruliad');
-const cMain   = document.getElementById('c-main');
-const cMunker = document.getElementById('c-munker');
+// ── PLANET ───────────────────────────────────────────────────────────────────
+function planet(c,x,y,r,base,hi,px=4){
+  for(let py=-r;py<=r;py+=px)for(let ppx=-r;ppx<=r;ppx+=px){if(ppx*ppx+py*py<=r*r){c.fillStyle=(ppx<0&&py<0)?hi:base;c.fillRect(Math.round(x+ppx),Math.round(y+py),px,px)}}
+}
 
-const ctxStars  = cStars.getContext('2d');
-const ctxRuliad = cRuliad.getContext('2d');
-const ctx       = cMain.getContext('2d');
-const ctxMunker = cMunker.getContext('2d');
+// ── TRAJECTORY PREVIEW ───────────────────────────────────────────────────────
+function drawTrajectory(){
+  if(state!=='ORBITING'||lastNote<0)return;
+  let sr=oR,sv=rV,sa=oA;
+  ctx.save();ctx.setLineDash([4,7]);ctx.lineWidth=1.5;
+  let px=sX,py=sY;
+  for(let i=0;i<40;i++){
+    sv-=grav;sv*=DAMP;sr+=sv;sa+=oSpd;
+    const tx=cx+Math.cos(sa)*sr,ty=cy+Math.sin(sa)*sr;
+    const alpha=(1-i/40)*.5;
+    ctx.strokeStyle=`hsla(${sHue},100%,65%,${alpha})`;
+    ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(tx,ty);ctx.stroke();
+    px=tx;py=ty;
+  }
+  ctx.setLineDash([]);ctx.restore();
+  // note hint labels near sun
+  if(tRise>=0){
+    ctx.save();ctx.font='bold 13px VT323,monospace';ctx.textBaseline='middle';
+    ctx.fillStyle=`hsl(${HUE[tRise]},100%,65%)`;ctx.shadowBlur=6;ctx.shadowColor=ctx.fillStyle;
+    ctx.textAlign='left';ctx.fillText(`P5↑ ${NOTE[tRise]}`,sX+SR+6,sY-12);
+    ctx.fillStyle=`hsl(${HUE[tDive1]},100%,65%)`;ctx.shadowColor=ctx.fillStyle;
+    ctx.fillText(`P4↓ ${NOTE[tDive1]}`,sX+SR+6,sY+4);
+    ctx.restore();
+  }
+}
 
-let W, H, cx, cy;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME STATE
-// ─────────────────────────────────────────────────────────────────────────────
-let state = 'IDLE';
-let days = 0, frames = 0;
-let highScore = 0;
-let lastPlayedNote = -1;
-let targetRise = -1, targetDawn1 = -1, targetDawn2 = -1;
-
-// ── PHYSICS: Floaty zero-g feel ──────────────────────────────────────────────
-let earthRadius = 30, sunRadius = 18;
-let orbitRadius = 150;
-let radialVelocity = 0;
-let orbitAngle = 0;
-let orbitSpeed = 0.0045;
-
-// Very low gravity, high damping → floaty momentum
-const GRAVITY_BASE    = 0.004;   // gentle pull inward
-const DAMPING         = 0.995;   // near-zero energy loss → long drifts
-const THRUST_BOOST    = 2.8;     // fifth = rise
-const THRUST_DIVE     = 2.8;     // fourth/tritone = fall
-const METEOR_IMPACT   = 5.0;     // meteor hit = sudden fall
-
-let gravity = GRAVITY_BASE;
-let minRadius, maxRadius;
-let sunX = 0, sunY = 0;
-
-// ── WAVE GRID ────────────────────────────────────────────────────────────────
-const CELL = 14;
-let gridCols = 0, gridRows = 0;
-let wave1, wave2;
+// ── BEAT METER ───────────────────────────────────────────────────────────────
+function drawBeat(){
+  if(!hard)return;
+  const bw=26,gap=4,sx=cx-(meter*(bw+gap))/2;
+  for(let i=0;i<meter;i++){ctx.fillStyle=i===bcount%meter?`hsl(${sHue},100%,65%)`:'rgba(0,255,65,.12)';ctx.fillRect(sx+i*(bw+gap),cy+maxR+16,bw,8)}
+  if(bflash>0){ctx.fillStyle=`rgba(0,255,65,${bflash/20*.25})`;ctx.fillRect(0,0,W,H);bflash--}
+}
 
 // ── METEORS ──────────────────────────────────────────────────────────────────
-let meteors = [];
-
-// ── RULIAD GRID (cellular automaton) ─────────────────────────────────────────
-let ruliadCells, ruliadNext;
-let ruliadCols, ruliadRows;
-const RULIAD_CELL = 10;
-// Rule 110 on 1D but applied in 2D slabs — gives organic texture
-let ruliadFrame = 0;
-
-// ── STARS ────────────────────────────────────────────────────────────────────
-let stars = [];
-
-// ── MUNKER INTERPOLATION ─────────────────────────────────────────────────────
-let munkerHue1 = 0;    // current displayed hue (interpolated)
-let munkerHue2 = 200;
-let munkerTargetHue1 = 0;
-let munkerTargetHue2 = 200;
-
-// ── COLOUR RIPPLES — radiate from sun on each new note ───────────────────────
-let ripples = [];   // { x, y, r, maxR, hue, alpha }
-let sunHue = 0;     // current sun colour hue (interpolated)
-
-// ─────────────────────────────────────────────────────────────────────────────
-// RESIZE
-// ─────────────────────────────────────────────────────────────────────────────
-function resize() {
-    W = window.innerWidth; H = window.innerHeight;
-    [cStars, cRuliad, cMain, cMunker].forEach(c => { c.width = W; c.height = H; });
-    cx = W / 2; cy = H / 2;
-
-    minRadius = earthRadius + sunRadius + 8;
-    maxRadius = Math.min(W, H) / 2 - 30;
-    if (orbitRadius < minRadius) orbitRadius = (minRadius + maxRadius) / 2;
-
-    gridCols = Math.ceil(W / CELL) + 1;
-    gridRows = Math.ceil(H / CELL) + 1;
-    wave1 = new Float32Array(gridCols * gridRows);
-    wave2 = new Float32Array(gridCols * gridRows);
-
-    ruliadCols = Math.ceil(W / RULIAD_CELL) + 1;
-    ruliadRows = Math.ceil(H / RULIAD_CELL) + 1;
-    ruliadCells = new Uint8Array(ruliadCols * ruliadRows);
-    ruliadNext  = new Uint8Array(ruliadCols * ruliadRows);
-    // Seed ruliad with noise
-    for (let i = 0; i < ruliadCells.length; i++) ruliadCells[i] = Math.random() < 0.35 ? 1 : 0;
-
-    // Generate stars
-    stars = [];
-    for (let i = 0; i < 280; i++) {
-        stars.push({
-            x: Math.random() * W,
-            y: Math.random() * H,
-            r: Math.random() < 0.15 ? 2 : 1,
-            bri: 0.2 + Math.random() * 0.8,
-            twinkle: Math.random() * Math.PI * 2
-        });
-    }
-
-    drawStars(0);
-    drawMunkerOverlay(munkerHue1, munkerHue2, 0.55);
+function spawnMeteor(){
+  const a=Math.random()*Math.PI*2,d=maxR+120,mx=cx+Math.cos(a)*d,my=cy+Math.sin(a)*d;
+  const aim=a+Math.PI+(Math.random()-.5)*.8,spd=1.2+Math.random()*1.5;
+  meteors.push({x:mx,y:my,vx:Math.cos(aim)*spd,vy:Math.sin(aim)*spd,sz:(Math.floor(Math.random()*3)+1)*4+6,tr:[]});
 }
-window.addEventListener('resize', resize);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// STAR FIELD
-// ─────────────────────────────────────────────────────────────────────────────
-function drawStars(pitchHue) {
-    ctxStars.fillStyle = '#000';
-    ctxStars.fillRect(0, 0, W, H);
-    stars.forEach(s => {
-        const twink = 0.6 + 0.4 * Math.sin(s.twinkle + frames * 0.02);
-        // Tint stars very subtly toward current pitch hue
-        const tint = pitchHue >= 0 ? `hsla(${KEY_HUES[pitchHue]},60%,80%,${s.bri * twink * 0.9})` 
-                                    : `rgba(255,255,255,${s.bri * twink * 0.9})`;
-        ctxStars.fillStyle = tint;
-        ctxStars.fillRect(s.x, s.y, s.r, s.r);
-    });
+function drawMeteors(){
+  for(let i=meteors.length-1;i>=0;i--){
+    const m=meteors[i];m.tr.unshift({x:m.x,y:m.y});if(m.tr.length>10)m.tr.pop();
+    m.x+=m.vx;m.y+=m.vy;
+    m.tr.forEach((pt,ti)=>{const a=(1-ti/m.tr.length)*.7;ctx.fillStyle=`rgba(200,200,200,${a})`;const s=Math.max(1,m.sz*.3*(1-ti/m.tr.length));ctx.fillRect(pt.x,pt.y,s,s)});
+    planet(ctx,m.x,m.y,m.sz,'#b0b0b0','#e0e0e0',3);
+    if(state==='ORBITING'&&Math.hypot(m.x-sX,m.y-sY)<SR+m.sz){rV-=MHIT;splash(sX,sY,500);meteors.splice(i,1);continue}
+    if(Math.hypot(m.x-cx,m.y-cy)>maxR+400)meteors.splice(i,1);
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RULIAD GRID (Game of Life variant — gives ruliad/pixel texture)
-// ─────────────────────────────────────────────────────────────────────────────
-function stepRuliad() {
-    for (let y = 0; y < ruliadRows; y++) {
-        for (let x = 0; x < ruliadCols; x++) {
-            const i = y * ruliadCols + x;
-            // Count Moore neighbours
-            let n = 0;
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    if (dx === 0 && dy === 0) continue;
-                    const nx = (x + dx + ruliadCols) % ruliadCols;
-                    const ny = (y + dy + ruliadRows) % ruliadRows;
-                    n += ruliadCells[ny * ruliadCols + nx];
-                }
-            }
-            // Biased Game-of-Life rule: survives at 2-3, born at 3, extra birth at 6 → organic
-            const alive = ruliadCells[i];
-            if (alive) {
-                ruliadNext[i] = (n === 2 || n === 3) ? 1 : 0;
-            } else {
-                ruliadNext[i] = (n === 3 || n === 6) ? 1 : 0;
-            }
-        }
-    }
-    let tmp = ruliadCells; ruliadCells = ruliadNext; ruliadNext = tmp;
+// ── GAME OVER / RESET ────────────────────────────────────────────────────────
+function die(reason){
+  state='DEAD';
+  if(days>hi){hi=days;try{localStorage.setItem('sunriseHi',hi)}catch(e){}document.getElementById('hs').innerText=hi}
+  document.getElementById('gr').innerText=reason;
+  document.getElementById('gf').innerText=days;
+  const ghp=document.getElementById('ghp');
+  if(hard){ghp.style.display='block';ghp.innerText=`BEAT PTS: ${bhp} | STREAK: ${bstreak}`}else ghp.style.display='none';
+  document.getElementById('go').style.display='block';
 }
-
-function drawRuliad(pitchClass) {
-    ctxRuliad.clearRect(0, 0, W, H);
-    if (!ruliadCells) return;
-
-    const baseHue = pitchClass >= 0 ? KEY_HUES[pitchClass] : 180;
-    // Draw alive cells as faint coloured pixels
-    for (let y = 0; y < ruliadRows; y++) {
-        for (let x = 0; x < ruliadCols; x++) {
-            if (ruliadCells[y * ruliadCols + x]) {
-                ctxRuliad.fillStyle = `hsla(${baseHue},70%,55%,0.18)`;
-                ctxRuliad.fillRect(x * RULIAD_CELL, y * RULIAD_CELL, RULIAD_CELL - 1, RULIAD_CELL - 1);
-            }
-        }
-    }
+function reset(){
+  oR=(minR+maxR)/2;rV=0;oA=0;grav=G0;oSpd=0.0045;days=0;frames=0;
+  lastNote=-1;cand=-1;candF=0;silF=0;tRise=-1;tDive1=-1;tDive2=-1;consecutiveP5=0;
+  state='IDLE';
+  document.getElementById('go').style.display='none';
+  document.getElementById('sc').innerText='0';
+  document.getElementById('st').innerText='PLAY A NOTE TO START';
+  w1.fill(0);w2.fill(0);meteors=[];ripples=[];sHue=0;mh1=0;mh2=200;mt1=0;mt2=200;
+  if(hard)setBeat();
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MUNKER-WHITE ILLUSION OVERLAY  (interpolates between pitch colours)
-// ─────────────────────────────────────────────────────────────────────────────
-function lerpHue(a, b, t) {
-    // Shortest-path hue lerp
-    let d = b - a;
-    if (d > 180) d -= 360;
-    if (d < -180) d += 360;
-    return (a + d * t + 360) % 360;
-}
-
-function drawMunkerOverlay(h1, h2, opacity) {
-    ctxMunker.clearRect(0, 0, W, H);
-
-    // Horizontal stripe pattern — 16px repeat
-    // Transparent gaps let the grey game objects through; coloured bands tint them optically
-    const STRIPE = 16;
-    for (let y = 0; y < H; y++) {
-        const mod = y % STRIPE;
-        if (mod < 2) {
-            ctxMunker.fillStyle = `hsla(${h1},100%,58%,${opacity})`;
-            ctxMunker.fillRect(0, y, W, 1);
-        } else if (mod >= STRIPE/2 && mod < STRIPE/2 + 2) {
-            ctxMunker.fillStyle = `hsla(${h2},100%,58%,${opacity})`;
-            ctxMunker.fillRect(0, y, W, 1);
-        } else if (mod === 3 || mod === STRIPE/2 - 1) {
-            ctxMunker.fillStyle = `rgba(0,0,0,0.6)`;
-            ctxMunker.fillRect(0, y, W, 1);
-        }
-        // remaining rows: transparent → grey objects bleed through and get tinted
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WAVE PHYSICS
-// ─────────────────────────────────────────────────────────────────────────────
-function updateWaves() {
-    for (let y = 1; y < gridRows - 1; y++) {
-        for (let x = 1; x < gridCols - 1; x++) {
-            const i = x + y * gridCols;
-            const wx = x * CELL, wy = y * CELL;
-            if (Math.hypot(wx - cx, wy - cy) < earthRadius) { wave2[i] = 0; continue; }
-            wave2[i] = (wave1[i-1] + wave1[i+1] + wave1[i-gridCols] + wave1[i+gridCols]) / 2 - wave2[i];
-            wave2[i] *= 0.97;
-        }
-    }
-    let t = wave1; wave1 = wave2; wave2 = t;
-}
-
-function splashWave(wx, wy, energy) {
-    const bx = Math.floor(wx / CELL);
-    const by = Math.floor(wy / CELL);
-    for (let dy = -3; dy <= 3; dy++) {
-        for (let dx = -3; dx <= 3; dx++) {
-            const px = bx + dx, py = by + dy;
-            if (px > 0 && px < gridCols-1 && py > 0 && py < gridRows-1) {
-                wave1[py * gridCols + px] = energy * (1 - Math.hypot(dx, dy) / 5);
-            }
-        }
-    }
-}
-
-function drawWaves() {
-    updateWaves();
-    // Use current pitch hue to colour the wave cells
-    const wHue = lastPlayedNote >= 0 ? KEY_HUES[lastPlayedNote] : 200;
-    for (let y = 0; y < gridRows; y++) {
-        for (let x = 0; x < gridCols; x++) {
-            const val = wave1[x + y * gridCols];
-            if (Math.abs(val) > 1.5) {
-                const intensity = Math.min(1, Math.abs(val) / 35);
-                ctx.fillStyle = `hsla(${wHue},90%,65%,${intensity * 0.75})`;
-                ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
-            }
-        }
-    }
-}
-
-// ── COLOUR RIPPLES ────────────────────────────────────────────────────────────
-function spawnRipple(x, y, hue) {
-    ripples.push({ x, y, r: sunRadius, maxR: sunRadius * 6, hue, alpha: 0.8 });
-}
-
-function drawRipples() {
-    for (let i = ripples.length - 1; i >= 0; i--) {
-        const rp = ripples[i];
-        rp.r += 3.5;
-        rp.alpha -= 0.022;
-        if (rp.alpha <= 0 || rp.r > rp.maxR) { ripples.splice(i, 1); continue; }
-        ctx.strokeStyle = `hsla(${rp.hue},100%,65%,${rp.alpha})`;
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2); ctx.stroke();
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PIXEL CIRCLE RENDERER
-// ─────────────────────────────────────────────────────────────────────────────
-function drawPixelCircle(context, x, y, r, shade, px = 4) {
-    context.fillStyle = shade;
-    for (let py = -r; py <= r; py += px) {
-        for (let ppx = -r; ppx <= r; ppx += px) {
-            if (ppx*ppx + py*py <= r*r) {
-                context.fillRect(Math.round(x + ppx), Math.round(y + py), px, px);
-            }
-        }
-    }
-}
-
-// Draw planet with highlight + shadow for depth
-function drawPlanet(context, x, y, r, baseShade, hiShade, px = 4) {
-    for (let py = -r; py <= r; py += px) {
-        for (let ppx = -r; ppx <= r; ppx += px) {
-            if (ppx*ppx + py*py <= r*r) {
-                // Top-left quadrant brighter
-                const bright = (ppx < 0 && py < 0) ? hiShade : baseShade;
-                context.fillStyle = bright;
-                context.fillRect(Math.round(x + ppx), Math.round(y + py), px, px);
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// METEOR
-// ─────────────────────────────────────────────────────────────────────────────
-function spawnMeteor() {
-    const angle = Math.random() * Math.PI * 2;
-    const dist = maxRadius + 120;
-    const mx = cx + Math.cos(angle) * dist;
-    const my = cy + Math.sin(angle) * dist;
-    const aim = angle + Math.PI + (Math.random() - 0.5) * 0.8;
-    const speed = 1.2 + Math.random() * 1.5; // Slower meteors → more time to react
-
-    meteors.push({
-        x: mx, y: my,
-        vx: Math.cos(aim) * speed,
-        vy: Math.sin(aim) * speed,
-        size: (Math.floor(Math.random() * 3) + 1) * 4 + 6,
-        trail: []
-    });
-}
-
-function updateMeteors() {
-    for (let i = meteors.length - 1; i >= 0; i--) {
-        const m = meteors[i];
-        m.trail.unshift({ x: m.x, y: m.y });
-        if (m.trail.length > 10) m.trail.pop();
-
-        m.x += m.vx; m.y += m.vy;
-
-        // Pixel trail
-        m.trail.forEach((pt, ti) => {
-            const alpha = (1 - ti / m.trail.length) * 0.7;
-            ctx.fillStyle = `rgba(200,200,200,${alpha})`;
-            ctx.fillRect(pt.x, pt.y, Math.max(1, m.size * 0.3 * (1 - ti / m.trail.length)), Math.max(1, m.size * 0.3 * (1 - ti / m.trail.length)));
-        });
-
-        // Draw meteor body
-        drawPlanet(ctx, m.x, m.y, m.size, '#b0b0b0', '#e0e0e0', 3);
-
-        // Collision with sun
-        if (state === 'ORBITING' && Math.hypot(m.x - sunX, m.y - sunY) < sunRadius + m.size) {
-            radialVelocity -= METEOR_IMPACT;
-            splashWave(sunX, sunY, 500);
-            meteors.splice(i, 1);
-            continue;
-        }
-
-        if (Math.hypot(m.x - cx, m.y - cy) > maxRadius + 400) meteors.splice(i, 1);
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME OVER / RESET
-// ─────────────────────────────────────────────────────────────────────────────
-function triggerGameOver(reason) {
-    state = 'DEAD';
-    if (days > highScore) {
-        highScore = days;
-        document.getElementById('high-score-text').innerText = highScore;
-    }
-    document.getElementById('death-reason').innerText = reason;
-    document.getElementById('final-score').innerText = days;
-    document.getElementById('game-over').style.display = 'block';
-}
-
-function resetGame() {
-    orbitRadius = (minRadius + maxRadius) / 2;
-    radialVelocity = 0;
-    orbitAngle = 0;
-    gravity = GRAVITY_BASE;
-    orbitSpeed = 0.0045;
-    days = 0; frames = 0;
-    lastPlayedNote = -1; targetRise = -1; targetDawn1 = -1; targetDawn2 = -1;
-    state = 'IDLE';
-    document.getElementById('game-over').style.display = 'none';
-    document.getElementById('score-text').innerText = '0';
-    document.getElementById('status-text').innerText = 'STATUS: PLAY A BASELINE NOTE TO START';
-    wave1.fill(0); wave2.fill(0);
-    meteors = [];
-    ripples = [];
-    sunHue = 0;
-    munkerHue1 = 0; munkerHue2 = 200;
-    munkerTargetHue1 = 0; munkerTargetHue2 = 200;
-}
-
-document.getElementById('btn-restart').addEventListener('click', resetGame);
-document.getElementById('btn-mic').addEventListener('click', async () => {
-    const ok = await audio.startMic();
-    if (ok) { document.getElementById('btn-mic').style.display = 'none'; resetGame(); }
+document.getElementById('brst').addEventListener('click',reset);
+document.getElementById('bmic').addEventListener('click',async()=>{if(await mic.start()){document.getElementById('bmic').style.display='none';reset()}});
+document.getElementById('bhard').addEventListener('click',()=>{
+  hard=!hard;document.getElementById('bhard').innerText=`HARD: ${hard?'ON':'OFF'}`;
+  document.getElementById('hard-cfg').style.display=hard?'block':'none';
+  document.getElementById('hb').style.display=hard?'block':'none';
+  if(hard)setBeat();
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN RENDER LOOP
-// ─────────────────────────────────────────────────────────────────────────────
-function renderFrame() {
-    requestAnimationFrame(renderFrame);
-    frames++;
-
-    // ── Audio / pitch detection ──────────────────────────────────────────────
-    let currentNote = -1;
-    if (audio.isRunning) {
-        const peaks = audio.getPeaks(90);
-        if (peaks.length > 0) currentNote = hzToPitchClass(peaks[0].hz);
-    }
-
-    if (audio.isRunning && state !== 'DEAD' && currentNote !== -1 && currentNote !== lastPlayedNote) {
-        if (state === 'IDLE') {
-            state = 'ORBITING';
-            document.getElementById('status-text').innerText = 'STATUS: MAINTAIN HABITABLE ORBIT';
-        } else {
-            const diff = (currentNote - lastPlayedNote + 12) % 12;
-            if (diff === 7)                  radialVelocity += THRUST_BOOST;  // P5 → rise
-            else if (diff === 5 || diff === 6) radialVelocity -= THRUST_DIVE;  // P4/TT → fall
-        }
-
-        // Set Munker target colours from pitch
-        munkerTargetHue1 = KEY_HUES[currentNote];
-        munkerTargetHue2 = KEY_HUES[(currentNote + 7) % 12]; // P5 complement
-
-        // Spawn coloured ripple radiating from sun
-        spawnRipple(sunX, sunY, KEY_HUES[currentNote]);
-
-        // Update UI accent bar
-        document.getElementById('pitch-accent').style.background =
-            `linear-gradient(90deg, hsl(${munkerTargetHue1},100%,55%), hsl(${munkerTargetHue2},100%,55%))`;
-
-        // HUD colour accent on ratio boxes
-        const rc = `hsl(${munkerTargetHue1},80%,55%)`;
-        document.querySelectorAll('.ratio-box').forEach(b => b.style.borderColor = rc);
-
-        // Wave splash
-        splashWave(sunX, sunY, 350);
-
-        lastPlayedNote = currentNote;
-        targetRise  = (currentNote + 7) % 12;
-        targetDawn1 = (currentNote + 5) % 12;
-        targetDawn2 = (currentNote + 6) % 12;
-
-        document.getElementById('hud-last').innerText  = `LAST: ${noteNames[lastPlayedNote]}`;
-        document.getElementById('hud-rise').innerText  = `BOOST (P5): ${noteNames[targetRise]}`;
-        document.getElementById('hud-dawn').innerText  = `DIVE (P4/TT): ${noteNames[targetDawn1]}/${noteNames[targetDawn2]}`;
-    }
-
-    // ── Interpolate Munker colours (smooth chromatic drift) ──────────────────
-    munkerHue1 = lerpHue(munkerHue1, munkerTargetHue1, 0.04);
-    munkerHue2 = lerpHue(munkerHue2, munkerTargetHue2, 0.04);
-    sunHue     = lerpHue(sunHue, lastPlayedNote >= 0 ? KEY_HUES[lastPlayedNote] : sunHue, 0.06);
-
-    // ── Clear main canvas (transparent background — stars + ruliad show through)
-    ctx.clearRect(0, 0, W, H);
-
-    // ── Ruliad grid: step every 4 frames to slow it down ─────────────────────
-    if (frames % 4 === 0) stepRuliad();
-    drawRuliad(lastPlayedNote);
-
-    // ── Starfield (redraw every 3 frames for twinkle) ─────────────────────────
-    if (frames % 3 === 0) drawStars(lastPlayedNote);
-
-    // ── Wave grid ─────────────────────────────────────────────────────────────
-    drawWaves();
-
-    // ── Orbit boundary rings ──────────────────────────────────────────────────
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
-    ctx.setLineDash([4, 8]);
-    ctx.beginPath(); ctx.arc(cx, cy, minRadius + 10, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx, cy, maxRadius - 10, 0, Math.PI*2); ctx.stroke();
-    ctx.setLineDash([]);
-
-    // ── Sun position ──────────────────────────────────────────────────────────
-    sunX = cx + Math.cos(orbitAngle) * orbitRadius;
-    sunY = cy + Math.sin(orbitAngle) * orbitRadius;
-
-    // ── Meteors ───────────────────────────────────────────────────────────────
-    if (state === 'ORBITING' && frames % 150 === 0) spawnMeteor();
-    updateMeteors();
-
-    // ── Orbital physics (floaty zero-g) ───────────────────────────────────────
-    if (state === 'ORBITING') {
-        radialVelocity -= gravity;      // gentle inward pull
-        radialVelocity *= DAMPING;      // very slow energy bleed → long drifts
-        orbitRadius    += radialVelocity;
-
-        const prevAngle = orbitAngle;
-        orbitAngle += orbitSpeed;
-
-        // Day counter (one full orbit)
-        if (Math.floor(prevAngle / (Math.PI * 2)) < Math.floor(orbitAngle / (Math.PI * 2))) {
-            days++;
-            document.getElementById('score-text').innerText = days;
-            orbitSpeed += 0.0003;
-            gravity    += 0.0008;
-        }
-
-        if (orbitRadius <= minRadius) triggerGameOver("CRASHED INTO EARTH!");
-        if (orbitRadius >= maxRadius) triggerGameOver("LOST IN DEEP SPACE!");
-    }
-
-    // ── Sun orbit trail — coloured by current pitch ───────────────────────────
-    if (state === 'ORBITING') {
-        for (let i = 1; i <= 5; i++) {
-            const ta = orbitAngle - i * 0.07;
-            const tx = cx + Math.cos(ta) * orbitRadius;
-            const ty = cy + Math.sin(ta) * orbitRadius;
-            ctx.fillStyle = `hsla(${sunHue},90%,65%,${0.55 / i})`;
-            ctx.fillRect(tx - 2, ty - 2, 4 - i, 4 - i);
-        }
-    }
-
-    // ── Colour ripples radiating from sun ────────────────────────────────────
-    drawRipples();
-
-    // ── Earth ─────────────────────────────────────────────────────────────────
-    drawPlanet(ctx, cx, cy, earthRadius, '#606060', '#909090', 4);
-
-    // ── Sun — coloured by pitch hue, grey base so Munker still tints it ───────
-    const sunBase = `hsl(${sunHue},70%,60%)`;
-    const sunHi   = `hsl(${sunHue},90%,80%)`;
-    drawPlanet(ctx, sunX, sunY, sunRadius, sunBase, sunHi, 3);
-
-    // ── Munker overlay (smooth chromatic glide) ───────────────────────────────
-    // Redraw every 2 frames — smooth but not expensive
-    if (frames % 2 === 0) {
-        drawMunkerOverlay(munkerHue1, munkerHue2, 0.52);
-    }
+// ── ON NEW NOTE COMMITTED ────────────────────────────────────────────────────
+function onNote(note){
+  if(state==='IDLE'){state='ORBITING';document.getElementById('st').innerText='MAINTAIN HABITABLE ORBIT'}
+  else if(lastNote>=0){
+    const diff=(note-lastNote+12)%12;
+    if(diff===7){
+      rV+=TUP;
+      consecutiveP5++;
+      if(consecutiveP5>=2){oSpd=Math.min(VMAX,oSpd+VGAIN*2);consecutiveP5=0} // power chord = two P5s = velocity burst
+      else oSpd=Math.min(VMAX,oSpd+VGAIN);
+    } else if(diff===6){
+      rV-=TDOWN;oSpd=Math.max(VMIN,oSpd-VLOSE);consecutiveP5=0; // tritone = dive + lose speed
+    } else if(diff===5){
+      rV-=TDOWN;consecutiveP5=0;
+    } else consecutiveP5=0;
+  }
+  lastNote=note;tRise=(note+7)%12;tDive1=(note+5)%12;tDive2=(note+6)%12;
+  mt1=HUE[note];mt2=HUE[(note+7)%12];
+  document.getElementById('pa').style.background=`linear-gradient(90deg,hsl(${mt1},100%,55%),hsl(${mt2},100%,55%))`;
+  document.querySelectorAll('.rb').forEach(b=>b.style.borderColor=`hsl(${mt1},80%,55%)`);
+  ripple(sX,sY,HUE[note]);splash(sX,sY,350);
+  document.getElementById('hn').innerText=`NOTE: ${NOTE[note]}`;
+  document.getElementById('hr').innerText=`P5 RISE → ${NOTE[tRise]}`;
+  document.getElementById('hd').innerText=`P4↓ ${NOTE[tDive1]} | TT↓ ${NOTE[tDive2]}`;
+  // hard mode beat check
+  if(hard){
+    const inWin=bt<=bwin||bt>=bi-bwin;
+    if(inWin){bstreak++;bhp+=bstreak;bflash=14;document.getElementById('hb').innerText=`BEAT ✓ +${bstreak}`}
+    else{bstreak=0;document.getElementById('hb').innerText='MISSED BEAT'}
+    bt=0;
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BOOT
-// ─────────────────────────────────────────────────────────────────────────────
-resize();
-renderFrame();
+// ── MAIN LOOP ────────────────────────────────────────────────────────────────
+function loop(){
+  requestAnimationFrame(loop);frames++;
+
+  // Audio: stable gate
+  const raw=mic.read();
+  if(raw>=0){silF=0;if(raw===cand){candF++;if(candF>=NOTE_HOLD&&raw!==lastNote&&state!=='DEAD')onNote(raw)}else{cand=raw;candF=1}}
+  else{silF++;if(silF>SIL_RST){lastNote=-1;cand=-1;candF=0}}
+
+  // Hard mode beat
+  if(hard&&state==='ORBITING'){bt++;if(bt>=bi){bcount++;bt=0;oSpd=Math.max(VMIN,oSpd*.9985)}}
+
+  // Munker lerp
+  mh1=lh(mh1,mt1,.04);mh2=lh(mh2,mt2,.04);sHue=lh(sHue,lastNote>=0?HUE[lastNote]:sHue,.06);
+
+  ctx.clearRect(0,0,W,H);
+  if(frames%4===0)stepRuliad();drawRuliad(lastNote);
+  if(frames%3===0)drawStars(lastNote);
+  drawWave();
+
+  // Boundary rings
+  ctx.strokeStyle='rgba(0,255,65,.1)';ctx.lineWidth=1;ctx.setLineDash([4,8]);
+  ctx.beginPath();ctx.arc(cx,cy,minR+10,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,maxR-10,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Sun position
+  sX=cx+Math.cos(oA)*oR;sY=cy+Math.sin(oA)*oR;
+
+  if(state==='ORBITING'&&frames%150===0)spawnMeteor();
+  drawMeteors();
+
+  // Physics
+  if(state==='ORBITING'){
+    rV-=grav;rV*=DAMP;oR+=rV;
+    const prev=oA;oA+=oSpd;
+    if(Math.floor(prev/(Math.PI*2))<Math.floor(oA/(Math.PI*2))){days++;document.getElementById('sc').innerText=days;oSpd+=.0003;grav+=.0008}
+    if(oR<=minR)die('CRASHED INTO EARTH!');if(oR>=maxR)die('LOST IN DEEP SPACE!');
+  }
+
+  // Velocity HUD
+  document.getElementById('hv').innerText=`SPD:${oSpd.toFixed(4)} VEL:${rV.toFixed(2)}`;
+
+  // Orbit trail
+  if(state==='ORBITING'){for(let i=1;i<=5;i++){const ta=oA-i*.07,tx=cx+Math.cos(ta)*oR,ty=cy+Math.sin(ta)*oR;ctx.fillStyle=`hsla(${sHue},90%,65%,${.55/i})`;ctx.fillRect(tx-2,ty-2,4-i,4-i)}}
+
+  drawTrajectory();
+  drawRipples();
+  planet(ctx,cx,cy,ER,'#606060','#909090',4);
+  planet(ctx,sX,sY,SR,`hsl(${sHue},70%,60%)`,`hsl(${sHue},90%,80%)`,3);
+  drawBeat();
+  if(frames%2===0)drawMunker(mh1,mh2,.52);
+}
+
+resize();loop();
 </script>
 </body>
 </html>
