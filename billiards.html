@@ -6,7 +6,7 @@
     <title>The Winding Room</title>
     <link rel="apple-touch-icon" href="icon-192.png">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
         * { box-sizing: border-box; }
         body { margin:0; padding:0; background:#000; color:#fff; font-family:'Space Mono',monospace; overflow:hidden; touch-action:manipulation; }
 
@@ -25,25 +25,30 @@
         }
 
         #mode-tabs {
-            position:absolute; top:52px; left:0; width:100%; z-index:99;
-            display:flex; justify-content:center; gap:0;
-            background:rgba(0,0,0,0.88); border-bottom:2px solid #333;
+            position:absolute; top:48px; left:0; width:100%; z-index:99;
+            display:flex; justify-content:flex-start; gap:0;
+            background:rgba(0,3,0,0.95); border-bottom:1px solid #003311;
             pointer-events:auto;
+            overflow-x:auto; overflow-y:hidden;
+            -webkit-overflow-scrolling:touch;
+            scrollbar-width:none;
         }
+        #mode-tabs::-webkit-scrollbar { display:none; }
         .tab-btn {
-            background:transparent; border:none; border-right:1px solid #333;
-            color:#555; padding:8px 14px; font-family:'Space Mono',monospace;
-            font-size:9px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;
-            transition:all 0.2s;
+            background:transparent; border:none; border-right:1px solid #003311;
+            color:#003311; padding:10px 16px; font-family:'VT323','Courier New',monospace;
+            font-size:15px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;
+            transition:all 0.2s; white-space:nowrap; flex-shrink:0;
+            min-width:0;
         }
         .tab-btn:last-child { border-right:none; }
-        .tab-btn.active { color:#ff00ff; border-bottom:2px solid #ff00ff; background:rgba(255,0,255,0.08); }
-        .tab-btn:hover:not(.active) { color:#aaa; }
+        .tab-btn.active { color:#00ff41; border-bottom:2px solid #00ff41; background:rgba(0,255,65,0.06); text-shadow:0 0 8px #00ff41; }
+        .tab-btn:hover:not(.active) { color:#00cc33; }
 
         #ui-layer {
             position:absolute; top:0; left:0; width:100%; height:100%;
             z-index:10; display:flex; flex-direction:column;
-            justify-content:space-between; padding:116px 20px 20px 20px;
+            justify-content:space-between; padding:108px 14px 14px 14px;
             pointer-events:none;
         }
         .hud { display:flex; justify-content:space-between; width:100%; pointer-events:auto; }
@@ -81,7 +86,177 @@
             z-index:11; pointer-events:none; font-size:10px; letter-spacing:1px;
             color:#aaa; text-align:center; text-shadow:1px 1px 0 #000;
         }
-    </style>
+    
+    
+
+    /* ── MATRIX TERMINAL SKIN ──────────────────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+    :root {
+        --m-green: #00ff41;
+        --m-mid:   #00cc33;
+        --m-dim:   #00661a;
+        --m-bg:    #000300;
+        --m-panel: #010a01;
+        --m-glow:  0 0 8px #00ff41, 0 0 20px rgba(0,255,65,0.5);
+        --m-font:  'VT323', 'Courier New', monospace;
+    }
+
+    * {
+        font-family: var(--m-font) !important;
+        letter-spacing: 2px !important;
+    }
+
+    body {
+        background: var(--m-bg) !important;
+        color: var(--m-green) !important;
+        font-family: var(--m-font) !important;
+        font-size: 16px !important;
+    }
+
+    #global-nav {
+        background: rgba(0,3,0,0.95) !important;
+        border-bottom: 1px solid var(--m-dim) !important;
+        font-family: var(--m-font) !important;
+        font-size: 14px !important;
+    }
+    #global-nav a {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 14px !important;
+    }
+    #global-nav span { color: #003311 !important; }
+
+    #mode-tabs { background: rgba(0,3,0,0.95) !important; border-bottom-color: #003311 !important; overflow-x:auto !important; }
+    .tab-btn {
+        font-family: var(--m-font) !important;
+        font-size: 15px !important;
+        color: #003311 !important;
+        white-space: nowrap !important;
+        padding: 10px 16px !important;
+        min-width: 0 !important;
+    }
+    .tab-btn.active {
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        border-bottom-color: var(--m-green) !important;
+        background: rgba(0,255,65,0.05) !important;
+    }
+
+    .title, #main-title, #mode-title {
+        font-family: var(--m-font) !important;
+        font-size: 26px !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        letter-spacing: 5px !important;
+    }
+
+    .hud-box, #hud-box {
+        font-family: var(--m-font) !important;
+        background: var(--m-panel) !important;
+        border: 1px solid var(--m-dim) !important;
+    }
+    .hud-box *, #hud-box * {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 15px !important;
+    }
+
+    .ratio-box {
+        font-family: var(--m-font) !important;
+        background: var(--m-panel) !important;
+        border-left: 3px solid var(--m-green) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 15px !important;
+    }
+
+    #score-text, .score-display, .score-text {
+        font-family: var(--m-font) !important;
+        font-size: 42px !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        letter-spacing: 4px !important;
+    }
+
+    .subtitle, .high-score, #best-text, #high-score-text {
+        font-family: var(--m-font) !important;
+        color: var(--m-mid) !important;
+        font-size: 13px !important;
+    }
+
+    button {
+        font-family: var(--m-font) !important;
+        font-size: 15px !important;
+        background: var(--m-panel) !important;
+        border: 1px solid var(--m-green) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        box-shadow: 0 0 8px rgba(0,255,65,0.2),
+                    inset 0 0 10px rgba(0,255,65,0.05) !important;
+        letter-spacing: 3px !important;
+        border-radius: 0 !important;
+        padding: 10px 16px !important;
+    }
+    button:hover {
+        background: rgba(0,255,65,0.08) !important;
+        box-shadow: 0 0 14px rgba(0,255,65,0.35) !important;
+    }
+
+    #status-text, #status-mode, #status-note, #status-register,
+    #hud-ratio, #hud-extra, #hud-level, #hud-note, #hud-upgrade,
+    #launch-warn, #status-health, #power-meter,
+    #val-current, #val-interval, #val-target,
+    .data-text, .data-value, .data-label,
+    .target-text, .reg-label, #mode-hint,
+    #harmony-feedback, #hud-last, #hud-rise, #hud-dawn {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 15px !important;
+    }
+
+    #game-over, #result-panel, #rules-overlay {
+        font-family: var(--m-font) !important;
+        background: #000500 !important;
+        border: 1px solid var(--m-green) !important;
+        box-shadow: 0 0 40px rgba(0,255,65,0.25),
+                    inset 0 0 30px rgba(0,255,65,0.03) !important;
+        color: var(--m-green) !important;
+    }
+    #game-over *, #result-panel *, #rules-overlay * {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+    }
+    #game-over h1, #result-title {
+        font-size: 36px !important;
+        letter-spacing: 6px !important;
+    }
+
+    #level-banner {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+    }
+
+    .reg-label, #lbl-high, #lbl-mid, #lbl-bass {
+        font-family: var(--m-font) !important;
+        font-size: 14px !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+    }
+
+    #pitch-accent { opacity: 0.6 !important; filter: hue-rotate(80deg) saturate(2) !important; }
+
+    #monolith-ambient {
+        background: radial-gradient(ellipse at bottom,
+            rgba(0,255,65,0.06) 0%, transparent 70%) !important;
+    }
+    /* ── END MATRIX TERMINAL SKIN ─────────────────────────────────────────── */
+</style>
 </head>
 <body>
 
