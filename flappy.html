@@ -1,1038 +1,498 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Sunrise</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
-
-        * { box-sizing: border-box; }
-        body {
-            margin: 0; padding: 0;
-            background: #000; color: #fff;
-            font-family: 'Space Mono', monospace;
-            overflow: hidden; touch-action: manipulation;
-        }
-
-        canvas {
-            display: block; width: 100vw; height: 100vh;
-            position: absolute; top: 0; left: 0;
-            image-rendering: pixelated;
-        }
-
-        /* Layer order */
-        #c-stars  { z-index: 1; }
-        #c-ruliad { z-index: 2; }
-        #c-game   { z-index: 3; background: transparent; }
-        #c-munker { z-index: 4; pointer-events: none; }
-
-        #ui-layer {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 10;
-            display: flex; flex-direction: column;
-            justify-content: space-between;
-            padding: 110px 20px 20px 20px;
-            pointer-events: none;
-        }
-
-        .hud {
-            display: flex; justify-content: space-between; width: 100%;
-            pointer-events: auto;
-        }
-
-        .title { font-size: 18px; font-weight: bold; letter-spacing: 3px; transition: color 0.5s; }
-        .score-display { font-size: 32px; color: #fff; font-weight: bold; text-align: right; text-shadow: 0 0 10px currentColor; }
-
-        .hud-box {
-            background: rgba(0,0,0,0.75);
-            padding: 8px 12px;
-            border: 2px solid #333;
-            margin-top: 8px;
-            font-size: 10px;
-            letter-spacing: 1px;
-            width: fit-content;
-            transition: border-color 0.4s;
-        }
-
-        .target-text { font-size: 12px; font-weight: bold; margin-top: 4px; }
-
-        .controls {
-            display: flex; gap: 10px;
-            pointer-events: auto; flex-wrap: wrap; margin-bottom: 20px;
-        }
-
-        button {
-            background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff;
-            padding: 10px 15px; font-family: 'Space Mono', monospace; font-size: 10px;
-            cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
-            transition: all 0.15s;
-        }
-        button:active { transform: translate(2px,2px); }
-        #btn-mic { border-color: #0f0; color: #0f0; }
-
-        #game-over {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%,-50%);
-            text-align: center; display: none;
-            z-index: 20; pointer-events: auto;
-            background: rgba(0,0,0,0.95);
-            padding: 40px 50px; border: 3px solid #ff0055;
-        }
-        #game-over h1 { color: #ff0055; margin: 0 0 12px 0; font-size: 22px; letter-spacing: 3px; }
-
-        /* Register hint labels */
-        #register-labels {
-            position: absolute; left: 0; top: 0;
-            width: 60px; height: 100%;
-            z-index: 9; pointer-events: none;
-            display: flex; flex-direction: column;
-            justify-content: space-around;
-            padding: 110px 0 20px 0;
-        }
-        .reg-label {
-            font-size: 9px; font-family: 'Space Mono', monospace;
-            letter-spacing: 1px; text-align: center;
-            opacity: 0.4; transition: opacity 0.3s, color 0.3s;
-        }
-
-        #pitch-accent {
-            position: absolute; top: 0; left: 0; width: 100%; height: 3px;
-            z-index: 15; pointer-events: none;
-            transition: background 0.5s ease;
-        }
-    
-    
-
-    /* ── MATRIX TERMINAL SKIN ──────────────────────────────────────────────── */
-    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-
-    :root {
-        --m-green: #00ff41;
-        --m-mid:   #00cc33;
-        --m-dim:   #00661a;
-        --m-bg:    #000300;
-        --m-panel: #010a01;
-        --m-glow:  0 0 8px #00ff41, 0 0 20px rgba(0,255,65,0.5);
-        --m-font:  'VT323', 'Courier New', monospace;
-    }
-
-    * {
-        font-family: var(--m-font) !important;
-        letter-spacing: 2px !important;
-    }
-
-    body {
-        background: var(--m-bg) !important;
-        color: var(--m-green) !important;
-        font-family: var(--m-font) !important;
-        font-size: 16px !important;
-    }
-
-    #global-nav {
-        background: rgba(0,3,0,0.95) !important;
-        border-bottom: 1px solid var(--m-dim) !important;
-        font-family: var(--m-font) !important;
-        font-size: 14px !important;
-    }
-    #global-nav a {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 14px !important;
-    }
-    #global-nav span { color: #003311 !important; }
-
-    #mode-tabs { background: rgba(0,3,0,0.95) !important; border-bottom-color: #003311 !important; }
-    .tab-btn {
-        font-family: var(--m-font) !important;
-        font-size: 13px !important;
-        color: #003311 !important;
-    }
-    .tab-btn.active {
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        border-bottom-color: var(--m-green) !important;
-        background: rgba(0,255,65,0.05) !important;
-    }
-
-    .title, #main-title, #mode-title {
-        font-family: var(--m-font) !important;
-        font-size: 26px !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        letter-spacing: 5px !important;
-    }
-
-    .hud-box, #hud-box {
-        font-family: var(--m-font) !important;
-        background: var(--m-panel) !important;
-        border: 1px solid var(--m-dim) !important;
-    }
-    .hud-box *, #hud-box * {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 15px !important;
-    }
-
-    .ratio-box {
-        font-family: var(--m-font) !important;
-        background: var(--m-panel) !important;
-        border-left: 3px solid var(--m-green) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 15px !important;
-    }
-
-    #score-text, .score-display, .score-text {
-        font-family: var(--m-font) !important;
-        font-size: 42px !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        letter-spacing: 4px !important;
-    }
-
-    .subtitle, .high-score, #best-text, #high-score-text {
-        font-family: var(--m-font) !important;
-        color: var(--m-mid) !important;
-        font-size: 13px !important;
-    }
-
-    button {
-        font-family: var(--m-font) !important;
-        font-size: 15px !important;
-        background: var(--m-panel) !important;
-        border: 1px solid var(--m-green) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        box-shadow: 0 0 8px rgba(0,255,65,0.2),
-                    inset 0 0 10px rgba(0,255,65,0.05) !important;
-        letter-spacing: 3px !important;
-        border-radius: 0 !important;
-        padding: 10px 16px !important;
-    }
-    button:hover {
-        background: rgba(0,255,65,0.08) !important;
-        box-shadow: 0 0 14px rgba(0,255,65,0.35) !important;
-    }
-
-    #status-text, #status-mode, #status-note, #status-register,
-    #hud-ratio, #hud-extra, #hud-level, #hud-note, #hud-upgrade,
-    #launch-warn, #status-health, #power-meter,
-    #val-current, #val-interval, #val-target,
-    .data-text, .data-value, .data-label,
-    .target-text, .reg-label, #mode-hint,
-    #harmony-feedback, #hud-last, #hud-rise, #hud-dawn {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 15px !important;
-    }
-
-    #game-over, #result-panel, #rules-overlay {
-        font-family: var(--m-font) !important;
-        background: #000500 !important;
-        border: 1px solid var(--m-green) !important;
-        box-shadow: 0 0 40px rgba(0,255,65,0.25),
-                    inset 0 0 30px rgba(0,255,65,0.03) !important;
-        color: var(--m-green) !important;
-    }
-    #game-over *, #result-panel *, #rules-overlay * {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-    }
-    #game-over h1, #result-title {
-        font-size: 36px !important;
-        letter-spacing: 6px !important;
-    }
-
-    #level-banner {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-    }
-
-    .reg-label, #lbl-high, #lbl-mid, #lbl-bass {
-        font-family: var(--m-font) !important;
-        font-size: 14px !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-    }
-
-    #pitch-accent { opacity: 0.6 !important; filter: hue-rotate(80deg) saturate(2) !important; }
-
-    #monolith-ambient {
-        background: radial-gradient(ellipse at bottom,
-            rgba(0,255,65,0.06) 0%, transparent 70%) !important;
-    }
-    /* ── END MATRIX TERMINAL SKIN ─────────────────────────────────────────── */
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Flappy Sunrise</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+:root{--g:#00ff41;--d:#00661a;--bg:#000300;--p:#010a01;--glow:0 0 8px #00ff41,0 0 20px rgba(0,255,65,.5);--f:'VT323','Courier New',monospace}
+*{box-sizing:border-box;font-family:var(--f)!important;letter-spacing:1px!important}
+body{margin:0;padding:0;background:var(--bg)!important;color:var(--g)!important;overflow:hidden;touch-action:manipulation}
+canvas{display:block;width:100vw;height:100vh;position:absolute;top:0;left:0;image-rendering:pixelated}
+#c-stars{z-index:1}#c-ruliad{z-index:2}#c-game{z-index:3;background:transparent}#c-munker{z-index:4;pointer-events:none}
+#nav{position:absolute;top:0;left:0;width:100%;z-index:100;display:flex;justify-content:center;gap:8px;padding:11px 4px;background:rgba(0,3,0,.95);border-bottom:1px solid #003311;pointer-events:auto;box-sizing:border-box;flex-wrap:wrap;font-size:12px}
+#nav a{color:var(--g)!important;text-decoration:none;text-shadow:var(--glow)!important}#nav span{color:#003311}
+#ui{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;display:flex;flex-direction:column;justify-content:space-between;padding:100px 14px 14px;pointer-events:none}
+.hud{display:flex;justify-content:space-between;width:100%;pointer-events:auto}
+.title{font-size:22px;color:var(--g)!important;text-shadow:var(--glow)!important;letter-spacing:4px!important;transition:color .4s}
+.hb{background:var(--p);padding:6px 10px;border:1px solid var(--d);margin-top:6px;font-size:13px;color:var(--g)!important;text-shadow:var(--glow)!important;transition:border-color .3s;width:fit-content}
+.sc{font-size:34px;color:var(--g)!important;text-shadow:var(--glow)!important;text-align:right}
+.sub{color:#00cc33!important;font-size:11px;margin-top:2px}
+.ctrls{display:flex;gap:8px;pointer-events:auto;flex-wrap:wrap;margin-bottom:12px}
+button{background:var(--p)!important;border:1px solid var(--g)!important;color:var(--g)!important;text-shadow:var(--glow)!important;padding:8px 13px;font-size:14px;cursor:pointer;text-transform:uppercase;letter-spacing:2px!important;border-radius:0!important}
+#go{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:none;z-index:20;pointer-events:auto;background:#000500!important;padding:32px 44px;border:1px solid var(--g)!important;box-shadow:0 0 40px rgba(0,255,65,.25)}
+#go h1{color:var(--g)!important;text-shadow:var(--glow)!important;margin:0 0 8px;font-size:26px;letter-spacing:4px}
+#go p{color:#00cc33!important;font-size:15px}
+#pa{position:absolute;top:0;left:0;width:100%;height:3px;z-index:15;pointer-events:none;transition:background .5s;opacity:.7}
+/* register side labels */
+#reglabels{position:absolute;left:0;top:0;width:52px;height:100%;z-index:9;pointer-events:none;display:flex;flex-direction:column;justify-content:space-around;padding:100px 0 14px}
+.rl{font-size:11px;text-align:center;opacity:.35;transition:opacity .3s,color .3s;color:var(--g)!important;text-shadow:var(--glow)!important}
 </style>
 </head>
 <body>
-
-<div id="global-nav" style="
-    position:absolute; top:0; left:0; width:100%; z-index:100;
-    display:flex; justify-content:center; gap:10px; padding:14px 5px;
-    background:rgba(0,0,0,0.92); border-bottom:2px solid #222;
-    pointer-events:auto; font-family:'Space Mono',monospace;
-    box-sizing:border-box; flex-wrap:wrap; font-size:11px; letter-spacing:1px;">
-    <a href="index.html"     style="color:#ff8c00;text-decoration:none;font-weight:bold;">[1] SUNRISE</a>  <span style="color:#444;">|</span>
-    <a href="flappy.html"    style="color:#00ffcc;text-decoration:none;font-weight:bold;">[2] FLAPPY</a>   <span style="color:#444;">|</span>
-    <a href="billiards.html" style="color:#ff00ff;text-decoration:none;font-weight:bold;">[3] WINDING</a>  <span style="color:#444;">|</span>
-    <a href="invaders.html"  style="color:#ff0055;text-decoration:none;font-weight:bold;">[4] INVADERS</a> <span style="color:#444;">|</span>
-    <a href="weaver.html"    style="color:#b366ff;text-decoration:none;font-weight:bold;">[5] WEAVER</a>   <span style="color:#444;">|</span>
-    <a href="simon.html"     style="color:#fff;text-decoration:none;font-weight:bold;">[6] SIMON</a>
+<div id="nav">
+<a href="index.html">[1]SUNRISE</a><span>|</span><a href="flappy.html">[2]FLAPPY</a><span>|</span><a href="billiards.html">[3]WINDING</a><span>|</span><a href="invaders.html">[4]INVADERS</a><span>|</span><a href="weaver.html">[5]WEAVER</a><span>|</span><a href="simon.html">[6]SIMON</a>
 </div>
-
-<div id="pitch-accent"></div>
-
-<canvas id="c-stars"></canvas>
-<canvas id="c-ruliad"></canvas>
-<canvas id="c-game"></canvas>
-<canvas id="c-munker"></canvas>
-
-<div id="register-labels">
-    <div class="reg-label" id="lbl-high" style="color:#00ccff;">HIGH</div>
-    <div class="reg-label" id="lbl-mid"  style="color:#00ffcc;">MID</div>
-    <div class="reg-label" id="lbl-bass" style="color:#ff8c00;">BASS</div>
+<div id="pa"></div>
+<canvas id="c-stars"></canvas><canvas id="c-ruliad"></canvas><canvas id="c-game"></canvas><canvas id="c-munker"></canvas>
+<div id="reglabels">
+  <div class="rl" id="rl-high">HIGH</div>
+  <div class="rl" id="rl-mid">MID</div>
+  <div class="rl" id="rl-bass">BASS</div>
 </div>
-
-<div id="ui-layer">
-    <div class="hud">
-        <div>
-            <div class="title" id="main-title">FLAPPY SUNRISE</div>
-            <div class="hud-box" id="hud-box">
-                <div id="status-mode" style="color:#00ffcc;">MODE: EASY (HOVER)</div>
-                <div id="status-note">LAST: --</div>
-                <div id="status-register">REGISTER: --</div>
-                <div id="status-target" class="target-text" style="display:none; color:#ff8c00;">TARGET (P5): --</div>
-            </div>
-        </div>
-        <div style="text-align:right;">
-            <div style="font-size:9px;color:#aaa;letter-spacing:1px;">SCORE</div>
-            <div class="score-display" id="score-text">0</div>
-            <div style="font-size:9px;color:#555;letter-spacing:1px;margin-top:4px;">BEST <span id="best-text">0</span></div>
-        </div>
+<div id="ui">
+  <div class="hud">
+    <div>
+      <div class="title" id="ttl">FLAPPY SUNRISE</div>
+      <div class="hb" id="hb">
+        <div id="snote">NOTE: --</div>
+        <div id="sreg">REG: --</div>
+        <div id="stgt" style="display:none;color:#ff8c00!important">TARGET: --</div>
+      </div>
     </div>
-    <div class="controls">
-        <button id="btn-mic">START MIC</button>
-        <button id="btn-mode" style="border-color:#00ffcc;color:#00ffcc;">MODE: EASY</button>
+    <div style="text-align:right">
+      <div class="sub">SCORE</div>
+      <div class="sc" id="sc">0</div>
+      <div class="sub" style="margin-top:4px">BEST <span id="best">0</span></div>
     </div>
+  </div>
+  <div class="ctrls">
+    <button id="bmic">START MIC</button>
+    <button id="bmode" style="border-color:#00cc33;color:#00cc33!important">MODE: EASY</button>
+  </div>
 </div>
-
-<div id="game-over">
-    <h1>CRASH!</h1>
-    <p style="letter-spacing:1px;">Score: <span id="final-score" style="font-weight:bold;">0</span></p>
-    <button id="btn-restart" style="border-color:#0f0;color:#0f0;margin-top:10px;">PLAY AGAIN</button>
+<div id="go">
+  <h1>CRASH!</h1>
+  <p>Score: <span id="gf" style="font-size:20px;color:var(--g)!important">0</span></p>
+  <button id="brst" style="margin-top:12px">PLAY AGAIN</button>
 </div>
-
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// AUDIO ENGINE  — wider frequency scan, higher fftSize for octave resolution
-// ─────────────────────────────────────────────────────────────────────────────
-const noteNames = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const HUE=[0,30,55,80,110,145,175,200,230,265,295,330];
+// Register bands
+const REGS=[
+  {lo:80,  hi:300, label:'BASS',color:'#ff8c00',gap:2},
+  {lo:300, hi:900, label:'MID', color:'#00ffcc',gap:1},
+  {lo:900, hi:3000,label:'HIGH',color:'#00ccff',gap:0}
+];
+function hzToReg(hz){for(const r of REGS)if(hz>=r.lo&&hz<r.hi)return r;return REGS[1]}
+function hzToPC(hz){if(hz<=0)return -1;let h=Math.round(12*Math.log2(hz/16.35));return((h%12)+12)%12}
+function lh(a,b,t){let d=b-a;if(d>180)d-=360;if(d<-180)d+=360;return(a+d*t+360)%360}
 
-// 12-key hues (same as sunrise)
-const KEY_HUES = [0,30,55,80,110,145,175,200,230,265,295,330];
-function keyHSL(pc, s=100, l=55) { return `hsl(${KEY_HUES[pc]},${s}%,${l}%)`; }
-
-function hslToRgb(h,s,l) {
-    s/=100; l/=100;
-    const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l);
-    const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
-    return [Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
-}
-
-function lerpHue(a,b,t){let d=b-a; if(d>180)d-=360; if(d<-180)d+=360; return(a+d*t+360)%360;}
-
-// Register bands (Hz boundaries) — bass / mid / high
-// Bass: ~80–300 Hz, Mid: ~300–900 Hz, High: ~900–3000 Hz
-const REG_BASS = { lo: 80,  hi: 300,  label: 'BASS', color: '#ff8c00', gap: 2 }; // gap = screen section (0=top,1=mid,2=bot)
-const REG_MID  = { lo: 300, hi: 900,  label: 'MID',  color: '#00ffcc', gap: 1 };
-const REG_HIGH = { lo: 900, hi: 3000, label: 'HIGH', color: '#00ccff', gap: 0 };
-const REGISTERS = [REG_BASS, REG_MID, REG_HIGH];
-
-function hzToRegister(hz) {
-    if (hz < REG_MID.lo) return REG_BASS;
-    if (hz < REG_HIGH.lo) return REG_MID;
-    return REG_HIGH;
-}
-
-function hzToPitchClass(hz) {
-    if (hz <= 0) return -1;
-    let h = Math.round(12 * Math.log2(hz / 16.35));
-    return ((h % 12) + 12) % 12;
-}
-
-class AudioEngine {
-    constructor() { this.audioContext=null; this.analyser=null; this.microphone=null; this.isRunning=false; this.dataArray=null; }
-    async startMic() {
-        try {
-            this.audioContext = new (window.AudioContext||window.webkitAudioContext)();
-            const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-            this.microphone = this.audioContext.createMediaStreamSource(stream);
-            this.analyser = this.audioContext.createAnalyser();
-            this.analyser.fftSize = 8192;  // High resolution — captures bass AND treble
-            this.analyser.smoothingTimeConstant = 0.7;
-            this.microphone.connect(this.analyser);
-            this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-            this.isRunning = true;
-            return true;
-        } catch(e) { console.error(e); return false; }
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+class Mic{
+  constructor(){this.ctx=null;this.an=null;this.isRunning=false;this.buf=null}
+  async start(){
+    try{
+      this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+      const s=await navigator.mediaDevices.getUserMedia({audio:true});
+      this.an=this.ctx.createAnalyser();
+      this.an.fftSize=8192;this.an.smoothingTimeConstant=0.82;
+      this.ctx.createMediaStreamSource(s).connect(this.an);
+      this.buf=new Uint8Array(this.an.frequencyBinCount);
+      this.isRunning=true;return true;
+    }catch(e){return false}
+  }
+  // Returns {hz,amp,reg,pc} or null — high threshold prevents ghost hits
+  read(thr=110){
+    if(!this.isRunning)return null;
+    this.an.getByteFrequencyData(this.buf);
+    const bHz=this.ctx.sampleRate/this.an.fftSize;
+    let best=null;
+    for(const reg of REGS){
+      const lo=Math.floor(reg.lo/bHz),hi=Math.min(Math.floor(reg.hi/bHz),this.buf.length-1);
+      let mx=0,mi=-1;
+      for(let i=lo;i<=hi;i++)if(this.buf[i]>mx){mx=this.buf[i];mi=i}
+      if(mx>thr&&(!best||mx>best.amp))best={hz:mi*bHz,amp:mx,reg};
     }
-    // Returns { hz, amp, register, pitchClass } or null
-    getBestPeak(threshold=85) {
-        if (!this.isRunning) return null;
-        this.analyser.getByteFrequencyData(this.dataArray);
-        const sr = this.audioContext.sampleRate;
-        const binHz = sr / this.analyser.fftSize;
-        // Scan each register band separately, find loudest peak in each
-        let best = null;
-        for (const reg of REGISTERS) {
-            const lo = Math.floor(reg.lo / binHz);
-            const hi = Math.min(Math.floor(reg.hi / binHz), this.dataArray.length - 1);
-            let maxVal = 0, maxIdx = -1;
-            for (let i = lo; i <= hi; i++) {
-                if (this.dataArray[i] > maxVal) { maxVal = this.dataArray[i]; maxIdx = i; }
-            }
-            if (maxVal > threshold && (!best || maxVal > best.amp)) {
-                best = { hz: maxIdx * binHz, amp: maxVal, register: reg };
-            }
-        }
-        if (!best) return null;
-        best.pitchClass = hzToPitchClass(best.hz);
-        return best;
+    if(!best)return null;
+    best.pc=hzToPC(best.hz);return best;
+  }
+}
+const mic=new Mic();
+
+// ── CANVAS ───────────────────────────────────────────────────────────────────
+const cS=document.getElementById('c-stars'),xS=cS.getContext('2d');
+const cR=document.getElementById('c-ruliad'),xR=cR.getContext('2d');
+const cG=document.getElementById('c-game'),ctx=cG.getContext('2d');
+const cM=document.getElementById('c-munker'),xM=cM.getContext('2d');
+let W,H;
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let mode='EASY',frames=0,score=0,over=false;
+let best=0;try{best=parseInt(localStorage.getItem('flappyBest')||'0')}catch(e){}
+document.getElementById('best').innerText=best;
+
+// note gate — prevents ghost hits
+let lastPC=-1,cand=null,candF=0,silF=0;
+const NOTE_HOLD=4,SIL_RST=30;
+let lastReg=null,tgtNote=-1;
+
+// lane switch bonus
+let lastGap=-1,swTimer=0,bonusF=0,bonusTxt='';
+const SW_WIN=45;
+
+// bird
+const BR=18;
+let bird={x:0,y:0,vy:0,ch:[]};
+let pendFlap=0;
+const GRAV=0.38,FLAP=-8.5,VCAP=12;
+
+// pipes
+const PW=48,GAP=170,PSPD=3.0,PSPAWN=140;
+let pipes=[];
+
+// sheet music history — rolling log of (note, x position at time of hit)
+const SHEET_MAX=80;
+let sheet=[]; // {pc, reg, x, frame}
+
+// pitch spatial reference (vertical line showing our pitch)
+let pitchRefY=-1;
+
+// sun colour
+let sHue=30,sTHue=30;
+let sRipples=[];
+
+// waves
+const CL=14;let gC,gR,w1,w2,wClr;
+// munker
+let mh1=175,mh2=30,mt1=175,mt2=30;
+// stars/ruliad
+let stars=[],rCl,rNx,rco,rro;
+const RC=10;
+
+// ── RESIZE ───────────────────────────────────────────────────────────────────
+function resize(){
+  W=window.innerWidth;H=window.innerHeight;
+  [cS,cR,cG,cM].forEach(c=>{c.width=W;c.height=H});
+  bird.x=W*.18;if(!over)bird.y=H/2;
+  gC=Math.ceil(W/CL)+1;gR=Math.ceil(H/CL)+1;
+  w1=new Float32Array(gC*gR);w2=new Float32Array(gC*gR);wClr=new Array(gC*gR).fill(null);
+  rco=Math.ceil(W/RC)+1;rro=Math.ceil(H/RC)+1;
+  rCl=new Uint8Array(rco*rro);rNx=new Uint8Array(rco*rro);
+  for(let i=0;i<rCl.length;i++)rCl[i]=Math.random()<.32?1:0;
+  stars=[];for(let i=0;i<240;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<.1?2:1,b:.2+Math.random()*.8,tw:Math.random()*Math.PI*2});
+}
+window.addEventListener('resize',resize);
+
+// ── STARS/RULIAD/MUNKER ───────────────────────────────────────────────────────
+function drawStars(p){
+  xS.fillStyle='#000';xS.fillRect(0,0,W,H);
+  stars.forEach(s=>{const tw=.55+.45*Math.sin(s.tw+frames*.018);xS.fillStyle=p>=0?`hsla(${HUE[p]},55%,82%,${s.b*tw*.9})`:`rgba(255,255,255,${s.b*tw*.85})`;xS.fillRect(s.x,s.y,s.r,s.r)});
+}
+function stepRuliad(){
+  for(let y=0;y<rro;y++)for(let x=0;x<rco;x++){
+    const i=y*rco+x;let n=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;n+=rCl[((y+dy+rro)%rro)*rco+(x+dx+rco)%rco]}
+    const a=rCl[i];rNx[i]=a?((n===2||n===3)?1:0):((n===3||n===6)?1:0);
+  }let t=rCl;rCl=rNx;rNx=t;
+}
+function drawRuliad(p){
+  xR.clearRect(0,0,W,H);const h=p>=0?HUE[p]:175;
+  for(let y=0;y<rro;y++)for(let x=0;x<rco;x++)if(rCl[y*rco+x]){xR.fillStyle=`hsla(${h},65%,55%,.16)`;xR.fillRect(x*RC,y*RC,RC-1,RC-1)}
+}
+function drawMunker(h1,h2,op){
+  xM.clearRect(0,0,W,H);const S=16;
+  for(let y=0;y<H;y++){const m=y%S;
+    if(m<2){xM.fillStyle=`hsla(${h1},100%,58%,${op})`;xM.fillRect(0,y,W,1)}
+    else if(m>=S/2&&m<S/2+2){xM.fillStyle=`hsla(${h2},100%,58%,${op})`;xM.fillRect(0,y,W,1)}
+    else if(m===3||m===S/2-1){xM.fillStyle='rgba(0,0,0,.55)';xM.fillRect(0,y,W,1)}
+  }
+}
+
+// ── WAVES ────────────────────────────────────────────────────────────────────
+function splashWave(wx,wy,e,clr){
+  const bx=Math.floor(wx/CL),by=Math.floor(wy/CL);
+  for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const px=bx+dx,py=by+dy;if(px>0&&px<gC-1&&py>0&&py<gR-1){const i=py*gC+px;w1[i]=e*(1-Math.hypot(dx,dy)/5);if(clr)wClr[i]=clr}}
+}
+function stepWave(){
+  for(let y=1;y<gR-1;y++)for(let x=1;x<gC-1;x++){
+    const i=x+y*gC;
+    let wall=false;
+    for(const p of pipes){if(x*CL+CL>p.x&&x*CL<p.x+p.w){let ing=false;for(const g of p.gaps)if(y*CL>g-GAP/2&&y*CL<g+GAP/2){ing=true;break}if(!ing){wall=true;break}}}
+    if(wall){w2[i]=0;continue}
+    w2[i]=(w1[i-1]+w1[i+1]+w1[i-gC]+w1[i+gC])/2-w2[i];w2[i]*=.975;
+    if(Math.abs(w2[i])>.1){let mx=0,bc=null;[[i-1],[i+1],[i-gC],[i+gC]].forEach(([j])=>{if(Math.abs(w1[j])>mx&&wClr[j]){mx=Math.abs(w1[j]);bc=wClr[j]}});if(bc&&mx>Math.abs(w2[i]))wClr[i]=bc;else if(Math.abs(w2[i])<.05)wClr[i]=null}
+  }let t=w1;w1=w2;w2=t;
+}
+function drawWaves(){
+  stepWave();ctx.save();
+  for(let y=0;y<gR;y++)for(let x=0;x<gC;x++){const i=x+y*gC,v=w1[i];if(Math.abs(v)>1&&wClr[i]){ctx.globalAlpha=Math.min(.75,Math.abs(v)/45);ctx.fillStyle=wClr[i];ctx.fillRect(x*CL,y*CL,CL,CL)}}
+  ctx.globalAlpha=1;ctx.restore();
+}
+
+// ── SHEET MUSIC BACKGROUND ───────────────────────────────────────────────────
+// Draws a scrolling piano-roll / staff. Notes placed at pitch Y, scroll left.
+function drawSheet(){
+  ctx.save();
+  // Faint staff lines (12 chromatic rows across full height)
+  const rowH=H/12;
+  for(let i=0;i<12;i++){
+    const y=i*rowH+rowH/2;
+    ctx.strokeStyle=`rgba(0,255,65,0.04)`;ctx.lineWidth=1;ctx.setLineDash([4,12]);
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+    // note name label on left
+    ctx.setLineDash([]);
+    ctx.font='10px VT323,monospace';ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(0,255,65,0.2)';
+    ctx.fillText(NOTE[11-i],54,y);
+  }
+  ctx.setLineDash([]);
+
+  // Draw logged notes as small coloured rectangles scrolling left
+  const scrollSpd=PSPD+score*.04; // matches pipe speed
+  for(let i=sheet.length-1;i>=0;i--){
+    const s=sheet[i];
+    const age=frames-s.frame;
+    s.sx=(s.sx||s.x)-scrollSpd; // slide left each frame
+    const y=(11-(s.pc))*rowH+2;
+    const alpha=Math.max(0,1-age/300);
+    if(alpha<=0||s.sx+30<0){sheet.splice(i,1);continue}
+    ctx.globalAlpha=alpha*.5;
+    ctx.fillStyle=`hsl(${HUE[s.pc]},90%,60%)`;
+    ctx.fillRect(s.sx,y,28,rowH-4);
+    ctx.globalAlpha=1;
+  }
+
+  // Live pitch reference bar — vertical indicator showing current sung pitch
+  if(lastPC>=0){
+    const refY=(11-lastPC)*rowH+rowH/2;
+    const x=bird.x+BR+8;
+    ctx.strokeStyle=`hsl(${HUE[lastPC]},100%,65%)`;ctx.lineWidth=2;ctx.globalAlpha=.7;
+    ctx.setLineDash([3,5]);
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();
+    ctx.setLineDash([]);
+    // horizontal pitch line at correct Y
+    ctx.strokeStyle=`hsl(${HUE[lastPC]},100%,65%)`;ctx.lineWidth=2.5;ctx.globalAlpha=.6;
+    ctx.beginPath();ctx.moveTo(x,refY);ctx.lineTo(x+60,refY);ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
+
+// ── PIXEL PLANET ─────────────────────────────────────────────────────────────
+function pixPlanet(c,x,y,r,base,hi,px=3){
+  for(let py=-r;py<=r;py+=px)for(let ppx=-r;ppx<=r;ppx+=px)if(ppx*ppx+py*py<=r*r){c.fillStyle=(ppx<0&&py<0)?hi:base;c.fillRect(Math.round(x+ppx),Math.round(y+py),px,px)}
+}
+function drawSun(x,y,r,hue){
+  const rp=Math.sin(frames*.14)*3;
+  ctx.fillStyle=`hsl(${hue},85%,65%)`;
+  for(let a=0;a<Math.PI*2;a+=Math.PI/5){ctx.beginPath();ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.lineTo(x+Math.cos(a-.18)*(r+9+rp),y+Math.sin(a-.18)*(r+9+rp));ctx.lineTo(x+Math.cos(a+.18)*(r+9+rp),y+Math.sin(a+.18)*(r+9+rp));ctx.fill()}
+  pixPlanet(ctx,x,y,r,`hsl(${hue},70%,58%)`,`hsl(${hue},90%,80%)`);
+  ctx.fillStyle='#222';ctx.fillRect(x-r*.7,y-r*.15,r*.55,r*.38);ctx.fillRect(x+r*.15,y-r*.15,r*.55,r*.38);ctx.fillRect(x-r*.08,y+r*.05,r*.2,2);
+  ctx.fillStyle='#fff';ctx.fillRect(x-r*.5,y-r*.05,3,3);ctx.fillRect(x+r*.35,y-r*.05,3,3);
+  ctx.strokeStyle='#222';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y+r*.25,r*.28,0,Math.PI);ctx.stroke();
+}
+
+// ── PIPES ────────────────────────────────────────────────────────────────────
+function gapY(sec){const b=H/3;return b*sec+b/2}
+function spawnPipe(){
+  const j=30,gaps=[gapY(0)+(Math.random()-.5)*j,gapY(1)+(Math.random()-.5)*j,gapY(2)+(Math.random()-.5)*j];
+  pipes.push({x:W,w:PW,gaps,passed:false});
+}
+function drawPipes(isSun){
+  const pc=isSun?'#cc7700':'#006688';
+  const rc=[REGS[2].color,REGS[1].color,REGS[0].color]; // HIGH,MID,BASS
+  const rl=['HIGH','MID','BASS'];
+  for(let i=pipes.length-1;i>=0;i--){
+    const p=pipes[i];p.x-=PSPD+score*.04;
+    const sorted=[...p.gaps].map((g,idx)=>({g,idx})).sort((a,b)=>a.g-b.g);
+    ctx.fillStyle=pc;
+    let cy=0;
+    for(const{g,idx}of sorted){
+      const top=g-GAP/2,bot=g+GAP/2;
+      if(top>cy)ctx.fillRect(p.x,cy,p.w,top-cy);
+      ctx.save();ctx.fillStyle=rc[idx];ctx.font='bold 11px VT323,monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(rl[idx],p.x+p.w/2,g);ctx.restore();
+      cy=bot;
     }
+    if(cy<H)ctx.fillRect(p.x,cy,p.w,H-cy);
+    ctx.fillStyle='rgba(0,255,65,0.12)';ctx.fillRect(p.x,0,3,H);
+    // collision
+    const bx=bird.x,by=bird.y,br=BR;
+    if(bx+br>p.x&&bx-br<p.x+p.w){let ing=false;for(const g of p.gaps)if(by>g-GAP/2+2&&by<g+GAP/2-2){ing=true;break}if(!ing)gameOver()}
+    if(by+br>=H||by-br<=0)gameOver();
+    if(p.x+p.w<bx&&!p.passed){score++;p.passed=true;document.getElementById('sc').innerText=score}
+    if(p.x+p.w<0)pipes.splice(i,1);
+  }
 }
 
-const audio = new AudioEngine();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CANVAS LAYERS
-// ─────────────────────────────────────────────────────────────────────────────
-const cStars  = document.getElementById('c-stars');
-const cRuliad = document.getElementById('c-ruliad');
-const cGame   = document.getElementById('c-game');
-const cMunker = document.getElementById('c-munker');
-const ctxS = cStars.getContext('2d');
-const ctxR = cRuliad.getContext('2d');
-const ctx  = cGame.getContext('2d');
-const ctxM = cMunker.getContext('2d');
-
-let W, H;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME STATE
-// ─────────────────────────────────────────────────────────────────────────────
-let mode = 'EASY';
-let lastPeak = null;   // { pitchClass, register, hz }
-let targetNote = -1;
-let frames = 0, score = 0, best = 0;
-let isGameOver = false;
-
-// ── LANE SWITCH BONUS ──────────────────────────────────────────────────────
-// Track last register gap (0=high,1=mid,2=bass), fire bonus on max swing
-let lastRegGap = -1;        // gap index of last registered note
-let switchTimer = 0;        // frames since last register change
-const SWITCH_WINDOW = 45;   // frames to count as "quick" switch
-let bonusFlash = 0;         // frames to show bonus overlay
-let bonusText = '';
-
-// ── SUN COLOUR (per-note, interpolated) ────────────────────────────────────
-let sunHue = 30;
-let sunTargetHue = 30;
-let sunRipples = []; // { r, maxR, hue, alpha } — coloured rings from sun
-
-// Physics — classic flappy snap with smoothed input
-const GRAVITY      = 0.38;
-const FLAP_POWER   = -8.5;     // snappy upward kick
-const SMOOTH_EASE  = 0.18;     // easy mode lerp speed
-const VELOCITY_CAP = 12;       // terminal velocity
-const PIPE_SPEED_BASE = 3.0;
-const PIPE_SPAWN_BASE = 140;
-const GAP_SIZE     = 170;      // vertical opening height per gap
-
-let bird = { x: 0, y: 0, vy: 0, radius: 18, colorHistory: [] };
-
-// Velocity smoothing for hard mode — avoids instant spikes from mic noise
-let pendingFlap = 0;  // accumulates flap impulse, applied over frames
-
-let pipes = [];
-
-// Wave grid
-const CELL = 14;
-let gCols, gRows, wave1, wave2, waveClr;
-
-// Munker
-let munkerH1 = 175, munkerH2 = 30;
-let munkerT1  = 175, munkerT2  = 30;
-
-// Stars + ruliad
-let stars = [];
-let rulCells, rulNext, rulCols, rulRows;
-const RUL_CELL = 10;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// RESIZE
-// ─────────────────────────────────────────────────────────────────────────────
-function resize() {
-    W = window.innerWidth; H = window.innerHeight;
-    [cStars, cRuliad, cGame, cMunker].forEach(c => { c.width=W; c.height=H; });
-
-    bird.x = W * 0.18;
-    if (!isGameOver) bird.y = H / 2;
-
-    gCols = Math.ceil(W/CELL)+1; gRows = Math.ceil(H/CELL)+1;
-    wave1 = new Float32Array(gCols*gRows);
-    wave2 = new Float32Array(gCols*gRows);
-    waveClr = new Array(gCols*gRows).fill(null);
-
-    rulCols = Math.ceil(W/RUL_CELL)+1; rulRows = Math.ceil(H/RUL_CELL)+1;
-    rulCells = new Uint8Array(rulCols*rulRows);
-    rulNext  = new Uint8Array(rulCols*rulRows);
-    for (let i=0; i<rulCells.length; i++) rulCells[i] = Math.random()<0.32?1:0;
-
-    stars = [];
-    for (let i=0; i<240; i++) {
-        stars.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()<0.1?2:1,
-                     bri:0.2+Math.random()*0.8, tw:Math.random()*Math.PI*2 });
-    }
-
-    drawStars(-1);
-    drawMunker(munkerH1, munkerH2, 0.5);
-}
-window.addEventListener('resize', resize);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// STARFIELD
-// ─────────────────────────────────────────────────────────────────────────────
-function drawStars(pitchHue) {
-    ctxS.fillStyle='#000'; ctxS.fillRect(0,0,W,H);
-    stars.forEach(s=>{
-        const tw = 0.55 + 0.45*Math.sin(s.tw + frames*0.018);
-        const tint = pitchHue>=0 ? `hsla(${KEY_HUES[pitchHue]},55%,82%,${s.bri*tw*0.9})`
-                                  : `rgba(255,255,255,${s.bri*tw*0.85})`;
-        ctxS.fillStyle=tint;
-        ctxS.fillRect(s.x,s.y,s.r,s.r);
-    });
+// ── ZONE LINES ───────────────────────────────────────────────────────────────
+function drawZones(){
+  ctx.save();ctx.strokeStyle='rgba(0,255,65,0.06)';ctx.lineWidth=1;ctx.setLineDash([6,10]);
+  [H/3,2*H/3].forEach(y=>{ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()});
+  ctx.setLineDash([]);ctx.restore();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RULIAD GRID
-// ─────────────────────────────────────────────────────────────────────────────
-function stepRuliad() {
-    for (let y=0; y<rulRows; y++) {
-        for (let x=0; x<rulCols; x++) {
-            const i = y*rulCols+x;
-            let n=0;
-            for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++) {
-                if(dx===0&&dy===0) continue;
-                const nx=(x+dx+rulCols)%rulCols, ny=(y+dy+rulRows)%rulRows;
-                n+=rulCells[ny*rulCols+nx];
-            }
-            const a=rulCells[i];
-            rulNext[i]= a ? ((n===2||n===3)?1:0) : ((n===3||n===6)?1:0);
-        }
-    }
-    let t=rulCells; rulCells=rulNext; rulNext=t;
-}
-
-function drawRuliad(pc) {
-    ctxR.clearRect(0,0,W,H);
-    if (!rulCells) return;
-    const hue = pc>=0 ? KEY_HUES[pc] : 175;
-    for (let y=0; y<rulRows; y++) for (let x=0; x<rulCols; x++) {
-        if (rulCells[y*rulCols+x]) {
-            ctxR.fillStyle=`hsla(${hue},65%,55%,0.16)`;
-            ctxR.fillRect(x*RUL_CELL, y*RUL_CELL, RUL_CELL-1, RUL_CELL-1);
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MUNKER OVERLAY
-// ─────────────────────────────────────────────────────────────────────────────
-function drawMunker(h1, h2, op) {
-    ctxM.clearRect(0,0,W,H);
-    const S=16;
-    for (let y=0; y<H; y++) {
-        const m=y%S;
-        if (m<2)            { ctxM.fillStyle=`hsla(${h1},100%,58%,${op})`; ctxM.fillRect(0,y,W,1); }
-        else if(m>=S/2&&m<S/2+2){ ctxM.fillStyle=`hsla(${h2},100%,58%,${op})`; ctxM.fillRect(0,y,W,1); }
-        else if(m===3||m===S/2-1){ ctxM.fillStyle=`rgba(0,0,0,0.55)`;          ctxM.fillRect(0,y,W,1); }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WAVE GRID
-// ─────────────────────────────────────────────────────────────────────────────
-function splashWave(wx, wy, energy, clr) {
-    const bx=Math.floor(wx/CELL), by=Math.floor(wy/CELL);
-    for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++) {
-        const px=bx+dx, py=by+dy;
-        if(px>0&&px<gCols-1&&py>0&&py<gRows-1){
-            const idx=py*gCols+px;
-            wave1[idx]=energy*(1-Math.hypot(dx,dy)/5);
-            if(clr) waveClr[idx]=clr;
-        }
-    }
-}
-
-function updateWaves() {
-    for (let y=1; y<gRows-1; y++) {
-        for (let x=1; x<gCols-1; x++) {
-            const i=x+y*gCols;
-            const wx=x*CELL, wy=y*CELL;
-            // Walls: pipes block waves
-            let wall=false;
-            for (const p of pipes) {
-                if(wx+CELL>p.x && wx<p.x+p.w) {
-                    let inGap=false;
-                    for (const g of p.gaps) {
-                        if(wy>g-GAP_SIZE/2 && wy<g+GAP_SIZE/2){inGap=true;break;}
-                    }
-                    if(!inGap){wall=true;break;}
-                }
-            }
-            if(wall){wave2[i]=0;continue;}
-            wave2[i]=(wave1[i-1]+wave1[i+1]+wave1[i-gCols]+wave1[i+gCols])/2 - wave2[i];
-            wave2[i]*=0.975;
-            // Propagate colour
-            if(Math.abs(wave2[i])>0.1) {
-                let mx=0, bc=null;
-                [[i-1],[i+1],[i-gCols],[i+gCols]].forEach(([j])=>{
-                    if(Math.abs(wave1[j])>mx&&waveClr[j]){mx=Math.abs(wave1[j]);bc=waveClr[j];}
-                });
-                if(bc&&mx>Math.abs(wave2[i])) waveClr[i]=bc;
-                else if(Math.abs(wave2[i])<0.05) waveClr[i]=null;
-            }
-        }
-    }
-    let t=wave1; wave1=wave2; wave2=t;
-}
-
-function drawWaves() {
-    updateWaves();
-    ctx.save();
-    for (let y=0; y<gRows; y++) for (let x=0; x<gCols; x++) {
-        const i=x+y*gCols, val=wave1[i];
-        if(Math.abs(val)>1&&waveClr[i]) {
-            const a=Math.min(0.75, Math.abs(val)/45);
-            ctx.globalAlpha=a; ctx.fillStyle=waveClr[i];
-            ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
-        }
-    }
-    ctx.globalAlpha=1; ctx.restore();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PIXEL PLANET RENDERER
-// ─────────────────────────────────────────────────────────────────────────────
-function drawPixelPlanet(context, x, y, r, baseShade, hiShade, px=3) {
-    for (let py=-r; py<=r; py+=px) for (let ppx=-r; ppx<=r; ppx+=px) {
-        if(ppx*ppx+py*py<=r*r) {
-            context.fillStyle = (ppx<0&&py<0) ? hiShade : baseShade;
-            context.fillRect(Math.round(x+ppx), Math.round(y+py), px, px);
-        }
-    }
-}
-
-// Sun with corona rays — coloured by current pitch hue
-function drawSun(x, y, r, colorHist, hue=30) {
-    const rayPulse = Math.sin(frames*0.14)*3;
-    const rayColor = `hsl(${hue},85%,65%)`;
-    const bodyBase = `hsl(${hue},70%,58%)`;
-    const bodyHi   = `hsl(${hue},90%,80%)`;
-
-    // Rays — coloured
-    ctx.fillStyle = rayColor;
-    for (let a=0; a<Math.PI*2; a+=Math.PI/5) {
-        ctx.beginPath();
-        ctx.moveTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
-        ctx.lineTo(x+Math.cos(a-0.18)*(r+9+rayPulse), y+Math.sin(a-0.18)*(r+9+rayPulse));
-        ctx.lineTo(x+Math.cos(a+0.18)*(r+9+rayPulse), y+Math.sin(a+0.18)*(r+9+rayPulse));
-        ctx.fill();
-    }
-
-    // Body — coloured pixel planet, keeps Munker tinting on top
-    if (colorHist.length===0) {
-        drawPixelPlanet(ctx, x, y, r, bodyBase, bodyHi);
-    } else {
-        const n=colorHist.length;
-        for (let i=0; i<n; i++) {
-            const pr=r*(1 - i/n);
-            drawPixelPlanet(ctx, x, y, pr|0, bodyBase, bodyHi);
-        }
-    }
-
-    // Pixel shades
-    ctx.fillStyle='#222'; ctx.fillRect(x-r*0.7,y-r*0.15,r*0.55,r*0.38); // left lens
-    ctx.fillRect(x+r*0.15,y-r*0.15,r*0.55,r*0.38);                        // right lens
-    ctx.fillRect(x-r*0.08,y+r*0.05,r*0.2,2);                              // bridge
-    ctx.fillStyle='#fff'; ctx.fillRect(x-r*0.5,y-r*0.05,3,3);            // glint L
-    ctx.fillRect(x+r*0.35,y-r*0.05,3,3);                                   // glint R
-    // smile
-    ctx.strokeStyle='#222'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(x,y+r*0.25,r*0.28,0,Math.PI); ctx.stroke();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PIPES — 3 gaps (bass=bottom, mid=middle, high=top)
-// ─────────────────────────────────────────────────────────────────────────────
-const PIPE_W = 48;
-
-function gapY(section) {
-    // section 0=top(high), 1=mid, 2=bottom(bass)
-    const band = H / 3;
-    return band * section + band / 2;
-}
-
-function spawnPipe() {
-    // Slight vertical jitter per gap so it's not perfectly predictable
-    const jitter = 30;
-    const gaps = [
-        gapY(0) + (Math.random()-0.5)*jitter,  // HIGH
-        gapY(1) + (Math.random()-0.5)*jitter,  // MID
-        gapY(2) + (Math.random()-0.5)*jitter   // BASS
-    ];
-    pipes.push({ x:W, w:PIPE_W, gaps, passed:false });
-}
-
-function drawPipes(isSun) {
-    const pipeColor  = isSun ? '#cc7700' : '#006688';
-    const labelColor = isSun ? '#ffcc00' : '#00ffff';
-    const regLabels  = ['HIGH','MID','BASS'];
-    const regColors  = [REG_HIGH.color, REG_MID.color, REG_BASS.color];
-
-    for (let i=pipes.length-1; i>=0; i--) {
-        const p=pipes[i];
-        p.x -= PIPE_SPEED_BASE + score*0.04; // subtle acceleration
-
-        // Build sorted solid segments
-        const sorted=[...p.gaps].map((g,idx)=>({g,idx})).sort((a,b)=>a.g-b.g);
-        ctx.fillStyle=pipeColor;
-
-        let curY=0;
-        for (const {g, idx} of sorted) {
-            const top=g-GAP_SIZE/2, bot=g+GAP_SIZE/2;
-            if(top>curY) ctx.fillRect(p.x, curY, p.w, top-curY);
-            // Gap label (register)
-            ctx.save();
-            ctx.fillStyle=regColors[idx];
-            ctx.font='bold 9px Space Mono, monospace';
-            ctx.textAlign='center'; ctx.textBaseline='middle';
-            ctx.fillText(regLabels[idx], p.x+p.w/2, g);
-            ctx.restore();
-            curY=bot;
-        }
-        if(curY<H) ctx.fillRect(p.x, curY, p.w, H-curY);
-
-        // Pixel border effect
-        ctx.fillStyle='rgba(255,255,255,0.15)';
-        ctx.fillRect(p.x, 0, 3, H);
-
-        // Collision
-        const bx=bird.x, by=bird.y, br=bird.radius;
-        if(bx+br>p.x && bx-br<p.x+p.w) {
-            let inGap=false;
-            for (const g of p.gaps) {
-                if(by>g-GAP_SIZE/2+2 && by<g+GAP_SIZE/2-2){inGap=true;break;}
-            }
-            if(!inGap) triggerGameOver();
-        }
-
-        // Off-screen boundary
-        if(by+br>=H||by-br<=0) triggerGameOver();
-
-        // Score
-        if(p.x+p.w<bx && !p.passed){ score++; p.passed=true; document.getElementById('score-text').innerText=score; }
-        if(p.x+p.w<0) pipes.splice(i,1);
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VISUAL RIPPLES
-// ─────────────────────────────────────────────────────────────────────────────
+// ── RIPPLES ──────────────────────────────────────────────────────────────────
 let ripples=[];
-function addRipple(x,y,color){ ripples.push({x,y,r:bird.radius,color,a:1.0}); }
-function drawRipples() {
-    ripples.forEach(r=>{ r.r+=4.5; r.a-=0.025; });
-    ripples=ripples.filter(r=>r.a>0);
-    ctx.save();
-    ripples.forEach(r=>{
-        ctx.globalAlpha=r.a; ctx.strokeStyle=r.color; ctx.lineWidth=3;
-        ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,Math.PI*2); ctx.stroke();
-    });
-    ctx.globalAlpha=1; ctx.restore();
+function addRipple(x,y,clr){ripples.push({x,y,r:BR,clr,a:1})}
+function drawRipples(){
+  ripples.forEach(r=>{r.r+=4.5;r.a-=.025});ripples=ripples.filter(r=>r.a>0);
+  ctx.save();ripples.forEach(r=>{ctx.globalAlpha=r.a;ctx.strokeStyle=r.clr;ctx.lineWidth=3;ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.stroke()});ctx.globalAlpha=1;ctx.restore();
 }
 
-// Register zone lines (faint)
-function drawZoneLines() {
-    ctx.save();
-    ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1; ctx.setLineDash([6,10]);
-    [H/3, 2*H/3].forEach(y=>{ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); });
-    ctx.setLineDash([]); ctx.restore();
+// ── GAME OVER / RESET ────────────────────────────────────────────────────────
+function gameOver(){
+  if(over)return;over=true;
+  if(score>best){best=score;try{localStorage.setItem('flappyBest',best)}catch(e){}document.getElementById('best').innerText=best}
+  document.getElementById('gf').innerText=score;document.getElementById('go').style.display='block';
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME OVER / RESET
-// ─────────────────────────────────────────────────────────────────────────────
-function triggerGameOver() {
-    if(isGameOver) return;
-    isGameOver=true;
-    if(score>best){ best=score; document.getElementById('best-text').innerText=best; }
-    document.getElementById('final-score').innerText=score;
-    document.getElementById('game-over').style.display='block';
+function reset(){
+  bird.y=H/2;bird.vy=0;bird.ch=[];pendFlap=0;
+  pipes=[];ripples=[];sRipples=[];sheet=[];score=0;frames=0;
+  lastPC=-1;cand=null;candF=0;silF=0;lastReg=null;tgtNote=-1;
+  lastGap=-1;swTimer=0;bonusF=0;bonusTxt='';sHue=30;sTHue=30;
+  over=false;
+  w1.fill(0);w2.fill(0);wClr.fill(null);
+  document.getElementById('go').style.display='none';
+  document.getElementById('sc').innerText='0';
+  document.getElementById('snote').innerText='NOTE: --';
+  document.getElementById('sreg').innerText='REG: --';
 }
-
-function resetGame() {
-    bird.y=H/2; bird.vy=0; bird.colorHistory=[];
-    pendingFlap=0;
-    pipes=[]; ripples=[]; sunRipples=[]; score=0; frames=0;
-    lastPeak=null; targetNote=-1; isGameOver=false;
-    lastRegGap=-1; switchTimer=0; bonusFlash=0; bonusText='';
-    sunHue=30; sunTargetHue=30;
-    wave1.fill(0); wave2.fill(0); waveClr.fill(null);
-    document.getElementById('game-over').style.display='none';
-    document.getElementById('score-text').innerText='0';
-    document.getElementById('status-note').innerText='LAST: --';
-    document.getElementById('status-register').innerText='REGISTER: --';
-}
-
-document.getElementById('btn-restart').addEventListener('click', resetGame);
-document.getElementById('btn-mode').addEventListener('click', e=>{
-    mode = mode==='EASY'?'HARD':'EASY';
-    e.target.innerText=`MODE: ${mode}`;
-    document.getElementById('status-mode').innerText=`MODE: ${mode==='EASY'?'EASY (HOVER)':'HARD (FLAP)'}`;
-    document.getElementById('status-target').style.display=mode==='HARD'?'block':'none';
-    resetGame();
-});
-document.getElementById('btn-mic').addEventListener('click', async e=>{
-    if(await audio.startMic()){ e.target.style.display='none'; resetGame(); renderFrame(); }
+document.getElementById('brst').addEventListener('click',reset);
+document.getElementById('bmic').addEventListener('click',async()=>{if(await mic.start()){document.getElementById('bmic').style.display='none';reset();loop()}});
+document.getElementById('bmode').addEventListener('click',e=>{
+  mode=mode==='EASY'?'HARD':'EASY';
+  e.target.innerText=`MODE: ${mode}`;
+  document.getElementById('stgt').style.display=mode==='HARD'?'block':'none';
+  reset();
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN LOOP
-// ─────────────────────────────────────────────────────────────────────────────
-function renderFrame() {
-    if(!audio.isRunning) return;
-    requestAnimationFrame(renderFrame);
-    if(isGameOver) return;
-    frames++;
+// ── ON NEW NOTE COMMITTED ────────────────────────────────────────────────────
+const cycleLen=2000;
+function onNote(peak){
+  const pc=peak.pc,reg=peak.reg;
+  const isSun=(frames%cycleLen)/cycleLen<.5;
+  const flapI=isSun?7:6;
 
-    // ── Cycle: day/night every 2000 frames ──────────────────────────────────
-    const cyclePhase = (frames%2000)/2000;
-    const isSun = cyclePhase < 0.5;
-    const flapInterval = isSun ? 7 : 6; // fifth (day) / tritone (night)
+  // colour
+  bird.ch.unshift(`hsl(${HUE[pc]},90%,60%)`);if(bird.ch.length>6)bird.ch.pop();
+  sTHue=HUE[pc];
+  sRipples.push({r:BR+4,maxR:BR*8,hue:HUE[pc],a:.9});
+  sRipples.push({r:BR+2,maxR:BR*5,hue:HUE[(pc+7)%12],a:.6});
 
-    document.getElementById('main-title').innerText = isSun ? 'FLAPPY SUNRISE' : 'FLAPPY TRITONES';
-    document.getElementById('main-title').style.color = isSun ? '#ff8c00' : '#00ffff';
+  // log to sheet music
+  sheet.push({pc,reg,x:bird.x+BR+10,sx:bird.x+BR+10,frame:frames});
+  if(sheet.length>SHEET_MAX)sheet.shift();
 
-    // ── Audio ────────────────────────────────────────────────────────────────
-    const peak = audio.getBestPeak(85);
+  // munker
+  mt1=HUE[pc];mt2=HUE[(pc+7)%12];
+  document.getElementById('pa').style.background=`linear-gradient(90deg,hsl(${mt1},100%,55%),hsl(${mt2},100%,55%))`;
+  document.getElementById('hb').style.borderColor=`hsl(${mt1},70%,55%)`;
 
-    if(peak && peak.pitchClass>=0) {
-        const pc=peak.pitchClass, reg=peak.register;
-        const isNewNote = !lastPeak || pc!==lastPeak.pitchClass;
+  // HUD
+  document.getElementById('snote').innerText=`NOTE: ${NOTE[pc]}`;
+  document.getElementById('sreg').innerText=`REG: ${reg.label}`;
 
-        if(isNewNote) {
-            bird.colorHistory.unshift(keyHSL(pc));
-            if(bird.colorHistory.length>6) bird.colorHistory.pop();
+  // register labels
+  ['high','mid','bass'].forEach(id=>{
+    const el=document.getElementById('rl-'+id);
+    el.style.opacity=reg.label.toLowerCase()===id?'1':'.3';
+    el.style.color=reg.label.toLowerCase()===id?reg.color:'var(--g)';
+  });
 
-            // Sun colour target — each note maps to its hue
-            sunTargetHue = KEY_HUES[pc];
+  // lane switch bonus
+  if(lastGap!==-1&&swTimer<=SW_WIN){
+    const sw=Math.abs(reg.gap-lastGap);
+    if(sw===2){score+=3;document.getElementById('sc').innerText=score;bonusTxt=reg.gap===2?'↓ DIVE +3':'↑ LAUNCH +3';bonusF=50}
+    else if(sw===1){score+=1;document.getElementById('sc').innerText=score;bonusTxt='+1 SWITCH';bonusF=30}
+  }
+  lastGap=reg.gap;swTimer=0;
 
-            // Coloured ripple bursts from the sun character
-            sunRipples.push({ r: bird.radius+4, maxR: bird.radius*8,
-                              hue: KEY_HUES[pc], alpha: 0.9 });
-            sunRipples.push({ r: bird.radius+2, maxR: bird.radius*5,
-                              hue: KEY_HUES[(pc+7)%12], alpha: 0.6 });
-
-            document.getElementById('status-note').innerText=`LAST: ${noteNames[pc]}`;
-            document.getElementById('status-register').innerText=`REGISTER: ${reg.label}`;
-
-            // Highlight active register label
-            ['high','mid','bass'].forEach(id=>{
-                const el=document.getElementById('lbl-'+id);
-                el.style.opacity = reg.label.toLowerCase()===id ? '1' : '0.3';
-            });
-
-            // Set Munker targets from pitch
-            munkerT1=KEY_HUES[pc];
-            munkerT2=KEY_HUES[(pc+7)%12];
-            document.getElementById('pitch-accent').style.background=
-                `linear-gradient(90deg,hsl(${munkerT1},100%,55%),hsl(${munkerT2},100%,55%))`;
-            document.getElementById('hud-box').style.borderColor=keyHSL(pc,70,55);
-
-            // ── LANE SWITCH BONUS ────────────────────────────────────────────
-            // A "max swing" = jump from gap 0 (high) to gap 2 (bass) or vice versa
-            if(lastRegGap !== -1 && switchTimer <= SWITCH_WINDOW) {
-                const swing = Math.abs(reg.gap - lastRegGap);
-                if(swing === 2) {
-                    // Full top↔bottom swing in time window
-                    const bonus = 3;
-                    score += bonus;
-                    document.getElementById('score-text').innerText = score;
-                    bonusText = reg.gap===2 ? '↓ DIVE BONUS +3' : '↑ LAUNCH BONUS +3';
-                    bonusFlash = 50;
-                } else if(swing === 1) {
-                    const bonus = 1;
-                    score += bonus;
-                    document.getElementById('score-text').innerText = score;
-                    bonusText = '+1 SWITCH';
-                    bonusFlash = 30;
-                }
-            }
-            lastRegGap = reg.gap;
-            switchTimer = 0;
-
-            // ── Bird movement ────────────────────────────────────────────────
-            if(mode==='EASY') {
-                const targetY = gapY(reg.gap) + (Math.random()-0.5)*20;
-                bird.vy += (targetY - bird.y) * 0.12;
-                bird.vy *= 0.7;
-            } else {
-                if(!lastPeak || lastPeak.pitchClass===-1 || pc===targetNote) {
-                    pendingFlap = FLAP_POWER;
-                    targetNote = (pc+flapInterval)%12;
-                    document.getElementById('status-target').innerText=
-                        `TARGET (${isSun?'P5':'TT'}): ${noteNames[targetNote]}`;
-                }
-            }
-
-            // Wave splash
-            splashWave(bird.x, bird.y, 380, reg.color);
-            addRipple(bird.x, bird.y, reg.color);
-
-            lastPeak = { pitchClass:pc, register:reg };
-        }
+  // movement
+  if(mode==='EASY'){
+    const ty=gapY(reg.gap)+(Math.random()-.5)*20;
+    bird.vy+=(ty-bird.y)*.12;bird.vy*=.7;
+  } else {
+    if(pc===tgtNote||tgtNote===-1){
+      pendFlap=FLAP;tgtNote=(pc+flapI)%12;
+      document.getElementById('stgt').innerText=`TARGET (${isSun?'P5':'TT'}): ${NOTE[tgtNote]}`;
     }
+  }
 
-    // Switch timer always counts up — resets on new note above
-    switchTimer++;
-
-    // ── Physics ──────────────────────────────────────────────────────────────
-    if(mode==='HARD') {
-        // Apply pending flap smoothly (3-frame ease-in)
-        if(pendingFlap!==0){
-            bird.vy += pendingFlap * 0.5;
-            pendingFlap *= 0.3;
-            if(Math.abs(pendingFlap)<0.1) pendingFlap=0;
-        }
-        bird.vy += GRAVITY;
-        bird.vy = Math.max(-VELOCITY_CAP, Math.min(VELOCITY_CAP, bird.vy));
-        bird.y += bird.vy;
-    } else {
-        // Easy: spring applied in note handler, add mild gravity to keep it honest
-        bird.vy += GRAVITY * 0.25;
-        bird.y += bird.vy;
-        bird.vy *= 0.92;
-    }
-
-    // ── Munker interpolation ─────────────────────────────────────────────────
-    munkerH1 = lerpHue(munkerH1, munkerT1, 0.05);
-    munkerH2 = lerpHue(munkerH2, munkerT2, 0.05);
-    sunHue   = lerpHue(sunHue, sunTargetHue, 0.08);
-
-    // ── Ruliad (step every 4 frames) ─────────────────────────────────────────
-    if(frames%4===0) stepRuliad();
-    drawRuliad(lastPeak ? lastPeak.pitchClass : -1);
-
-    // ── Stars (every 3 frames) ───────────────────────────────────────────────
-    if(frames%3===0) drawStars(lastPeak ? lastPeak.pitchClass : -1);
-
-    // ── Clear game layer ─────────────────────────────────────────────────────
-    ctx.clearRect(0,0,W,H);
-
-    // ── Waves ────────────────────────────────────────────────────────────────
-    drawWaves();
-
-    // ── Zone dividers ────────────────────────────────────────────────────────
-    drawZoneLines();
-
-    // ── Pipes ────────────────────────────────────────────────────────────────
-    if(frames%PIPE_SPAWN_BASE===0) spawnPipe();
-    drawPipes(isSun);
-
-    // ── Ripples ──────────────────────────────────────────────────────────────
-    drawRipples();
-
-    // ── Sun ripples (coloured per-note rings) ────────────────────────────────
-    ctx.save();
-    for(let i=sunRipples.length-1; i>=0; i--) {
-        const sr=sunRipples[i];
-        sr.r += 4; sr.alpha -= 0.028;
-        if(sr.alpha<=0 || sr.r>sr.maxR){ sunRipples.splice(i,1); continue; }
-        ctx.globalAlpha=sr.alpha;
-        ctx.strokeStyle=`hsl(${sr.hue},100%,62%)`;
-        ctx.lineWidth=2.5;
-        ctx.beginPath(); ctx.arc(bird.x, bird.y, sr.r, 0, Math.PI*2); ctx.stroke();
-    }
-    ctx.globalAlpha=1; ctx.restore();
-
-    // ── Sun (coloured by pitch hue) ───────────────────────────────────────────
-    drawSun(bird.x, bird.y, bird.radius, bird.colorHistory, sunHue);
-
-    // ── Large current-note overlay (centre screen) ───────────────────────────
-    if(lastPeak && lastPeak.pitchClass>=0) {
-        const pc = lastPeak.pitchClass;
-        const noteHue = KEY_HUES[pc];
-        const reg = lastPeak.register;
-
-        // Big note name — centred vertically in the player's current zone
-        const zoneY = gapY(reg.gap);
-
-        ctx.save();
-        ctx.globalAlpha = 0.22;
-        ctx.font = `bold ${Math.min(W*0.28, 160)}px 'Space Mono', monospace`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillStyle = `hsl(${noteHue},100%,65%)`;
-        ctx.fillText(noteNames[pc], W/2, zoneY);
-        ctx.globalAlpha=1;
-
-        // Smaller crisp label right of bird
-        ctx.font = 'bold 22px Space Mono, monospace';
-        ctx.fillStyle = `hsl(${noteHue},100%,70%)`;
-        ctx.shadowBlur=10; ctx.shadowColor=`hsl(${noteHue},100%,60%)`;
-        ctx.textAlign='left'; ctx.textBaseline='middle';
-        ctx.fillText(noteNames[pc], bird.x + bird.radius + 10, bird.y - 10);
-
-        // Target note hint (what to sing next for boost)
-        const boostNote = (pc + flapInterval) % 12;
-        ctx.font = '11px Space Mono, monospace';
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.shadowBlur=0;
-        ctx.fillText(`→ ${noteNames[boostNote]} for boost`, bird.x + bird.radius + 10, bird.y + 12);
-        ctx.restore();
-    }
-
-    // ── Lane switch bonus flash ───────────────────────────────────────────────
-    if(bonusFlash > 0) {
-        bonusFlash--;
-        const a = bonusFlash/50;
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.font = 'bold 28px Space Mono, monospace';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#ffcc00';
-        ctx.shadowBlur=15; ctx.shadowColor='#ffcc00';
-        ctx.fillText(bonusText, W/2, H/2 - 60);
-        ctx.restore();
-    }
-
-    // ── Munker overlay ───────────────────────────────────────────────────────
-    if(frames%2===0) drawMunker(munkerH1, munkerH2, 0.5);
-
-    // ── Day/night sky tint (very subtle, under stars) ────────────────────────
-    // Applied once per cycle change rather than every frame — stars handle atmosphere
+  splashWave(bird.x,bird.y,380,reg.color);addRipple(bird.x,bird.y,reg.color);
+  lastPC=pc;lastReg=reg;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BOOT
-// ─────────────────────────────────────────────────────────────────────────────
+// ── MAIN LOOP ────────────────────────────────────────────────────────────────
+function loop(){
+  if(!mic.isRunning)return;
+  requestAnimationFrame(loop);if(over)return;
+  frames++;
+
+  const isSun=(frames%cycleLen)/cycleLen<.5;
+  document.getElementById('ttl').innerText=isSun?'FLAPPY SUNRISE':'FLAPPY TRITONES';
+  document.getElementById('ttl').style.color=isSun?'#ff8c00':'#00ffff';
+
+  // ── Audio: stable gate — prevents ghost hits ───────────────────────────
+  const raw=mic.read();
+  if(raw&&raw.pc>=0){
+    silF=0;
+    if(cand&&raw.pc===cand.pc&&raw.reg===cand.reg){candF++;if(candF>=NOTE_HOLD&&(raw.pc!==lastPC||raw.reg!==lastReg))onNote(raw)}
+    else{cand=raw;candF=1}
+  } else {
+    silF++;if(silF>SIL_RST){lastPC=-1;lastReg=null;cand=null;candF=0}
+  }
+
+  swTimer++;
+
+  // physics
+  if(mode==='HARD'){
+    if(pendFlap!==0){bird.vy+=pendFlap*.5;pendFlap*=.3;if(Math.abs(pendFlap)<.1)pendFlap=0}
+    bird.vy+=GRAV;bird.vy=Math.max(-VCAP,Math.min(VCAP,bird.vy));bird.y+=bird.vy;
+  } else {
+    bird.vy+=GRAV*.25;bird.y+=bird.vy;bird.vy*=.92;
+  }
+
+  mh1=lh(mh1,mt1,.05);mh2=lh(mh2,mt2,.05);sHue=lh(sHue,sTHue,.08);
+
+  if(frames%4===0)stepRuliad();drawRuliad(lastPC);
+  if(frames%3===0)drawStars(lastPC);
+
+  ctx.clearRect(0,0,W,H);
+
+  // ── Sheet music background ─────────────────────────────────────────────
+  drawSheet();
+
+  drawWaves();
+  drawZones();
+
+  if(frames%PSPAWN===0)spawnPipe();
+  drawPipes(isSun);
+  drawRipples();
+
+  // sun ripples
+  ctx.save();
+  for(let i=sRipples.length-1;i>=0;i--){const sr=sRipples[i];sr.r+=4;sr.a-=.028;if(sr.a<=0||sr.r>sr.maxR){sRipples.splice(i,1);continue}ctx.globalAlpha=sr.a;ctx.strokeStyle=`hsl(${sr.hue},100%,62%)`;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(bird.x,bird.y,sr.r,0,Math.PI*2);ctx.stroke()}
+  ctx.globalAlpha=1;ctx.restore();
+
+  drawSun(bird.x,bird.y,BR,sHue);
+
+  // current note big ghost + next target hint
+  if(lastPC>=0){
+    const pc=lastPC,reg=lastReg;
+    ctx.save();
+    ctx.globalAlpha=.18;ctx.font=`bold ${Math.min(W*.28,155)}px VT323,monospace`;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=`hsl(${HUE[pc]},100%,65%)`;
+    ctx.fillText(NOTE[pc],W/2,gapY(reg.gap));ctx.globalAlpha=1;
+    ctx.font='bold 20px VT323,monospace';ctx.fillStyle=`hsl(${HUE[pc]},100%,70%)`;
+    ctx.shadowBlur=10;ctx.shadowColor=ctx.fillStyle;ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText(NOTE[pc],bird.x+BR+10,bird.y-10);
+    const isSun=(frames%cycleLen)/cycleLen<.5;
+    const bn=(pc+(isSun?7:6))%12;
+    ctx.font='12px VT323,monospace';ctx.fillStyle='rgba(0,255,65,0.7)';ctx.shadowBlur=0;
+    ctx.fillText(`→${NOTE[bn]} for boost`,bird.x+BR+10,bird.y+10);
+    ctx.restore();
+  }
+
+  // bonus flash
+  if(bonusF>0){bonusF--;const a=bonusF/50;ctx.save();ctx.globalAlpha=a;ctx.font='bold 26px VT323,monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#ffcc00';ctx.shadowBlur=14;ctx.shadowColor='#ffcc00';ctx.fillText(bonusTxt,W/2,H/2-60);ctx.restore()}
+
+  if(frames%2===0)drawMunker(mh1,mh2,.5);
+}
+
 resize();
 </script>
 </body>
