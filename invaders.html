@@ -294,7 +294,7 @@ class AudioEngine {
             this.isRunning=true; return true;
         }catch(e){console.error(e);return false;}
     }
-    getPeaks(threshold=85){
+    getPeaks(threshold=108){
         if(!this.isRunning)return[];
         this.analyser.getByteFrequencyData(this.dataArray);
         const sr=this.audioContext.sampleRate, binHz=sr/this.analyser.fftSize;
@@ -502,14 +502,18 @@ function updateCityHealth(){
 // ─────────────────────────────────────────────────────────────────────────────
 let gameState='IDLE';
 let score=0, best=0, level=1;
+try{ best=parseInt(localStorage.getItem('invadersBest')||'0'); }catch(e){}
 let currentPc=-1, lastPc=-1, silentFrames=0;
+// Note stability gate — prevent ghost hits
+let candPc=-1, candFrames=0;
+const NOTE_HOLD=3;
 let powerMeter=0;
 const POWER_MAX=10;
 let flashTimer=0;
 
 // Upgrades / active power-ups
-let upgrades={ spreadShot:false, rapidFire:false, shield:false };
-let upgradeTimers={ spreadShot:0, rapidFire:0, shield:0 };
+let upgrades={ spreadShot:false, rapidFire:false, shield:false, slowTime:false };
+let upgradeTimers={ spreadShot:0, rapidFire:0, shield:0, slowTime:0 };
 const UPGRADE_DURATION=600; // frames
 
 // Entities
@@ -556,7 +560,7 @@ function resetGame(){
 function triggerGameOver(){
     if(gameState==='GAMEOVER') return;
     gameState='GAMEOVER';
-    if(score>best){ best=score; document.getElementById('best-text').innerText=best; }
+    if(score>best){ best=score; try{localStorage.setItem('invadersBest',best)}catch(e){} document.getElementById('best-text').innerText=best; }
     document.getElementById('final-score').innerText=score;
     document.getElementById('final-level').innerText=level;
     document.getElementById('game-over').style.display='block';
@@ -566,6 +570,8 @@ document.getElementById('btn-mic').addEventListener('click',async e=>{
     if(await audio.startMic()){ e.target.style.display='none'; resetGame(); }
 });
 document.getElementById('btn-restart').addEventListener('click',resetGame);
+// Show saved best on load
+document.getElementById('best-text').innerText=best;
 
 function updateHUD(){
     document.getElementById('score-text').innerText=score;
@@ -788,30 +794,47 @@ function drawBoss(){
 // ─────────────────────────────────────────────────────────────────────────────
 // DROPS (power-ups)
 // ─────────────────────────────────────────────────────────────────────────────
-const DROP_TYPES=['spreadShot','rapidFire','shield'];
-const DROP_COLORS={spreadShot:'#ff8c00',rapidFire:'#00ffcc',shield:'#0055ff'};
-const DROP_LABELS={spreadShot:'SPREAD',rapidFire:'RAPID',shield:'BARRIER'};
+const DROP_TYPES=['spreadShot','rapidFire','shield','bombClear','slowTime'];
+const DROP_COLORS={spreadShot:'#ff8c00',rapidFire:'#00ffcc',shield:'#0055ff',bombClear:'#ff0055',slowTime:'#cc00ff'};
+const DROP_LABELS={spreadShot:'SPREAD',rapidFire:'RAPID',shield:'BARRIER',bombClear:'NOVA',slowTime:'SLOW'};
 
 function maybeDrop(x,y){
-    if(Math.random()<0.2){ // 20% chance
+    if(Math.random()<0.25){ // 25% chance
         const type=DROP_TYPES[Math.floor(Math.random()*DROP_TYPES.length)];
-        drops.push({x,y,vy:2,type,frame:0});
+        drops.push({x,y,vy:1.8,type,frame:0});
     }
 }
 
 function drawDrops(){
     for(let i=drops.length-1;i>=0;i--){
         const d=drops[i]; d.y+=d.vy; d.frame++;
-        // Pixel gem shape
-        ctx.fillStyle=DROP_COLORS[d.type];
-        ctx.fillRect(d.x-6,d.y-4,12,8);
-        ctx.fillRect(d.x-4,d.y-6,8,12);
-        ctx.fillStyle='#fff'; ctx.font='7px monospace'; ctx.textAlign='center';
-        ctx.fillText(DROP_LABELS[d.type],d.x,d.y+14);
+        const clr=DROP_COLORS[d.type];
+        const pulse=1+Math.sin(d.frame*0.15)*0.2;
+        // Gem shape — diamond pixel
+        ctx.save();
+        ctx.translate(d.x,d.y);ctx.scale(pulse,pulse);
+        ctx.fillStyle=clr;
+        ctx.fillRect(-8,-4,16,8);ctx.fillRect(-4,-8,8,16);
+        ctx.fillRect(-6,-6,4,4);ctx.fillRect(2,-6,4,4);
+        ctx.fillRect(-6,2,4,4);ctx.fillRect(2,2,4,4);
+        ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillRect(-3,-3,3,3);
+        ctx.restore();
+        ctx.fillStyle=clr;ctx.font='bold 10px VT323,monospace';ctx.textAlign='center';
+        ctx.shadowBlur=6;ctx.shadowColor=clr;
+        ctx.fillText(DROP_LABELS[d.type],d.x,d.y+20);
+        ctx.shadowBlur=0;
         // Collect
-        if(Math.hypot(d.x-cannon.x,d.y-cannon.y)<30){
-            upgrades[d.type]=true;
-            upgradeTimers[d.type]=UPGRADE_DURATION;
+        if(Math.hypot(d.x-cannon.x,d.y-cannon.y)<32){
+            if(d.type==='bombClear'){
+                // Instantly clear all bombs
+                enemyBombs=[];
+                spawnParticles(W/2,H/2,'#ff0055',40);
+                flashTimer=8;
+            } else if(d.type==='slowTime'){
+                upgrades.slowTime=true;upgradeTimers.slowTime=UPGRADE_DURATION;
+            } else {
+                upgrades[d.type]=true;upgradeTimers[d.type]=UPGRADE_DURATION;
+            }
             drops.splice(i,1);
             showFloatingLabel(d.x,d.y,DROP_LABELS[d.type]+' ACTIVE!',DROP_COLORS[d.type]);
             updateHUD(); continue;
@@ -874,9 +897,30 @@ function renderFrame(){
         ctx.fillRect(0,0,W,H); flashTimer--;
     }
 
-    // ── Lane guides (very faint) ───────────────────────────────────────────────
-    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
-    for(let i=1;i<12;i++){ctx.beginPath();ctx.moveTo(i*laneW,0);ctx.lineTo(i*laneW,H);ctx.stroke();}
+    // ── Note lane strips — coloured columns showing which note = which zone ──
+    for(let i=0;i<12;i++){
+        const lx=i*laneW;
+        const hue=KEY_HUES[i];
+        const isActive=(currentPc===i);
+        // Base tint — faint always-on colour
+        ctx.fillStyle=`hsla(${hue},100%,50%,${isActive?0.18:0.06})`;
+        ctx.fillRect(lx,0,laneW,H);
+        // Bright active highlight
+        if(isActive){
+            ctx.fillStyle=`hsla(${hue},100%,60%,0.12)`;
+            ctx.fillRect(lx,0,laneW,H);
+        }
+        // Note name at top of each lane
+        ctx.save();
+        ctx.font=`bold ${Math.max(10,Math.min(14,laneW*0.45))}px VT323,monospace`;
+        ctx.textAlign='center'; ctx.textBaseline='top';
+        ctx.fillStyle=isActive?`hsl(${hue},100%,80%)`:`hsla(${hue},80%,60%,0.55)`;
+        if(isActive){ctx.shadowBlur=10;ctx.shadowColor=`hsl(${hue},100%,60%)`;}
+        ctx.fillText(noteNames[i],lx+laneW/2,68);
+        ctx.restore();
+        // Lane divider
+        if(i>0){ctx.strokeStyle=`hsla(${hue},40%,40%,0.25)`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(lx,0);ctx.lineTo(lx,H);ctx.stroke();}
+    }
 
     // ── City ─────────────────────────────────────────────────────────────────
     drawCity(currentPc);
@@ -887,52 +931,50 @@ function renderFrame(){
 
     if(gameState!=='PLAYING') return;
 
-    // ── Audio input ───────────────────────────────────────────────────────────
+    // ── Audio input with note stability gate ─────────────────────────────────
     if(audio.isRunning){
-        const peaks=audio.getPeaks(85);
+        const peaks=audio.getPeaks(108);
         if(peaks.length===0){
             silentFrames++;
-            if(silentFrames>15){ lastPc=-1; cannon.aimNote=-1; }
+            if(silentFrames>20){ lastPc=-1; currentPc=-1; cannon.aimNote=-1; candPc=-1; candFrames=0; }
         } else {
             silentFrames=0;
             const hz=peaks[0].hz;
-            currentPc=hzToPitchClass(hz);
-
-            munkerT1=KEY_HUES[currentPc];
-            munkerT2=KEY_HUES[(currentPc+7)%12];
-            document.getElementById('pitch-accent').style.background=
-                `linear-gradient(90deg,hsl(${munkerT1},100%,55%),hsl(${munkerT2},100%,55%))`;
-            document.getElementById('hud-box').style.borderColor=keyHSL(currentPc,70,55);
-            document.getElementById('hud-note').innerText=`NOTE: ${noteNames[currentPc]}`;
-
-            cannon.aimNote=currentPc;
-
-            // Power chord check (P5 from last note)
-            if(lastPc>=0&&powerMeter>=POWER_MAX){
-                const interval=(currentPc-lastPc+12)%12;
-                if(interval===7) triggerPowerChord();
-            }
-
-            // Boss harmonic check
-            if(boss&&currentPc===boss.targetHarmonic){
-                if(!boss.shieldOpen){
-                    boss.hp--; spawnParticles(boss.x,boss.y,'#ff00ff',8);
-                    if(boss.hp<=0) killBoss();
+            const rawPc=hzToPitchClass(hz);
+            // Stability gate: must hold same note for NOTE_HOLD frames
+            if(rawPc===candPc){ candFrames++; } else { candPc=rawPc; candFrames=1; }
+            if(candFrames>=NOTE_HOLD){
+                currentPc=rawPc;
+                munkerT1=KEY_HUES[currentPc];
+                munkerT2=KEY_HUES[(currentPc+7)%12];
+                document.getElementById('pitch-accent').style.background=
+                    `linear-gradient(90deg,hsl(${munkerT1},100%,55%),hsl(${munkerT2},100%,55%))`;
+                document.getElementById('hud-box').style.borderColor=keyHSL(currentPc,70,55);
+                document.getElementById('hud-note').innerText=`NOTE: ${noteNames[currentPc]}`;
+                cannon.aimNote=currentPc;
+                // Power chord check (P5 from last note)
+                if(lastPc>=0&&powerMeter>=POWER_MAX){
+                    const interval=(currentPc-lastPc+12)%12;
+                    if(interval===7) triggerPowerChord();
                 }
-            }
-
-            // Fire on new note
-            if(currentPc!==lastPc){
-                const fireRate=upgrades.rapidFire?8:15;
-                fireTimer++;
-                if(fireTimer>=fireRate||currentPc!==lastPc){ fireLaser(currentPc); fireTimer=0; }
-                lastPc=currentPc;
+                // Boss harmonic check
+                if(boss&&currentPc===boss.targetHarmonic){
+                    if(!boss.shieldOpen){
+                        boss.hp--; spawnParticles(boss.x,boss.y,'#ff00ff',8);
+                        if(boss.hp<=0) killBoss();
+                    }
+                }
+                // Fire on new note
+                if(currentPc!==lastPc){
+                    fireLaser(currentPc); fireTimer=0;
+                    lastPc=currentPc;
+                }
             }
         }
     }
 
     // ── Upgrade timers ────────────────────────────────────────────────────────
-    ['spreadShot','rapidFire','shield'].forEach(u=>{
+    ['spreadShot','rapidFire','shield','slowTime'].forEach(u=>{
         if(upgrades[u]){ upgradeTimers[u]--; if(upgradeTimers[u]<=0){upgrades[u]=false;updateHUD();} }
     });
 
@@ -991,7 +1033,9 @@ function renderFrame(){
 
     // ── Enemies ───────────────────────────────────────────────────────────────
     for(let i=enemies.length-1;i>=0;i--){
-        const e=enemies[i]; e.y+=e.speed; e.frame++;
+        const e=enemies[i]; 
+        const spdMult=upgrades.slowTime?0.35:1;
+        e.y+=e.speed*spdMult; e.frame++;
 
         drawInvader(e.x,e.y,e.color,e.frame,e.tier===1?5:4);
 
