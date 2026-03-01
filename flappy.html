@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flappy Sunrise</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
 
         * { box-sizing: border-box; }
         body {
@@ -102,7 +102,174 @@
             z-index: 15; pointer-events: none;
             transition: background 0.5s ease;
         }
-    </style>
+    
+    
+
+    /* ── MATRIX TERMINAL SKIN ──────────────────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+    :root {
+        --m-green: #00ff41;
+        --m-mid:   #00cc33;
+        --m-dim:   #00661a;
+        --m-bg:    #000300;
+        --m-panel: #010a01;
+        --m-glow:  0 0 8px #00ff41, 0 0 20px rgba(0,255,65,0.5);
+        --m-font:  'VT323', 'Courier New', monospace;
+    }
+
+    * {
+        font-family: var(--m-font) !important;
+        letter-spacing: 2px !important;
+    }
+
+    body {
+        background: var(--m-bg) !important;
+        color: var(--m-green) !important;
+        font-family: var(--m-font) !important;
+        font-size: 16px !important;
+    }
+
+    #global-nav {
+        background: rgba(0,3,0,0.95) !important;
+        border-bottom: 1px solid var(--m-dim) !important;
+        font-family: var(--m-font) !important;
+        font-size: 14px !important;
+    }
+    #global-nav a {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 14px !important;
+    }
+    #global-nav span { color: #003311 !important; }
+
+    #mode-tabs { background: rgba(0,3,0,0.95) !important; border-bottom-color: #003311 !important; }
+    .tab-btn {
+        font-family: var(--m-font) !important;
+        font-size: 13px !important;
+        color: #003311 !important;
+    }
+    .tab-btn.active {
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        border-bottom-color: var(--m-green) !important;
+        background: rgba(0,255,65,0.05) !important;
+    }
+
+    .title, #main-title, #mode-title {
+        font-family: var(--m-font) !important;
+        font-size: 26px !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        letter-spacing: 5px !important;
+    }
+
+    .hud-box, #hud-box {
+        font-family: var(--m-font) !important;
+        background: var(--m-panel) !important;
+        border: 1px solid var(--m-dim) !important;
+    }
+    .hud-box *, #hud-box * {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 15px !important;
+    }
+
+    .ratio-box {
+        font-family: var(--m-font) !important;
+        background: var(--m-panel) !important;
+        border-left: 3px solid var(--m-green) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 15px !important;
+    }
+
+    #score-text, .score-display, .score-text {
+        font-family: var(--m-font) !important;
+        font-size: 42px !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        letter-spacing: 4px !important;
+    }
+
+    .subtitle, .high-score, #best-text, #high-score-text {
+        font-family: var(--m-font) !important;
+        color: var(--m-mid) !important;
+        font-size: 13px !important;
+    }
+
+    button {
+        font-family: var(--m-font) !important;
+        font-size: 15px !important;
+        background: var(--m-panel) !important;
+        border: 1px solid var(--m-green) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        box-shadow: 0 0 8px rgba(0,255,65,0.2),
+                    inset 0 0 10px rgba(0,255,65,0.05) !important;
+        letter-spacing: 3px !important;
+        border-radius: 0 !important;
+        padding: 10px 16px !important;
+    }
+    button:hover {
+        background: rgba(0,255,65,0.08) !important;
+        box-shadow: 0 0 14px rgba(0,255,65,0.35) !important;
+    }
+
+    #status-text, #status-mode, #status-note, #status-register,
+    #hud-ratio, #hud-extra, #hud-level, #hud-note, #hud-upgrade,
+    #launch-warn, #status-health, #power-meter,
+    #val-current, #val-interval, #val-target,
+    .data-text, .data-value, .data-label,
+    .target-text, .reg-label, #mode-hint,
+    #harmony-feedback, #hud-last, #hud-rise, #hud-dawn {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+        font-size: 15px !important;
+    }
+
+    #game-over, #result-panel, #rules-overlay {
+        font-family: var(--m-font) !important;
+        background: #000500 !important;
+        border: 1px solid var(--m-green) !important;
+        box-shadow: 0 0 40px rgba(0,255,65,0.25),
+                    inset 0 0 30px rgba(0,255,65,0.03) !important;
+        color: var(--m-green) !important;
+    }
+    #game-over *, #result-panel *, #rules-overlay * {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+    }
+    #game-over h1, #result-title {
+        font-size: 36px !important;
+        letter-spacing: 6px !important;
+    }
+
+    #level-banner {
+        font-family: var(--m-font) !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+    }
+
+    .reg-label, #lbl-high, #lbl-mid, #lbl-bass {
+        font-family: var(--m-font) !important;
+        font-size: 14px !important;
+        color: var(--m-green) !important;
+        text-shadow: var(--m-glow) !important;
+    }
+
+    #pitch-accent { opacity: 0.6 !important; filter: hue-rotate(80deg) saturate(2) !important; }
+
+    #monolith-ambient {
+        background: radial-gradient(ellipse at bottom,
+            rgba(0,255,65,0.06) 0%, transparent 70%) !important;
+    }
+    /* ── END MATRIX TERMINAL SKIN ─────────────────────────────────────────── */
+</style>
 </head>
 <body>
 
@@ -265,6 +432,19 @@ let lastPeak = null;   // { pitchClass, register, hz }
 let targetNote = -1;
 let frames = 0, score = 0, best = 0;
 let isGameOver = false;
+
+// ── LANE SWITCH BONUS ──────────────────────────────────────────────────────
+// Track last register gap (0=high,1=mid,2=bass), fire bonus on max swing
+let lastRegGap = -1;        // gap index of last registered note
+let switchTimer = 0;        // frames since last register change
+const SWITCH_WINDOW = 45;   // frames to count as "quick" switch
+let bonusFlash = 0;         // frames to show bonus overlay
+let bonusText = '';
+
+// ── SUN COLOUR (per-note, interpolated) ────────────────────────────────────
+let sunHue = 30;
+let sunTargetHue = 30;
+let sunRipples = []; // { r, maxR, hue, alpha } — coloured rings from sun
 
 // Physics — classic flappy snap with smoothed input
 const GRAVITY      = 0.38;
@@ -460,13 +640,15 @@ function drawPixelPlanet(context, x, y, r, baseShade, hiShade, px=3) {
     }
 }
 
-// Sun with corona rays
-function drawSun(x, y, r, colorHist) {
-    const baseColor = colorHist.length>0 ? colorHist[0] : '#cccccc';
+// Sun with corona rays — coloured by current pitch hue
+function drawSun(x, y, r, colorHist, hue=30) {
     const rayPulse = Math.sin(frames*0.14)*3;
+    const rayColor = `hsl(${hue},85%,65%)`;
+    const bodyBase = `hsl(${hue},70%,58%)`;
+    const bodyHi   = `hsl(${hue},90%,80%)`;
 
-    // Rays (grey, Munker colours them)
-    ctx.fillStyle = '#aaaaaa';
+    // Rays — coloured
+    ctx.fillStyle = rayColor;
     for (let a=0; a<Math.PI*2; a+=Math.PI/5) {
         ctx.beginPath();
         ctx.moveTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
@@ -475,14 +657,14 @@ function drawSun(x, y, r, colorHist) {
         ctx.fill();
     }
 
-    // Body — grey circles so Munker overlay tints them
+    // Body — coloured pixel planet, keeps Munker tinting on top
     if (colorHist.length===0) {
-        drawPixelPlanet(ctx, x, y, r, '#cccccc', '#eeeeee');
+        drawPixelPlanet(ctx, x, y, r, bodyBase, bodyHi);
     } else {
         const n=colorHist.length;
         for (let i=0; i<n; i++) {
             const pr=r*(1 - i/n);
-            drawPixelPlanet(ctx, x, y, pr|0, '#bbbbbb', '#dddddd');
+            drawPixelPlanet(ctx, x, y, pr|0, bodyBase, bodyHi);
         }
     }
 
@@ -609,8 +791,10 @@ function triggerGameOver() {
 function resetGame() {
     bird.y=H/2; bird.vy=0; bird.colorHistory=[];
     pendingFlap=0;
-    pipes=[]; ripples=[]; score=0; frames=0;
+    pipes=[]; ripples=[]; sunRipples=[]; score=0; frames=0;
     lastPeak=null; targetNote=-1; isGameOver=false;
+    lastRegGap=-1; switchTimer=0; bonusFlash=0; bonusText='';
+    sunHue=30; sunTargetHue=30;
     wave1.fill(0); wave2.fill(0); waveClr.fill(null);
     document.getElementById('game-over').style.display='none';
     document.getElementById('score-text').innerText='0';
@@ -658,6 +842,15 @@ function renderFrame() {
             bird.colorHistory.unshift(keyHSL(pc));
             if(bird.colorHistory.length>6) bird.colorHistory.pop();
 
+            // Sun colour target — each note maps to its hue
+            sunTargetHue = KEY_HUES[pc];
+
+            // Coloured ripple bursts from the sun character
+            sunRipples.push({ r: bird.radius+4, maxR: bird.radius*8,
+                              hue: KEY_HUES[pc], alpha: 0.9 });
+            sunRipples.push({ r: bird.radius+2, maxR: bird.radius*5,
+                              hue: KEY_HUES[(pc+7)%12], alpha: 0.6 });
+
             document.getElementById('status-note').innerText=`LAST: ${noteNames[pc]}`;
             document.getElementById('status-register').innerText=`REGISTER: ${reg.label}`;
 
@@ -674,15 +867,34 @@ function renderFrame() {
                 `linear-gradient(90deg,hsl(${munkerT1},100%,55%),hsl(${munkerT2},100%,55%))`;
             document.getElementById('hud-box').style.borderColor=keyHSL(pc,70,55);
 
+            // ── LANE SWITCH BONUS ────────────────────────────────────────────
+            // A "max swing" = jump from gap 0 (high) to gap 2 (bass) or vice versa
+            if(lastRegGap !== -1 && switchTimer <= SWITCH_WINDOW) {
+                const swing = Math.abs(reg.gap - lastRegGap);
+                if(swing === 2) {
+                    // Full top↔bottom swing in time window
+                    const bonus = 3;
+                    score += bonus;
+                    document.getElementById('score-text').innerText = score;
+                    bonusText = reg.gap===2 ? '↓ DIVE BONUS +3' : '↑ LAUNCH BONUS +3';
+                    bonusFlash = 50;
+                } else if(swing === 1) {
+                    const bonus = 1;
+                    score += bonus;
+                    document.getElementById('score-text').innerText = score;
+                    bonusText = '+1 SWITCH';
+                    bonusFlash = 30;
+                }
+            }
+            lastRegGap = reg.gap;
+            switchTimer = 0;
+
             // ── Bird movement ────────────────────────────────────────────────
             if(mode==='EASY') {
-                // Map register to Y zone: bass→bottom, mid→mid, high→top
                 const targetY = gapY(reg.gap) + (Math.random()-0.5)*20;
-                // Gentle spring — smooth not teleport
                 bird.vy += (targetY - bird.y) * 0.12;
                 bird.vy *= 0.7;
             } else {
-                // Hard mode: flap on correct interval
                 if(!lastPeak || lastPeak.pitchClass===-1 || pc===targetNote) {
                     pendingFlap = FLAP_POWER;
                     targetNote = (pc+flapInterval)%12;
@@ -698,6 +910,9 @@ function renderFrame() {
             lastPeak = { pitchClass:pc, register:reg };
         }
     }
+
+    // Switch timer always counts up — resets on new note above
+    switchTimer++;
 
     // ── Physics ──────────────────────────────────────────────────────────────
     if(mode==='HARD') {
@@ -720,6 +935,7 @@ function renderFrame() {
     // ── Munker interpolation ─────────────────────────────────────────────────
     munkerH1 = lerpHue(munkerH1, munkerT1, 0.05);
     munkerH2 = lerpHue(munkerH2, munkerT2, 0.05);
+    sunHue   = lerpHue(sunHue, sunTargetHue, 0.08);
 
     // ── Ruliad (step every 4 frames) ─────────────────────────────────────────
     if(frames%4===0) stepRuliad();
@@ -744,8 +960,68 @@ function renderFrame() {
     // ── Ripples ──────────────────────────────────────────────────────────────
     drawRipples();
 
-    // ── Sun ──────────────────────────────────────────────────────────────────
-    drawSun(bird.x, bird.y, bird.radius, bird.colorHistory);
+    // ── Sun ripples (coloured per-note rings) ────────────────────────────────
+    ctx.save();
+    for(let i=sunRipples.length-1; i>=0; i--) {
+        const sr=sunRipples[i];
+        sr.r += 4; sr.alpha -= 0.028;
+        if(sr.alpha<=0 || sr.r>sr.maxR){ sunRipples.splice(i,1); continue; }
+        ctx.globalAlpha=sr.alpha;
+        ctx.strokeStyle=`hsl(${sr.hue},100%,62%)`;
+        ctx.lineWidth=2.5;
+        ctx.beginPath(); ctx.arc(bird.x, bird.y, sr.r, 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.globalAlpha=1; ctx.restore();
+
+    // ── Sun (coloured by pitch hue) ───────────────────────────────────────────
+    drawSun(bird.x, bird.y, bird.radius, bird.colorHistory, sunHue);
+
+    // ── Large current-note overlay (centre screen) ───────────────────────────
+    if(lastPeak && lastPeak.pitchClass>=0) {
+        const pc = lastPeak.pitchClass;
+        const noteHue = KEY_HUES[pc];
+        const reg = lastPeak.register;
+
+        // Big note name — centred vertically in the player's current zone
+        const zoneY = gapY(reg.gap);
+
+        ctx.save();
+        ctx.globalAlpha = 0.22;
+        ctx.font = `bold ${Math.min(W*0.28, 160)}px 'Space Mono', monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = `hsl(${noteHue},100%,65%)`;
+        ctx.fillText(noteNames[pc], W/2, zoneY);
+        ctx.globalAlpha=1;
+
+        // Smaller crisp label right of bird
+        ctx.font = 'bold 22px Space Mono, monospace';
+        ctx.fillStyle = `hsl(${noteHue},100%,70%)`;
+        ctx.shadowBlur=10; ctx.shadowColor=`hsl(${noteHue},100%,60%)`;
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText(noteNames[pc], bird.x + bird.radius + 10, bird.y - 10);
+
+        // Target note hint (what to sing next for boost)
+        const boostNote = (pc + flapInterval) % 12;
+        ctx.font = '11px Space Mono, monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.shadowBlur=0;
+        ctx.fillText(`→ ${noteNames[boostNote]} for boost`, bird.x + bird.radius + 10, bird.y + 12);
+        ctx.restore();
+    }
+
+    // ── Lane switch bonus flash ───────────────────────────────────────────────
+    if(bonusFlash > 0) {
+        bonusFlash--;
+        const a = bonusFlash/50;
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.font = 'bold 28px Space Mono, monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffcc00';
+        ctx.shadowBlur=15; ctx.shadowColor='#ffcc00';
+        ctx.fillText(bonusText, W/2, H/2 - 60);
+        ctx.restore();
+    }
 
     // ── Munker overlay ───────────────────────────────────────────────────────
     if(frames%2===0) drawMunker(munkerH1, munkerH2, 0.5);
