@@ -1,894 +1,797 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Winding Room</title>
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
-        * { box-sizing: border-box; }
-        body { margin:0; padding:0; background:#000; color:#fff; font-family:'Space Mono',monospace; overflow:hidden; touch-action:manipulation; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Harmonic Winding</title>
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+:root{
+    --g:#00ff41;--d:#00661a;--bg:#000300;--p:#010a01;
+    --glow:0 0 8px #00ff41,0 0 20px rgba(0,255,65,.5);
+    --f:'VT323','Courier New',monospace
+}
+*{box-sizing:border-box;font-family:var(--f)!important;letter-spacing:1px!important}
+body{margin:0;padding:0;background:var(--bg)!important;color:var(--g)!important;overflow:hidden;touch-action:manipulation}
+canvas{display:block;width:100vw;height:100vh;position:absolute;top:0;left:0;image-rendering:pixelated}
+#c-stars{z-index:1}#c-ruliad{z-index:2}#c-game{z-index:3;background:transparent}#c-munker{z-index:4;pointer-events:none}
 
-        canvas { display:block; width:100vw; height:100vh; position:absolute; top:0; left:0; image-rendering:pixelated; }
-        #c-stars  { z-index:1; }
-        #c-ruliad { z-index:2; }
-        #c-game   { z-index:3; background:transparent; }
-        #c-munker { z-index:4; pointer-events:none; }
+#nav{
+    position:absolute;top:0;left:0;width:100%;z-index:100;
+    display:flex;justify-content:center;gap:8px;padding:11px 4px;
+    background:rgba(0,3,0,.95);border-bottom:1px solid #003311;
+    pointer-events:auto;box-sizing:border-box;flex-wrap:wrap;font-size:12px
+}
+#nav a{color:var(--g)!important;text-decoration:none;text-shadow:var(--glow)!important}
+#nav span{color:#003311}
 
-        #global-nav {
-            position:absolute; top:0; left:0; width:100%; z-index:100;
-            display:flex; justify-content:center; gap:10px; padding:14px 5px;
-            background:rgba(0,0,0,0.92); border-bottom:2px solid #222;
-            pointer-events:auto; font-family:'Space Mono',monospace;
-            box-sizing:border-box; flex-wrap:wrap; font-size:11px; letter-spacing:1px;
-        }
+#ui{
+    position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:100px 14px 14px;pointer-events:none
+}
+.hud{display:flex;justify-content:space-between;width:100%;pointer-events:auto}
+.title{font-size:22px;color:var(--g)!important;text-shadow:var(--glow)!important;letter-spacing:4px!important}
+.hb{
+    background:var(--p);padding:6px 10px;border:1px solid var(--d);
+    margin-top:6px;font-size:13px;color:var(--g)!important;
+    text-shadow:var(--glow)!important;transition:border-color .3s;width:fit-content
+}
+.sc{font-size:34px;color:var(--g)!important;text-shadow:var(--glow)!important;text-align:right}
+.sub{color:#00cc33!important;font-size:11px;margin-top:2px}
+.ctrls{display:flex;gap:8px;pointer-events:auto;flex-wrap:wrap;margin-bottom:12px}
+button{
+    background:var(--p)!important;border:1px solid var(--g)!important;
+    color:var(--g)!important;text-shadow:var(--glow)!important;
+    padding:8px 13px;font-size:14px;cursor:pointer;
+    text-transform:uppercase;letter-spacing:2px!important;border-radius:0!important
+}
+button:hover{background:rgba(0,255,65,.08)!important}
 
-        #mode-tabs {
-            position:absolute; top:48px; left:0; width:100%; z-index:99;
-            display:flex; justify-content:flex-start; gap:0;
-            background:rgba(0,3,0,0.95); border-bottom:1px solid #003311;
-            pointer-events:auto;
-            overflow-x:auto; overflow-y:hidden;
-            -webkit-overflow-scrolling:touch;
-            scrollbar-width:none;
-        }
-        #mode-tabs::-webkit-scrollbar { display:none; }
-        .tab-btn {
-            background:transparent; border:none; border-right:1px solid #003311;
-            color:#003311; padding:10px 16px; font-family:'VT323','Courier New',monospace;
-            font-size:15px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;
-            transition:all 0.2s; white-space:nowrap; flex-shrink:0;
-            min-width:0;
-        }
-        .tab-btn:last-child { border-right:none; }
-        .tab-btn.active { color:#00ff41; border-bottom:2px solid #00ff41; background:rgba(0,255,65,0.06); text-shadow:0 0 8px #00ff41; }
-        .tab-btn:hover:not(.active) { color:#00cc33; }
+#go{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    text-align:center;display:none;z-index:20;pointer-events:auto;
+    background:#000500!important;padding:32px 44px;
+    border:1px solid var(--g)!important;box-shadow:0 0 40px rgba(0,255,65,.25)
+}
+#go h1{color:var(--g)!important;text-shadow:var(--glow)!important;margin:0 0 8px;font-size:26px;letter-spacing:4px}
+#go p{color:#00cc33!important;font-size:15px}
 
-        #ui-layer {
-            position:absolute; top:0; left:0; width:100%; height:100%;
-            z-index:10; display:flex; flex-direction:column;
-            justify-content:space-between; padding:108px 14px 14px 14px;
-            pointer-events:none;
-        }
-        .hud { display:flex; justify-content:space-between; width:100%; pointer-events:auto; }
-        .hud-box {
-            background:rgba(0,0,0,0.78); padding:8px 12px;
-            border:1px solid #333; font-size:10px; letter-spacing:1px;
-            transition:border-color 0.4s;
-        }
-        .score-text  { font-size:26px; color:#ff8c00; font-weight:bold; text-align:right; }
-        .high-score  { font-size:11px; color:#ff00ff; text-align:right; margin-bottom:4px; }
-        .controls    { display:flex; gap:10px; pointer-events:auto; margin-bottom:20px; flex-wrap:wrap; }
-        button {
-            background:rgba(0,0,0,0.8); border:2px solid #fff; color:#fff;
-            padding:9px 14px; font-family:'Space Mono',monospace; font-size:10px;
-            cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition:all 0.15s;
-        }
-        button:active { transform:translate(2px,2px); }
+#pa{position:absolute;top:0;left:0;width:100%;height:3px;z-index:15;pointer-events:none;transition:background .5s;opacity:.7}
 
-        #result-panel {
-            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-            text-align:center; display:none; z-index:20; pointer-events:auto;
-            background:rgba(0,0,0,0.96); padding:40px 50px;
-            border:3px solid #ff00ff; box-shadow:0 0 30px rgba(255,0,255,0.3);
-        }
-        #result-panel h1 { color:#ff00ff; margin:0 0 12px 0; font-size:20px; letter-spacing:3px; }
-
-        #pitch-accent {
-            position:absolute; top:0; left:0; width:100%; height:3px;
-            z-index:15; pointer-events:none; transition:background 0.5s;
-        }
-
-        /* Mode-specific hint overlays */
-        #mode-hint {
-            position:absolute; bottom:80px; left:50%; transform:translateX(-50%);
-            z-index:11; pointer-events:none; font-size:10px; letter-spacing:1px;
-            color:#aaa; text-align:center; text-shadow:1px 1px 0 #000;
-        }
-    
-    
-
-    /* ── MATRIX TERMINAL SKIN ──────────────────────────────────────────────── */
-    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-
-    :root {
-        --m-green: #00ff41;
-        --m-mid:   #00cc33;
-        --m-dim:   #00661a;
-        --m-bg:    #000300;
-        --m-panel: #010a01;
-        --m-glow:  0 0 8px #00ff41, 0 0 20px rgba(0,255,65,0.5);
-        --m-font:  'VT323', 'Courier New', monospace;
-    }
-
-    * {
-        font-family: var(--m-font) !important;
-        letter-spacing: 2px !important;
-    }
-
-    body {
-        background: var(--m-bg) !important;
-        color: var(--m-green) !important;
-        font-family: var(--m-font) !important;
-        font-size: 16px !important;
-    }
-
-    #global-nav {
-        background: rgba(0,3,0,0.95) !important;
-        border-bottom: 1px solid var(--m-dim) !important;
-        font-family: var(--m-font) !important;
-        font-size: 14px !important;
-    }
-    #global-nav a {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 14px !important;
-    }
-    #global-nav span { color: #003311 !important; }
-
-    #mode-tabs { background: rgba(0,3,0,0.95) !important; border-bottom-color: #003311 !important; overflow-x:auto !important; }
-    .tab-btn {
-        font-family: var(--m-font) !important;
-        font-size: 15px !important;
-        color: #003311 !important;
-        white-space: nowrap !important;
-        padding: 10px 16px !important;
-        min-width: 0 !important;
-    }
-    .tab-btn.active {
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        border-bottom-color: var(--m-green) !important;
-        background: rgba(0,255,65,0.05) !important;
-    }
-
-    .title, #main-title, #mode-title {
-        font-family: var(--m-font) !important;
-        font-size: 26px !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        letter-spacing: 5px !important;
-    }
-
-    .hud-box, #hud-box {
-        font-family: var(--m-font) !important;
-        background: var(--m-panel) !important;
-        border: 1px solid var(--m-dim) !important;
-    }
-    .hud-box *, #hud-box * {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 15px !important;
-    }
-
-    .ratio-box {
-        font-family: var(--m-font) !important;
-        background: var(--m-panel) !important;
-        border-left: 3px solid var(--m-green) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 15px !important;
-    }
-
-    #score-text, .score-display, .score-text {
-        font-family: var(--m-font) !important;
-        font-size: 42px !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        letter-spacing: 4px !important;
-    }
-
-    .subtitle, .high-score, #best-text, #high-score-text {
-        font-family: var(--m-font) !important;
-        color: var(--m-mid) !important;
-        font-size: 13px !important;
-    }
-
-    button {
-        font-family: var(--m-font) !important;
-        font-size: 15px !important;
-        background: var(--m-panel) !important;
-        border: 1px solid var(--m-green) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        box-shadow: 0 0 8px rgba(0,255,65,0.2),
-                    inset 0 0 10px rgba(0,255,65,0.05) !important;
-        letter-spacing: 3px !important;
-        border-radius: 0 !important;
-        padding: 10px 16px !important;
-    }
-    button:hover {
-        background: rgba(0,255,65,0.08) !important;
-        box-shadow: 0 0 14px rgba(0,255,65,0.35) !important;
-    }
-
-    #status-text, #status-mode, #status-note, #status-register,
-    #hud-ratio, #hud-extra, #hud-level, #hud-note, #hud-upgrade,
-    #launch-warn, #status-health, #power-meter,
-    #val-current, #val-interval, #val-target,
-    .data-text, .data-value, .data-label,
-    .target-text, .reg-label, #mode-hint,
-    #harmony-feedback, #hud-last, #hud-rise, #hud-dawn {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-        font-size: 15px !important;
-    }
-
-    #game-over, #result-panel, #rules-overlay {
-        font-family: var(--m-font) !important;
-        background: #000500 !important;
-        border: 1px solid var(--m-green) !important;
-        box-shadow: 0 0 40px rgba(0,255,65,0.25),
-                    inset 0 0 30px rgba(0,255,65,0.03) !important;
-        color: var(--m-green) !important;
-    }
-    #game-over *, #result-panel *, #rules-overlay * {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-    }
-    #game-over h1, #result-title {
-        font-size: 36px !important;
-        letter-spacing: 6px !important;
-    }
-
-    #level-banner {
-        font-family: var(--m-font) !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-    }
-
-    .reg-label, #lbl-high, #lbl-mid, #lbl-bass {
-        font-family: var(--m-font) !important;
-        font-size: 14px !important;
-        color: var(--m-green) !important;
-        text-shadow: var(--m-glow) !important;
-    }
-
-    #pitch-accent { opacity: 0.6 !important; filter: hue-rotate(80deg) saturate(2) !important; }
-
-    #monolith-ambient {
-        background: radial-gradient(ellipse at bottom,
-            rgba(0,255,65,0.06) 0%, transparent 70%) !important;
-    }
-    /* ── END MATRIX TERMINAL SKIN ─────────────────────────────────────────── */
+/* Drag aim line */
+#aim-info{
+    position:absolute;bottom:110px;left:50%;transform:translateX(-50%);
+    font-size:13px;color:var(--g)!important;text-shadow:var(--glow)!important;
+    z-index:11;pointer-events:none;opacity:.6;letter-spacing:2px
+}
 </style>
 </head>
 <body>
 
-<div id="global-nav">
-    <a href="index.html"     style="color:#ff8c00;text-decoration:none;font-weight:bold;">[1] SUNRISE</a>  <span style="color:#444;">|</span>
-    <a href="flappy.html"    style="color:#00ffcc;text-decoration:none;font-weight:bold;">[2] FLAPPY</a>   <span style="color:#444;">|</span>
-    <a href="billiards.html" style="color:#ff00ff;text-decoration:none;font-weight:bold;">[3] WINDING</a>  <span style="color:#444;">|</span>
-    <a href="invaders.html"  style="color:#ff0055;text-decoration:none;font-weight:bold;">[4] INVADERS</a> <span style="color:#444;">|</span>
-    <a href="weaver.html"    style="color:#b366ff;text-decoration:none;font-weight:bold;">[5] WEAVER</a>   <span style="color:#444;">|</span>
-    <a href="simon.html"     style="color:#fff;text-decoration:none;font-weight:bold;">[6] SIMON</a>
+<div id="nav">
+    <a href="index.html">[1]SUNRISE</a><span>|</span>
+    <a href="flappy.html">[2]FLAPPY</a><span>|</span>
+    <a href="billiards.html">[3]WINDING</a><span>|</span>
+    <a href="invaders.html">[4]INVADERS</a><span>|</span>
+    <a href="weaver.html">[5]WEAVER</a><span>|</span>
+    <a href="simon.html">[6]SIMON</a>
 </div>
 
-<div id="mode-tabs">
-    <button class="tab-btn active" data-mode="freeplay">FREE PLAY</button>
-    <button class="tab-btn" data-mode="dodge">WAVE DODGE</button>
-    <button class="tab-btn" data-mode="resonance">RESONANCE</button>
-    <button class="tab-btn" data-mode="chaos">CHAOS</button>
-</div>
-
-<div id="pitch-accent"></div>
-
+<div id="pa"></div>
 <canvas id="c-stars"></canvas>
 <canvas id="c-ruliad"></canvas>
 <canvas id="c-game"></canvas>
 <canvas id="c-munker"></canvas>
 
-<div id="ui-layer">
+<div id="aim-info">DRAG FROM WHITE BALL TO SHOOT</div>
+
+<div id="ui">
     <div class="hud">
-        <div class="hud-box" id="hud-box">
-            <div style="color:#ff00ff;font-weight:bold;font-size:14px;" id="mode-title">THE WINDING ROOM</div>
-            <div id="hud-ratio"  style="color:#00ffcc;margin-top:4px;">WAVE RATIO: --</div>
-            <div id="hud-extra"  style="color:#ff8c00;margin-top:2px;font-size:9px;"></div>
-            <div id="launch-warn" style="color:#ff0055;font-size:9px;margin-top:6px;">PLAY SAME NOTE TWICE TO LAUNCH</div>
-        </div>
         <div>
-            <div class="high-score">BEST: <span id="high-score-text">0</span></div>
-            <div style="font-size:9px;color:#aaa;text-align:right;" id="score-label">BOUNCES</div>
-            <div id="score-text" class="score-text">0</div>
+            <div class="title">HARMONIC WINDING</div>
+            <div class="hb" id="hb">
+                <div id="snote">NOTE: --</div>
+                <div id="sreg">BOUNCES: 0</div>
+                <div id="starget" style="color:#ff8c00!important">TARGET: --</div>
+                <div id="sinterval" style="color:#ff00ff!important">INTERVAL: --</div>
+            </div>
+        </div>
+        <div style="text-align:right">
+            <div class="sub">WINDING</div>
+            <div class="sc" id="sc">0</div>
+            <div class="sub" style="margin-top:4px">BEST <span id="best">0</span></div>
         </div>
     </div>
-    <div class="controls">
-        <button id="btn-mic" style="border-color:#0f0;color:#0f0;">START MIC</button>
-        <button id="btn-shoot" style="display:none;border-color:#ff8c00;color:#ff8c00;">MANUAL LAUNCH</button>
-        <button id="btn-reset" style="display:none;border-color:#ff00ff;color:#ff00ff;">RESET</button>
+    <div class="ctrls">
+        <button id="bmic">START MIC</button>
+        <button id="bdim" style="border-color:#ff00ff;color:#ff00ff!important">DIM: 1</button>
+        <button id="bmode" style="border-color:#00cc33;color:#00cc33!important">MODE: STUDY</button>
     </div>
 </div>
 
-<div id="mode-hint"></div>
-
-<div id="result-panel">
-    <h1 id="result-title">CORNER STRIKE!</h1>
-    <p id="result-body">You survived <span id="res-score" style="color:#0f0;font-weight:bold;font-size:20px;">0</span> bounces.</p>
-    <button id="btn-result-reset" style="border-color:#fff;color:#fff;margin-top:20px;">PLAY AGAIN</button>
+<div id="go">
+    <h1>UNRAVELLED!</h1>
+    <p>Winding: <span id="gf" style="font-size:20px;color:var(--g)!important">0</span></p>
+    <p id="gnote" style="font-size:13px;color:#00cc33!important"></p>
+    <button id="brst" style="margin-top:12px">REWIND</button>
 </div>
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// AUDIO ENGINE (inlined, no import)
-// ─────────────────────────────────────────────────────────────────────────────
-const noteNames = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-const KEY_HUES  = [0,30,55,80,110,145,175,200,230,265,295,330];
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const NOTE   = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const HUE    = [0,30,55,80,110,145,175,200,230,265,295,330];
+const INTERVALS = [
+    {name:'Minor 2nd', st:1},  {name:'Major 2nd', st:2},
+    {name:'Minor 3rd', st:3},  {name:'Major 3rd', st:4},
+    {name:'Perfect 4th', st:5},{name:'Tritone',   st:6},
+    {name:'Perfect 5th', st:7},{name:'Minor 6th', st:8},
+    {name:'Major 6th', st:9},  {name:'Minor 7th', st:10},
+    {name:'Major 7th', st:11}
+];
 
-function hzToPitchClass(hz) {
-    if(hz<=0) return -1;
-    let h=Math.round(12*Math.log2(hz/16.35));
-    return((h%12)+12)%12;
-}
-function lerpHue(a,b,t){let d=b-a;if(d>180)d-=360;if(d<-180)d+=360;return(a+d*t+360)%360;}
-function keyHSL(pc,s=100,l=55){return`hsl(${KEY_HUES[pc]},${s}%,${l}%)`;}
+function pc(hz){ if(hz<=0)return -1; let h=Math.round(12*Math.log2(hz/16.35)); return((h%12)+12)%12; }
+function lh(a,b,t){ let d=b-a; if(d>180)d-=360; if(d<-180)d+=360; return(a+d*t+360)%360; }
+function noteColor(n,s=100,l=55){ return `hsl(${HUE[n]},${s}%,${l}%)`; }
 
-class AudioEngine {
-    constructor(){ this.audioContext=null;this.analyser=null;this.microphone=null;this.isRunning=false;this.dataArray=null; }
-    async startMic(){
+// ── AUDIO ────────────────────────────────────────────────────────────────────
+class Mic {
+    constructor(){ this.ctx=null; this.an=null; this.isRunning=false; this.buf=null; }
+    async start(){
         try{
-            this.audioContext=new(window.AudioContext||window.webkitAudioContext)();
-            const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-            this.microphone=this.audioContext.createMediaStreamSource(stream);
-            this.analyser=this.audioContext.createAnalyser();
-            this.analyser.fftSize=8192;
-            this.analyser.smoothingTimeConstant=0.75;
-            this.microphone.connect(this.analyser);
-            this.dataArray=new Uint8Array(this.analyser.frequencyBinCount);
+            this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+            const s=await navigator.mediaDevices.getUserMedia({audio:true});
+            const src=this.ctx.createMediaStreamSource(s);
+            this.an=this.ctx.createAnalyser();
+            this.an.fftSize=8192; this.an.smoothingTimeConstant=0.82;
+            src.connect(this.an);
+            this.buf=new Uint8Array(this.an.frequencyBinCount);
             this.isRunning=true; return true;
-        }catch(e){console.error(e);return false;}
+        }catch(e){ return false; }
     }
-    getPeaks(threshold=85){
-        if(!this.isRunning) return [];
-        this.analyser.getByteFrequencyData(this.dataArray);
-        const sr=this.audioContext.sampleRate, binHz=sr/this.analyser.fftSize;
-        const lo=Math.floor(80/binHz), hi=Math.floor(3000/binHz);
-        let maxVal=0,maxIdx=-1;
-        for(let i=lo;i<hi&&i<this.dataArray.length;i++){
-            if(this.dataArray[i]>maxVal){maxVal=this.dataArray[i];maxIdx=i;}
+    read(thr=110){
+        if(!this.isRunning) return -1;
+        this.an.getByteFrequencyData(this.buf);
+        const sr=this.ctx.sampleRate, bHz=sr/this.an.fftSize;
+        const lo=Math.floor(80/bHz), hi=Math.floor(3000/bHz);
+        let maxV=0, maxI=-1;
+        for(let i=lo;i<hi&&i<this.buf.length;i++){
+            if(this.buf[i]>maxV){maxV=this.buf[i];maxI=i;}
         }
-        if(maxVal>threshold) return [{hz:maxIdx*binHz,amp:maxVal}];
-        return [];
+        return maxV>thr ? pc(maxI*bHz) : -1;
+    }
+    amplitude(){
+        if(!this.isRunning) return 0;
+        this.an.getByteFrequencyData(this.buf);
+        let s=0; for(let i=0;i<32;i++) s+=this.buf[i];
+        return s/(32*255);
     }
 }
+const mic = new Mic();
+let micOn = false;
 
-const audio = new AudioEngine();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CANVAS LAYERS
-// ─────────────────────────────────────────────────────────────────────────────
-const cStars=document.getElementById('c-stars'),   ctxS=cStars.getContext('2d');
-const cRuliad=document.getElementById('c-ruliad'), ctxR=cRuliad.getContext('2d');
-const cGame=document.getElementById('c-game'),     ctx=cGame.getContext('2d');
-const cMunker=document.getElementById('c-munker'), ctxM=cMunker.getContext('2d');
+// ── CANVAS ───────────────────────────────────────────────────────────────────
+const cS=document.getElementById('c-stars'),   ctxS=cS.getContext('2d');
+const cR=document.getElementById('c-ruliad'),  ctxR=cR.getContext('2d');
+const cG=document.getElementById('c-game'),    ctx=cG.getContext('2d');
+const cM=document.getElementById('c-munker'),  ctxM=cM.getContext('2d');
 let W,H;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SHARED VISUALS: stars, ruliad, munker
-// ─────────────────────────────────────────────────────────────────────────────
-let stars=[], rulCells, rulNext, rulCols, rulRows;
-const RUL_CELL=10;
-let munkerH1=270,munkerH2=30,munkerT1=270,munkerT2=30;
-let frames=0;
+// ── SHARED VISUALS (ruliad CA + stars + munker — same system as rest of suite) ──
+let stars=[], rCells, rNext, rCols, rRows;
+const RUL=10;
+let mH1=110,mH2=265,mT1=110,mT2=265;
+let frame=0;
 
-function initVisuals(){
-    rulCols=Math.ceil(W/RUL_CELL)+1; rulRows=Math.ceil(H/RUL_CELL)+1;
-    rulCells=new Uint8Array(rulCols*rulRows); rulNext=new Uint8Array(rulCols*rulRows);
-    for(let i=0;i<rulCells.length;i++) rulCells[i]=Math.random()<0.32?1:0;
+function initVis(){
+    rCols=Math.ceil(W/RUL)+1; rRows=Math.ceil(H/RUL)+1;
+    rCells=new Uint8Array(rCols*rRows); rNext=new Uint8Array(rCols*rRows);
+    for(let i=0;i<rCells.length;i++) rCells[i]=Math.random()<.32?1:0;
     stars=[];
-    for(let i=0;i<220;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<0.1?2:1,bri:0.2+Math.random()*0.8,tw:Math.random()*Math.PI*2});
+    for(let i=0;i<260;i++) stars.push({
+        x:Math.random()*W,y:Math.random()*H,
+        r:Math.random()<.1?2:1,bri:.2+Math.random()*.8,tw:Math.random()*Math.PI*2
+    });
 }
-
 function stepRuliad(){
-    for(let y=0;y<rulRows;y++) for(let x=0;x<rulCols;x++){
-        const i=y*rulCols+x; let n=0;
+    for(let y=0;y<rRows;y++) for(let x=0;x<rCols;x++){
+        const i=y*rCols+x; let n=0;
         for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
-            if(dx===0&&dy===0) continue;
-            n+=rulCells[((y+dy+rulRows)%rulRows)*rulCols+(x+dx+rulCols)%rulCols];
+            if(dx===0&&dy===0)continue;
+            n+=rCells[((y+dy+rRows)%rRows)*rCols+(x+dx+rCols)%rCols];
         }
-        const a=rulCells[i]; rulNext[i]=a?((n===2||n===3)?1:0):((n===3||n===6)?1:0);
+        const a=rCells[i]; rNext[i]=a?((n===2||n===3)?1:0):((n===3||n===6)?1:0);
     }
-    let t=rulCells; rulCells=rulNext; rulNext=t;
+    let t=rCells;rCells=rNext;rNext=t;
 }
-
-function drawStars(pc){
-    ctxS.fillStyle='#000'; ctxS.fillRect(0,0,W,H);
+function drawStars(p){
+    ctxS.fillStyle='#000';ctxS.fillRect(0,0,W,H);
     stars.forEach(s=>{
-        const tw=0.55+0.45*Math.sin(s.tw+frames*0.018);
-        ctxS.fillStyle=pc>=0?`hsla(${KEY_HUES[pc]},55%,82%,${s.bri*tw*0.88})`:`rgba(255,255,255,${s.bri*tw*0.85})`;
+        const tw=.55+.45*Math.sin(s.tw+frame*.018);
+        ctxS.fillStyle=p>=0?`hsla(${HUE[p]},55%,82%,${s.bri*tw*.88})`:`rgba(255,255,255,${s.bri*tw*.85})`;
         ctxS.fillRect(s.x,s.y,s.r,s.r);
     });
 }
-
-function drawRuliad(pc){
+function drawRuliad(p){
     ctxR.clearRect(0,0,W,H);
-    const hue=pc>=0?KEY_HUES[pc]:270;
-    for(let y=0;y<rulRows;y++) for(let x=0;x<rulCols;x++){
-        if(rulCells[y*rulCols+x]){
-            ctxR.fillStyle=`hsla(${hue},65%,55%,0.15)`;
-            ctxR.fillRect(x*RUL_CELL,y*RUL_CELL,RUL_CELL-1,RUL_CELL-1);
+    const hue=p>=0?HUE[p]:110;
+    for(let y=0;y<rRows;y++) for(let x=0;x<rCols;x++){
+        if(rCells[y*rCols+x]){
+            ctxR.fillStyle=`hsla(${hue},65%,55%,.14)`;
+            ctxR.fillRect(x*RUL,y*RUL,RUL-1,RUL-1);
         }
     }
 }
-
-function drawMunker(h1,h2,op=0.48){
+function drawMunker(h1,h2,op=.45){
     ctxM.clearRect(0,0,W,H);
     const S=16;
     for(let y=0;y<H;y++){
         const m=y%S;
-        if(m<2)              {ctxM.fillStyle=`hsla(${h1},100%,58%,${op})`;   ctxM.fillRect(0,y,W,1);}
+        if(m<2)               {ctxM.fillStyle=`hsla(${h1},100%,58%,${op})`;  ctxM.fillRect(0,y,W,1);}
         else if(m>=S/2&&m<S/2+2){ctxM.fillStyle=`hsla(${h2},100%,58%,${op})`;ctxM.fillRect(0,y,W,1);}
-        else if(m===3||m===S/2-1){ctxM.fillStyle=`rgba(0,0,0,0.5)`;          ctxM.fillRect(0,y,W,1);}
+        else if(m===3||m===S/2-1){ctxM.fillStyle=`rgba(0,0,0,.5)`;           ctxM.fillRect(0,y,W,1);}
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STANDING WAVE FIELD  (2D Lissajous evaluated per cell → warp force)
-// ─────────────────────────────────────────────────────────────────────────────
-let currentRatio=1.0, wavePhase=0;
+// ── GEOMETRY ─────────────────────────────────────────────────────────────────
+// Each dimension uses a different polygon count matching music theory
+// Dim1=3(triad) Dim2=4(tetrad) Dim3=5(pentatonic) Dim4=6(hexatonic) Dim5=7(heptatonic) Dim6=12(chromatic)
+const DIM_SIDES   = [3,4,5,6,7,12];
+const DIM_NAMES   = ['TRIAD','TETRAD','PENTA','HEXA','HEPTA','CHROMA'];
+let dimension = 0; // index into DIM_SIDES
 
-function waveForce(x,y,sqX,sqY,sqSize){
-    // Normalise position within square [0,1]
-    const nx=(x-sqX)/sqSize, ny=(y-sqY)/sqSize;
-    // Standing wave: superposition of horizontal + vertical modes set by ratio
-    const wx=Math.sin(nx*Math.PI*2+wavePhase);
-    const wy=Math.sin(ny*Math.PI*2*currentRatio+wavePhase*currentRatio);
-    const grad=wx*wy; // interference term
-    return { fx: Math.cos(nx*Math.PI*2)*wy*0.12, fy: wx*Math.cos(ny*Math.PI*2*currentRatio)*0.12, intensity: Math.abs(grad) };
+let tableCX, tableCY, tableR;
+let pockets=[]; // {x,y,note,intervalName}
+let walls=[];   // {x1,y1,x2,y2,nx,ny} — wall normals for reflection
+
+function buildTable(){
+    tableCX = W/2;
+    tableCY = H/2 + 20;
+    tableR  = Math.min(W,H)*0.36;
+
+    const sides = DIM_SIDES[dimension];
+    const rotOffset = -Math.PI/2 + (sides%2===0?Math.PI/sides:0);
+
+    // Vertices
+    const verts=[];
+    for(let i=0;i<sides;i++){
+        const a = rotOffset + (i*2*Math.PI/sides);
+        verts.push({ x:tableCX+tableR*Math.cos(a), y:tableCY+tableR*Math.sin(a) });
+    }
+
+    // Walls from vertices
+    walls=[];
+    for(let i=0;i<sides;i++){
+        const a=verts[i], b=verts[(i+1)%sides];
+        const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy);
+        walls.push({ x1:a.x,y1:a.y, x2:b.x,y2:b.y, nx:-dy/len, ny:dx/len });
+    }
+
+    // Pockets at each vertex — each assigned a note from the scale
+    // The note assigned matches the musical interval of the dimension
+    pockets=[];
+    for(let i=0;i<sides;i++){
+        const noteIdx = (i * Math.floor(12/sides)) % 12;
+        pockets.push({ x:verts[i].x, y:verts[i].y, note:noteIdx, r:18 });
+    }
 }
 
-function drawWaveField(sqX,sqY,sqSize,pc){
-    // Draw Lissajous curve in square
-    const hue=pc>=0?KEY_HUES[pc]:270;
-    ctx.beginPath();
-    ctx.strokeStyle=`hsla(${hue},100%,65%,0.35)`;
-    ctx.lineWidth=1.5;
-    for(let t=0;t<Math.PI*2*10;t+=0.04){
-        const lx=sqX+(0.5+0.5*Math.sin(t+wavePhase))*sqSize;
-        const ly=sqY+(0.5+0.5*Math.sin(t*currentRatio+wavePhase*0.7))*sqSize;
-        t<0.04?ctx.moveTo(lx,ly):ctx.lineTo(lx,ly);
-    }
-    ctx.stroke();
+// ── BALLS ─────────────────────────────────────────────────────────────────────
+const BALL_R = 14;
+const FRICTION = 0.986;
+let balls=[];
 
-    // Faint wave field overlay — draw intensity grid
-    const step=20;
-    for(let gx=sqX;gx<sqX+sqSize;gx+=step){
-        for(let gy=sqY;gy<sqY+sqSize;gy+=step){
-            const {intensity}=waveForce(gx,gy,sqX,sqY,sqSize);
-            if(intensity>0.5){
-                ctx.fillStyle=`hsla(${hue},100%,70%,${(intensity-0.5)*0.25})`;
-                ctx.fillRect(gx,gy,step-1,step-1);
+function resetBalls(){
+    balls=[
+        // White (cue ball)
+        { x:tableCX, y:tableCY+tableR*0.35, vx:0, vy:0, type:'WHITE',  note:-1, r:BALL_R },
+        // Target balls at sub-positions inside table
+        { x:tableCX-tableR*.25, y:tableCY-tableR*.2, vx:0, vy:0, type:'TARGET', note:0,  r:BALL_R },
+        { x:tableCX+tableR*.25, y:tableCY-tableR*.2, vx:0, vy:0, type:'TARGET', note:0,  r:BALL_R },
+        { x:tableCX,            y:tableCY-tableR*.38,vx:0, vy:0, type:'TARGET', note:0,  r:BALL_R },
+    ];
+    assignTargetNotes();
+}
+
+function assignTargetNotes(){
+    // Assign a random selection of notes from the current dimension's scale
+    const sides=DIM_SIDES[dimension];
+    balls.filter(b=>b.type==='TARGET').forEach((b,i)=>{
+        const noteIdx = (i * Math.floor(12/sides)) % 12;
+        b.note = noteIdx;
+    });
+}
+
+// ── GAME STATE ────────────────────────────────────────────────────────────────
+let gameState   = 'IDLE'; // IDLE PLAYING OVER
+let studyMode   = true;   // STUDY shows target note, BLIND hides it
+let score       = 0;
+let best        = 0;
+let bounceCount = 0;
+let currentPitch= -1;
+let targetNote  = -1;     // which note the player must match with voice to unlock pocket
+let sunkNotes   = new Set();
+let needsAllSunk = false;
+
+// Drag to shoot
+let drag = { active:false, startX:0, startY:0, curX:0, curY:0 };
+
+try{ best=parseInt(localStorage.getItem('windingBest')||'0'); }catch(e){}
+document.getElementById('best').innerText=best;
+
+function pickNextTarget(){
+    const remaining = balls.filter(b=>b.type==='TARGET'&&!b.sunk);
+    if(remaining.length===0){ nextDimension(); return; }
+    targetNote = remaining[0].note;
+    updateHUD();
+}
+
+function updateHUD(){
+    const el=document.getElementById('starget');
+    if(studyMode){
+        el.innerText = targetNote>=0 ? `TARGET: ${NOTE[targetNote]}` : 'TARGET: --';
+        el.style.display='block';
+    } else {
+        el.innerText='TARGET: ???';
+    }
+    const intSemitones = currentPitch>=0 && targetNote>=0 ? (targetNote-currentPitch+12)%12 : -1;
+    const intObj = intSemitones>0 ? INTERVALS.find(iv=>iv.st===intSemitones) : null;
+    document.getElementById('sinterval').innerText = intObj ? `INTERVAL: ${intObj.name}` : 'INTERVAL: --';
+    document.getElementById('sc').innerText=score;
+    document.getElementById('sreg').innerText=`BOUNCES: ${bounceCount}`;
+}
+
+function nextDimension(){
+    dimension = Math.min(dimension+1, DIM_SIDES.length-1);
+    document.getElementById('bdim').innerText=`DIM: ${dimension+1} ${DIM_NAMES[dimension]}`;
+    buildTable();
+    resetBalls();
+    bounceCount=0;
+    sunkNotes.clear();
+    pickNextTarget();
+}
+
+function startGame(){
+    score=0; bounceCount=0; dimension=0; sunkNotes.clear();
+    document.getElementById('sc').innerText=0;
+    document.getElementById('bdim').innerText=`DIM: 1 ${DIM_NAMES[0]}`;
+    buildTable();
+    resetBalls();
+    gameState='PLAYING';
+    pickNextTarget();
+    document.getElementById('go').style.display='none';
+}
+
+function gameOver(){
+    gameState='OVER';
+    if(score>best){ best=score; try{localStorage.setItem('windingBest',best);}catch(e){} document.getElementById('best').innerText=best; }
+    document.getElementById('gf').innerText=score;
+    document.getElementById('gnote').innerText=`DIMENSION ${dimension+1} — ${DIM_NAMES[dimension]}`;
+    document.getElementById('go').style.display='block';
+}
+
+// ── PHYSICS ───────────────────────────────────────────────────────────────────
+function reflectBall(b, wall){
+    const dot = b.vx*wall.nx + b.vy*wall.ny;
+    if(dot>=0) return; // moving away already
+    b.vx -= 2*dot*wall.nx;
+    b.vy -= 2*dot*wall.ny;
+    b.vx *= 0.92; b.vy *= 0.92; // energy loss on bounce
+    bounceCount++;
+    document.getElementById('sreg').innerText=`BOUNCES: ${bounceCount}`;
+
+    // Bounce audio feedback — flash pitch accent
+    if(currentPitch>=0){
+        document.getElementById('pa').style.background=
+            `hsl(${HUE[currentPitch]},100%,55%)`;
+        setTimeout(()=>document.getElementById('pa').style.background='transparent',120);
+    }
+}
+
+function distToSegment(px,py,ax,ay,bx,by){
+    const dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy;
+    if(len2===0)return Math.hypot(px-ax,py-ay);
+    const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/len2));
+    return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+}
+
+function pointSegmentOverlap(bx,by,r,wall){
+    return distToSegment(bx,by,wall.x1,wall.y1,wall.x2,wall.y2) < r;
+}
+
+function updatePhysics(){
+    balls.forEach(b=>{
+        if(b.sunk||b.sinking) return;
+
+        // Gravity toward active pocket if note matches voice
+        if(currentPitch>=0){
+            pockets.forEach(p=>{
+                if(p.note===currentPitch||p.note===targetNote){
+                    const dx=p.x-b.x,dy=p.y-b.y,dist=Math.hypot(dx,dy);
+                    if(dist>0&&dist<tableR*0.4){
+                        const pull=0.008*(1-dist/(tableR*0.4));
+                        b.vx+=dx/dist*pull*(b.type==='WHITE'?0.3:0.6);
+                        b.vy+=dy/dist*pull*(b.type==='WHITE'?0.3:0.6);
+                    }
+                }
+            });
+        }
+
+        // Mic amplitude nudges white ball slightly (haptic feel)
+        if(b.type==='WHITE'&&micOn){
+            const amp=mic.amplitude();
+            if(amp>0.15){
+                b.vx+=(Math.random()-.5)*amp*0.4;
+                b.vy+=(Math.random()-.5)*amp*0.4;
             }
         }
-    }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PIXEL BALL RENDERER
-// ─────────────────────────────────────────────────────────────────────────────
-function drawPixelBall(x,y,r,shade,hi='#eee',px=3){
-    for(let py=-r;py<=r;py+=px) for(let ppx=-r;ppx<=r;ppx+=px){
-        if(ppx*ppx+py*py<=r*r){
-            ctx.fillStyle=(ppx<0&&py<0)?hi:shade;
-            ctx.fillRect(Math.round(x+ppx),Math.round(y+py),px,px);
+        b.vx*=FRICTION; b.vy*=FRICTION;
+        if(Math.hypot(b.vx,b.vy)<0.01){b.vx=0;b.vy=0;}
+
+        // Sub-step integration
+        const steps=3;
+        for(let s=0;s<steps;s++){
+            b.x+=b.vx/steps; b.y+=b.vy/steps;
+
+            // Wall collisions
+            walls.forEach(w=>{
+                if(pointSegmentOverlap(b.x,b.y,b.r+2,w)){
+                    reflectBall(b,w);
+                    // Push ball back out
+                    const dist=distToSegment(b.x,b.y,w.x1,w.y1,w.x2,w.y2);
+                    const push=b.r+2-dist;
+                    b.x+=w.nx*push; b.y+=w.ny*push;
+                }
+            });
+
+            // Pocket collision
+            pockets.forEach(p=>{
+                const dist=Math.hypot(b.x-p.x,b.y-p.y);
+                if(dist<p.r+b.r*0.5){
+                    sinkBall(b,p);
+                }
+            });
         }
+
+        // Ball-ball collisions
+        balls.forEach(b2=>{
+            if(b===b2||b.sunk||b2.sunk) return;
+            const dx=b2.x-b.x,dy=b2.y-b.y;
+            const dist=Math.hypot(dx,dy);
+            const minD=b.r+b2.r;
+            if(dist<minD&&dist>0.01){
+                const overlap=minD-dist;
+                const nx=dx/dist,ny=dy/dist;
+                b.x-=nx*overlap/2; b.y-=ny*overlap/2;
+                b2.x+=nx*overlap/2; b2.y+=ny*overlap/2;
+                const kx=b.vx-b2.vx,ky=b.vy-b2.vy,p2=nx*kx+ny*ky;
+                if(p2>0){
+                    b.vx-=p2*nx; b.vy-=p2*ny;
+                    b2.vx+=p2*nx; b2.vy+=p2*ny;
+                }
+            }
+        });
+    });
+}
+
+function sinkBall(b,pocket){
+    if(b.sinking||b.sunk) return;
+    b.sinking=true;
+
+    if(b.type==='WHITE'){
+        // Cue ball sunk — respawn
+        setTimeout(()=>{
+            b.sinking=false;
+            b.x=tableCX; b.y=tableCY+tableR*0.35;
+            b.vx=0; b.vy=0;
+        },600);
+        return;
+    }
+
+    // TARGET ball — only scores if voice matches the pocket note
+    const pocketNoteMatch = currentPitch>=0 && currentPitch===pocket.note;
+    const targetMatch     = b.note===pocket.note;
+
+    if(targetMatch && (pocketNoteMatch||gameState==='PLAYING')){
+        // Check if player is singing correct note (study requirement in BLIND mode)
+        if(!studyMode && currentPitch>=0 && currentPitch!==targetNote){
+            // Blind mode strict — must be singing the right note
+            b.sinking=false; return;
+        }
+        b.sunk=true;
+        score+=10+bounceCount;
+        sunkNotes.add(b.note);
+        document.getElementById('sc').innerText=score;
+        // Visual flash
+        mT1=HUE[pocket.note]; mT2=HUE[(pocket.note+7)%12];
+        document.getElementById('pa').style.background=noteColor(pocket.note);
+        setTimeout(()=>document.getElementById('pa').style.background='transparent',300);
+        // Pick next
+        setTimeout(pickNextTarget,400);
+    } else {
+        b.sinking=false;
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME STATE
-// ─────────────────────────────────────────────────────────────────────────────
-let currentMode='freeplay';
-let gameActive=false;
-let score=0, highScores={freeplay:0,dodge:0,resonance:0,chaos:0};
-try{ const s=localStorage.getItem('windingScores'); if(s) Object.assign(highScores,JSON.parse(s)); }catch(e){}
+// ── DRAW TABLE ────────────────────────────────────────────────────────────────
+function drawTable(){
+    const sides=DIM_SIDES[dimension];
 
-let sqSize,sqX,sqY;
-const CORNER_R=22;
+    // Table felt — faint polygon fill
+    ctx.beginPath();
+    const rotOffset=-Math.PI/2+(sides%2===0?Math.PI/sides:0);
+    for(let i=0;i<sides;i++){
+        const a=rotOffset+(i*2*Math.PI/sides);
+        const x=tableCX+tableR*Math.cos(a), y=tableCY+tableR*Math.sin(a);
+        if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
 
-// White ball
-let ball={x:0,y:0,vx:0,vy:0,radius:7,active:false};
-let pathHistory=[];
-let lastHz=0,lastTime=0,launchHz=261.63;
-let hearingAudio=false;
+    // Felt colour changes with pitch
+    const hue=currentPitch>=0?HUE[currentPitch]:110;
+    ctx.fillStyle=`hsla(${hue},30%,8%,0.9)`;
+    ctx.fill();
 
-// Black obstacle balls (dodge/chaos)
-let blackBalls=[];
+    // Wall lines — coloured per note
+    walls.forEach((w,i)=>{
+        const n=pockets[i].note;
+        ctx.strokeStyle=currentPitch===n?`hsl(${HUE[n]},100%,65%)`:`hsl(${HUE[n]},60%,35%)`;
+        ctx.lineWidth=currentPitch===n?3:1.5;
+        ctx.shadowBlur=currentPitch===n?8:0;
+        ctx.shadowColor=noteColor(n);
+        ctx.beginPath();ctx.moveTo(w.x1,w.y1);ctx.lineTo(w.x2,w.y2);ctx.stroke();
+        ctx.shadowBlur=0;
+    });
 
-// Resonance target
-let resonanceTarget=1.5, resonanceScore=0, resonanceHits=0, resonanceWindow=0;
-const RESONANCE_TARGETS=[1.0,1.5,2.0,1.333,1.25,1.666,1.2,1.75];
+    // Pockets — circles at vertices with note labels
+    pockets.forEach((p,i)=>{
+        const isTarget = p.note===targetNote;
+        const isSinging= p.note===currentPitch;
+        const r = isTarget?(16+Math.sin(frame*.1)*3):14;
 
-// Chaos state
-let chaosAlive=true, chaosWave=0, chaosTimer=0;
+        // Pocket hole
+        ctx.fillStyle='#000';
+        ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
 
-let currentPc=-1;
+        // Ring
+        ctx.strokeStyle=isSinging?`hsl(${HUE[p.note]},100%,70%)`
+                        :isTarget?`hsl(${HUE[p.note]},80%,55%)`
+                                 :`hsl(${HUE[p.note]},40%,30%)`;
+        ctx.lineWidth=isSinging?3:isTarget?2:1;
+        ctx.shadowBlur=isSinging?12:isTarget?6:0;
+        ctx.shadowColor=noteColor(p.note);
+        ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.stroke();
+        ctx.shadowBlur=0;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LAYOUT
-// ─────────────────────────────────────────────────────────────────────────────
+        // Note label
+        ctx.fillStyle=isSinging?`hsl(${HUE[p.note]},100%,80%)`
+                      :isTarget?`hsl(${HUE[p.note]},70%,65%)`
+                               :`hsl(${HUE[p.note]},40%,40%)`;
+        ctx.font=`bold ${isTarget?13:11}px VT323,monospace`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+
+        const label = (!studyMode&&p.note===targetNote) ? '?' : NOTE[p.note];
+        ctx.fillText(label,p.x,p.y);
+    });
+}
+
+// ── DRAW BALLS ────────────────────────────────────────────────────────────────
+function drawBalls(){
+    balls.forEach(b=>{
+        if(b.sunk) return;
+        const alpha=b.sinking?0.4:1.0;
+
+        // Shadow
+        ctx.globalAlpha=alpha*0.5;
+        ctx.fillStyle='rgba(0,0,0,0.6)';
+        ctx.beginPath();ctx.arc(b.x+3,b.y+3,b.r,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=alpha;
+
+        // Ball fill
+        if(b.type==='WHITE'){
+            ctx.fillStyle='#eee';
+        } else {
+            const hue=HUE[b.note];
+            ctx.fillStyle=`hsl(${hue},70%,45%)`;
+        }
+        ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();
+
+        // Specular highlight
+        ctx.fillStyle='rgba(255,255,255,0.5)';
+        ctx.beginPath();ctx.arc(b.x-b.r*.3,b.y-b.r*.3,b.r*.35,0,Math.PI*2);ctx.fill();
+
+        // Note label on coloured balls
+        if(b.type==='TARGET'){
+            const label=(!studyMode&&b.note===targetNote)?'?':NOTE[b.note];
+            ctx.fillStyle='#fff';
+            ctx.font='bold 10px VT323,monospace';
+            ctx.textAlign='center';ctx.textBaseline='middle';
+            ctx.fillText(label,b.x,b.y+1);
+        }
+
+        ctx.globalAlpha=1;
+    });
+}
+
+// ── DRAW DRAG AIM LINE ────────────────────────────────────────────────────────
+function drawAimLine(){
+    if(!drag.active) return;
+    const wb=balls.find(b=>b.type==='WHITE');
+    if(!wb) return;
+    const dx=wb.x-drag.curX, dy=wb.y-drag.curY;
+    const len=Math.hypot(dx,dy);
+    if(len<5) return;
+
+    // Dashed power line
+    ctx.save();
+    ctx.strokeStyle=`rgba(0,255,65,${Math.min(1,len/200)})`;
+    ctx.lineWidth=1.5;
+    ctx.setLineDash([6,6]);
+    ctx.shadowBlur=6;ctx.shadowColor='#00ff41';
+    ctx.beginPath();ctx.moveTo(wb.x,wb.y);ctx.lineTo(drag.curX,drag.curY);ctx.stroke();
+
+    // Arrow head in launch direction
+    const nx=dx/len,ny=dy/len;
+    const ax=wb.x+nx*40,ay=wb.y+ny*40;
+    ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(0,255,65,0.9)';
+    ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(wb.x,wb.y);ctx.lineTo(ax,ay);ctx.stroke();
+    ctx.restore();
+
+    // Power indicator
+    const pct=Math.min(1,len/300);
+    ctx.fillStyle=`rgba(0,255,65,${0.7*pct})`;
+    ctx.font='12px VT323,monospace';
+    ctx.textAlign='center';
+    ctx.fillText(`PWR ${Math.round(pct*100)}%`,wb.x,wb.y-25);
+}
+
+// ── INPUT ─────────────────────────────────────────────────────────────────────
+function getPos(e){
+    const r=cG.getBoundingClientRect();
+    const cl=e.touches?e.touches[0]:e;
+    return{x:(cl.clientX-r.left)*(W/r.width),y:(cl.clientY-r.top)*(H/r.height)};
+}
+
+function onDown(e){
+    if(gameState!=='PLAYING') return;
+    const pos=getPos(e);
+    const wb=balls.find(b=>b.type==='WHITE'&&!b.sinking);
+    if(!wb) return;
+    if(Math.hypot(pos.x-wb.x,pos.y-wb.y)<wb.r*3){
+        drag.active=true; drag.startX=wb.x; drag.startY=wb.y;
+        drag.curX=pos.x; drag.curY=pos.y;
+    }
+}
+function onMove(e){
+    if(!drag.active) return;
+    e.preventDefault();
+    const pos=getPos(e);
+    drag.curX=pos.x; drag.curY=pos.y;
+}
+function onUp(e){
+    if(!drag.active) return;
+    drag.active=false;
+    const wb=balls.find(b=>b.type==='WHITE'&&!b.sinking);
+    if(!wb) return;
+    const dx=drag.startX-drag.curX, dy=drag.startY-drag.curY;
+    const len=Math.hypot(dx,dy);
+    if(len>8){
+        const power=Math.min(len/300,1);
+        wb.vx=(dx/len)*power*22;
+        wb.vy=(dy/len)*power*22;
+    }
+}
+
+cG.addEventListener('mousedown',onDown);
+window.addEventListener('mousemove',onMove);
+window.addEventListener('mouseup',onUp);
+cG.addEventListener('touchstart',onDown,{passive:true});
+cG.addEventListener('touchmove',onMove,{passive:false});
+cG.addEventListener('touchend',onUp);
+
+// ── BUTTONS ───────────────────────────────────────────────────────────────────
+document.getElementById('bmic').addEventListener('click',async e=>{
+    const ok=await mic.start();
+    if(ok){
+        micOn=true;
+        e.target.innerText='MIC ON';
+        e.target.style.borderColor='#00ff41';
+        if(gameState==='IDLE') startGame();
+    }
+});
+
+document.getElementById('bdim').addEventListener('click',()=>{
+    if(gameState==='PLAYING') nextDimension();
+});
+
+document.getElementById('bmode').addEventListener('click',()=>{
+    studyMode=!studyMode;
+    const btn=document.getElementById('bmode');
+    btn.innerText=`MODE: ${studyMode?'STUDY':'BLIND'}`;
+    btn.style.borderColor=studyMode?'#00cc33':'#ff00ff';
+    btn.style.color=studyMode?'#00cc33':'#ff00ff';
+    updateHUD();
+});
+
+document.getElementById('brst').addEventListener('click',startGame);
+
+// ── NOTE STABILITY GATE ───────────────────────────────────────────────────────
+let candPc=-1, candF=0;
+const HOLD=3; // frames to hold before registering note
+
+// ── RESIZE ────────────────────────────────────────────────────────────────────
 function resize(){
     W=window.innerWidth; H=window.innerHeight;
-    [cStars,cRuliad,cGame,cMunker].forEach(c=>{c.width=W;c.height=H;});
-    sqSize=Math.min(W,H)*0.78;
-    sqX=(W-sqSize)/2; sqY=(H-sqSize)/2+30;
-    initVisuals();
-    resetForMode();
+    [cS,cR,cG,cM].forEach(c=>{c.width=W;c.height=H;});
+    buildTable();
+    if(gameState==='PLAYING') resetBalls();
+    initVis();
 }
 window.addEventListener('resize',resize);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MODE MANAGEMENT
-// ─────────────────────────────────────────────────────────────────────────────
-const hints={
-    freeplay:'SING SAME NOTE TWICE TO LAUNCH · STEER WITH PITCH · HIT A CORNER TO SCORE',
-    dodge:   'BLACK BALLS ORBIT WAVE NODES · SHIFT THE WAVE TO MOVE THEM · DON\'T GET HIT',
-    resonance:'MATCH THE TARGET RATIO · HOLD THE PITCH STEADY · HIT AS MANY AS YOU CAN',
-    chaos:   'SURVIVE EACH WAVE · MORE BLACK BALLS EACH ROUND · SING TO WARP TRAJECTORIES'
-};
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
+function loop(){
+    requestAnimationFrame(loop);
+    frame++;
 
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        currentMode=btn.dataset.mode;
-        resetForMode();
-    });
-});
+    // Smooth Munker hue
+    mH1=lh(mH1,mT1,.05); mH2=lh(mH2,mT2,.05);
 
-function resetForMode(){
-    gameActive=false; ball.active=false; blackBalls=[];
-    pathHistory=[]; score=0; resonanceHits=0; resonanceWindow=0;
-    chaosAlive=true; chaosWave=0; chaosTimer=0;
-
-    document.getElementById('result-panel').style.display='none';
-    document.getElementById('score-text').innerText='0';
-    document.getElementById('mode-hint').innerText=hints[currentMode]||'';
-    document.getElementById('high-score-text').innerText=highScores[currentMode]||0;
-
-    const modeNames={freeplay:'FREE PLAY',dodge:'WAVE DODGE',resonance:'RESONANCE',chaos:'CHAOS'};
-    document.getElementById('mode-title').innerText=modeNames[currentMode];
-
-    const scoreLabels={freeplay:'BOUNCES',dodge:'SURVIVED',resonance:'HITS',chaos:'WAVE'};
-    document.getElementById('score-label').innerText=scoreLabels[currentMode];
-
-    document.getElementById('launch-warn').style.display=
-        (currentMode==='freeplay')?'block':'none';
-    document.getElementById('hud-extra').innerText='';
-
-    document.getElementById('btn-shoot').style.display=
-        (currentMode==='freeplay'&&audio.isRunning)?'block':'none';
-    document.getElementById('btn-reset').style.display=
-        audio.isRunning?'block':'none';
-
-    if(!ball.active){
-        ball.x=sqX+sqSize*0.15; ball.y=sqY+sqSize*0.85;
-        ball.vx=0; ball.vy=0;
-    }
-
-    if(currentMode==='dodge')      spawnBlackBalls(3);
-    if(currentMode==='resonance')  nextResonanceTarget();
-    if(currentMode==='chaos')      spawnBlackBalls(2);
-
-    gameActive=true;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BALL HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-function fireBall(){
-    ball.active=true;
-    const speed=6, angle=Math.atan(currentRatio||1.0);
-    ball.vx=speed*Math.cos(angle); ball.vy=-speed*Math.sin(angle);
-    document.getElementById('launch-warn').style.display='none';
-    document.getElementById('btn-shoot').style.display='none';
-}
-
-function bounceBall(){
-    const r=ball.radius;
-    if(ball.x<=sqX+r||ball.x>=sqX+sqSize-r){
-        ball.vx*=-1; ball.x=Math.max(sqX+r,Math.min(sqX+sqSize-r,ball.x));
-        return true;
-    }
-    if(ball.y<=sqY+r||ball.y>=sqY+sqSize-r){
-        ball.vy*=-1; ball.y=Math.max(sqY+r,Math.min(sqY+sqSize-r,ball.y));
-        return true;
-    }
-    return false;
-}
-
-function checkCorners(){
-    const corners=[[sqX,sqY],[sqX+sqSize,sqY],[sqX,sqY+sqSize],[sqX+sqSize,sqY+sqSize]];
-    return corners.some(c=>Math.hypot(ball.x-c[0],ball.y-c[1])<CORNER_R);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BLACK BALLS
-// ─────────────────────────────────────────────────────────────────────────────
-function spawnBlackBalls(n){
-    for(let i=0;i<n;i++){
-        const angle=Math.random()*Math.PI*2;
-        const speed=1.2+Math.random()*1.0;
-        // Spawn away from white ball start
-        const bx=sqX+sqSize*(0.2+Math.random()*0.6);
-        const by=sqY+sqSize*(0.2+Math.random()*0.6);
-        blackBalls.push({x:bx,y:by,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,radius:8,orbitPhase:Math.random()*Math.PI*2});
-    }
-}
-
-function updateBlackBalls(){
-    for(let i=blackBalls.length-1;i>=0;i--){
-        const b=blackBalls[i];
-        // Wave warp: standing wave deflects their trajectory
-        const {fx,fy}=waveForce(b.x,b.y,sqX,sqY,sqSize);
-        b.vx+=fx*0.5; b.vy+=fy*0.5;
-
-        // Speed cap
-        const sp=Math.hypot(b.vx,b.vy);
-        if(sp>2.5){b.vx=(b.vx/sp)*2.5; b.vy=(b.vy/sp)*2.5;}
-
-        b.x+=b.vx; b.y+=b.vy;
-
-        // Bounce off walls
-        const r=b.radius;
-        if(b.x<=sqX+r||b.x>=sqX+sqSize-r){b.vx*=-1;b.x=Math.max(sqX+r,Math.min(sqX+sqSize-r,b.x));}
-        if(b.y<=sqY+r||b.y>=sqY+sqSize-r){b.vy*=-1;b.y=Math.max(sqY+r,Math.min(sqY+sqSize-r,b.y));}
-
-        // Draw: dark grey pixel ball (Munker colours it slightly)
-        drawPixelBall(b.x,b.y,b.radius,'#333','#555',3);
-
-        // Collision with white ball
-        if(ball.active&&Math.hypot(ball.x-b.x,ball.y-b.y)<ball.radius+b.radius){
-            if(currentMode==='dodge'||currentMode==='chaos'){
-                triggerGameOver('HIT BY OBSTACLE!');
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// RESONANCE MODE
-// ─────────────────────────────────────────────────────────────────────────────
-function nextResonanceTarget(){
-    resonanceTarget=RESONANCE_TARGETS[Math.floor(Math.random()*RESONANCE_TARGETS.length)];
-    resonanceWindow=180; // frames to hit it
-    const ratioNames={1.0:'1:1 (UNISON)',1.5:'3:2 (P5)',2.0:'2:1 (OCTAVE)',1.333:'4:3 (P4)',1.25:'5:4 (M3)',1.666:'5:3 (M6)',1.2:'6:5 (m3)',1.75:'7:4 (m7)'};
-    document.getElementById('hud-extra').innerText=`TARGET: ${ratioNames[resonanceTarget]||resonanceTarget.toFixed(3)}`;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME OVER
-// ─────────────────────────────────────────────────────────────────────────────
-function triggerGameOver(reason){
-    gameActive=false; ball.active=false;
-    if(score>highScores[currentMode]){
-        highScores[currentMode]=score;
-        try{localStorage.setItem('windingScores',JSON.stringify(highScores));}catch(e){}
-        document.getElementById('high-score-text').innerText=score;
-    }
-    document.getElementById('result-title').innerText=reason;
-    document.getElementById('result-body').innerHTML=
-        `Score: <span style="color:#0f0;font-weight:bold;font-size:20px;">${score}</span>`;
-    document.getElementById('result-panel').style.display='block';
-}
-
-document.getElementById('btn-result-reset').addEventListener('click',resetForMode);
-document.getElementById('btn-reset').addEventListener('click',resetForMode);
-document.getElementById('btn-shoot').addEventListener('click',fireBall);
-document.getElementById('btn-mic').addEventListener('click',async e=>{
-    if(await audio.startMic()){
-        e.target.style.display='none';
-        document.getElementById('btn-reset').style.display='block';
-        if(currentMode==='freeplay') document.getElementById('btn-shoot').style.display='block';
-        resetForMode();
-    }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN RENDER LOOP
-// ─────────────────────────────────────────────────────────────────────────────
-function render(){
-    requestAnimationFrame(render);
-    frames++;
-
-    // ── Audio ──────────────────────────────────────────────────────────────
-    hearingAudio=false;
-    let currentHz=0;
-    if(audio.isRunning){
-        const peaks=audio.getPeaks(85);
-        if(peaks.length>0){ currentHz=peaks[0].hz; hearingAudio=true; }
-    }
-
-    if(hearingAudio){
-        currentPc=hzToPitchClass(currentHz);
-        munkerT1=KEY_HUES[currentPc];
-        munkerT2=KEY_HUES[(currentPc+7)%12];
-        document.getElementById('pitch-accent').style.background=
-            `linear-gradient(90deg,hsl(${munkerT1},100%,55%),hsl(${munkerT2},100%,55%))`;
-        document.getElementById('hud-box').style.borderColor=keyHSL(currentPc,70,55);
-
-        if(!ball.active && currentMode==='freeplay'){
-            const now=Date.now();
-            const centsDiff=1200*Math.log2(currentHz/(lastHz||currentHz));
-            if(Math.abs(centsDiff)<50&&(Date.now()-lastTime>150&&Date.now()-lastTime<800)){
-                launchHz=currentHz; fireBall();
-            } else if(now-lastTime>100){ lastHz=currentHz; lastTime=now; }
-        }
-
-        if(ball.active||currentMode!=='freeplay'){
-            currentRatio=currentHz/(launchHz||261.63);
-            if(currentRatio>2.0) currentRatio=currentRatio%2.0+1.0;
-            if(currentRatio<0.5) currentRatio=currentRatio*2.0;
-            document.getElementById('hud-ratio').innerText=`WAVE RATIO: ${currentRatio.toFixed(3)}`;
-
-            if(ball.active){
-                const {fx,fy}=waveForce(ball.x,ball.y,sqX,sqY,sqSize);
-                ball.vx+=fx; ball.vy+=fy;
-                const sp=Math.hypot(ball.vx,ball.vy);
-                if(sp>0){ball.vx=(ball.vx/sp)*6; ball.vy=(ball.vy/sp)*6;}
-            }
-        }
-    } else {
-        currentPc=-1;
-        if(ball.active) document.getElementById('hud-ratio').innerText='WAVE RATIO: --';
-        currentRatio=1.0;
-    }
-
-    // Wave phase advances with ratio
-    wavePhase+=0.025*currentRatio;
-
-    // ── Visuals ─────────────────────────────────────────────────────────────
-    munkerH1=lerpHue(munkerH1,munkerT1,0.05);
-    munkerH2=lerpHue(munkerH2,munkerT2,0.05);
-    if(frames%4===0) stepRuliad();
-    drawRuliad(currentPc);
-    if(frames%3===0) drawStars(currentPc);
+    // Background layers
+    if(frame%4===0) stepRuliad();
+    drawRuliad(currentPitch);
+    if(frame%3===0) drawStars(currentPitch);
     ctx.clearRect(0,0,W,H);
-    if(frames%2===0) drawMunker(munkerH1,munkerH2);
+    if(frame%2===0) drawMunker(mH1,mH2);
 
-    // ── Arena ───────────────────────────────────────────────────────────────
-    ctx.strokeStyle='#555'; ctx.lineWidth=3;
-    ctx.strokeRect(sqX,sqY,sqSize,sqSize);
-
-    // Corner pockets
-    const corners=[[sqX,sqY],[sqX+sqSize,sqY],[sqX,sqY+sqSize],[sqX+sqSize,sqY+sqSize]];
-    ctx.fillStyle='rgba(255,0,85,0.55)';
-    corners.forEach(c=>{ctx.beginPath();ctx.arc(c[0],c[1],CORNER_R,0,Math.PI*2);ctx.fill();});
-
-    // ── Wave field ──────────────────────────────────────────────────────────
-    if(hearingAudio) drawWaveField(sqX,sqY,sqSize,currentPc);
-
-    // ── Mode-specific logic ──────────────────────────────────────────────────
-    if(gameActive){
-
-        // ── FREE PLAY ──────────────────────────────────────────────────────
-        if(currentMode==='freeplay'){
-            if(ball.active){
-                ball.x+=ball.vx; ball.y+=ball.vy;
-                if(bounceBall()) score++;
-                document.getElementById('score-text').innerText=score;
-                if(checkCorners()&&score>2) triggerGameOver('CORNER STRIKE!');
-                pathHistory.push({x:ball.x,y:ball.y});
-                if(pathHistory.length>220) pathHistory.shift();
+    // ── Mic pitch reading ──────────────────────────────────────────────────
+    if(micOn&&gameState==='PLAYING'){
+        const raw=mic.read(110);
+        if(raw>=0){
+            if(raw===candPc) candF++;
+            else{candPc=raw;candF=1;}
+            if(candF>=HOLD){
+                currentPitch=raw;
+                mT1=HUE[raw]; mT2=HUE[(raw+7)%12];
+                document.getElementById('pa').style.background=
+                    `linear-gradient(90deg,hsl(${mT1},100%,55%),hsl(${mT2},100%,55%))`;
+                document.getElementById('hb').style.borderColor=noteColor(raw,70,55);
+                document.getElementById('snote').innerText=`NOTE: ${NOTE[raw]}`;
+                updateHUD();
             }
-            if(pathHistory.length>1){
-                ctx.beginPath(); ctx.strokeStyle='rgba(255,0,255,0.7)'; ctx.lineWidth=1.5;
-                ctx.moveTo(pathHistory[0].x,pathHistory[0].y);
-                pathHistory.forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
-            }
-        }
-
-        // ── WAVE DODGE ─────────────────────────────────────────────────────
-        if(currentMode==='dodge'){
-            // Auto-launch ball if not active
-            if(!ball.active){
-                ball.active=true; launchHz=261.63;
-                ball.vx=3.5; ball.vy=-3.5;
-            }
-            ball.x+=ball.vx; ball.y+=ball.vy;
-            bounceBall();
-
-            // Score = frames survived (in seconds)
-            score=Math.floor(frames/60);
-            document.getElementById('score-text').innerText=score;
-
-            updateBlackBalls();
-
-            // Every 15s add a black ball
-            if(frames%900===0) spawnBlackBalls(1);
-        }
-
-        // ── RESONANCE ─────────────────────────────────────────────────────
-        if(currentMode==='resonance'){
-            if(!ball.active){
-                ball.active=true; launchHz=261.63;
-                ball.vx=4; ball.vy=-4;
-            }
-            ball.x+=ball.vx; ball.y+=ball.vy;
-            bounceBall();
-
-            resonanceWindow--;
-            const timeLeft=Math.ceil(resonanceWindow/60);
-            document.getElementById('hud-extra').innerHTML=
-                `TARGET: ${resonanceTarget.toFixed(3)} &nbsp; TIME: ${timeLeft}s`;
-
-            // Check if player is holding the right ratio
-            if(hearingAudio){
-                const diff=Math.abs(currentRatio-resonanceTarget);
-                if(diff<0.08){
-                    // Holding it! Fill a ring around ball
-                    ctx.strokeStyle='rgba(0,255,100,0.8)'; ctx.lineWidth=3;
-                    ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.radius+6,0,Math.PI*2); ctx.stroke();
-                    // Register hit on wall bounce
-                }
-            }
-
-            // On bounce while holding correct ratio → score
-            if(hearingAudio&&Math.abs(currentRatio-resonanceTarget)<0.08){
-                // Check recent bounce (vx/vy sign flipped recently) — use a flag
-                // Simple proxy: score increments when near wall
-                const nr=ball.radius+2;
-                if(ball.x<=sqX+nr||ball.x>=sqX+sqSize-nr||ball.y<=sqY+nr||ball.y>=sqY+sqSize-nr){
-                    resonanceHits++; score=resonanceHits;
-                    document.getElementById('score-text').innerText=score;
-                }
-            }
-
-            if(resonanceWindow<=0) nextResonanceTarget();
-
-            // Corner pockets disabled in resonance — instead use as bonus targets
-            if(checkCorners()){
-                if(hearingAudio&&Math.abs(currentRatio-resonanceTarget)<0.15){
-                    score+=5; document.getElementById('score-text').innerText=score;
-                }
-                // Respawn from opposite side
-                ball.x=sqX+sqSize/2; ball.y=sqY+sqSize/2;
-            }
-        }
-
-        // ── CHAOS ──────────────────────────────────────────────────────────
-        if(currentMode==='chaos'){
-            if(!ball.active){
-                ball.active=true; launchHz=261.63;
-                ball.vx=4; ball.vy=-4;
-            }
-            ball.x+=ball.vx; ball.y+=ball.vy;
-            bounceBall();
-
-            chaosTimer++;
-            // Wave cycle = 8 seconds
-            if(chaosTimer>=480){
-                chaosTimer=0; chaosWave++;
-                score=chaosWave;
-                document.getElementById('score-text').innerText=score;
-                spawnBlackBalls(chaosWave+1);
-                document.getElementById('hud-extra').innerText=`WAVE ${chaosWave} — ${blackBalls.length} BALLS`;
-            } else {
-                const tLeft=Math.ceil((480-chaosTimer)/60);
-                document.getElementById('hud-extra').innerText=`WAVE ${chaosWave+1} — NEXT IN ${tLeft}s`;
-            }
-
-            updateBlackBalls();
+        } else {
+            candF=0;
+            currentPitch=-1;
+            document.getElementById('pa').style.background='transparent';
         }
     }
 
-    // ── White ball render ────────────────────────────────────────────────────
-    if(ball.active||!gameActive){
-        drawPixelBall(ball.x,ball.y,ball.radius,'#cccccc','#eeeeee',3);
-    } else if(!ball.active&&currentMode==='freeplay'){
-        drawPixelBall(ball.x,ball.y,ball.radius,'#888','#aaa',3);
-    }
+    // ── Physics ──────────────────────────────────────────────────────────
+    if(gameState==='PLAYING') updatePhysics();
+
+    // ── Draw ─────────────────────────────────────────────────────────────
+    drawTable();
+    drawAimLine();
+    drawBalls();
+
+    // Dimension label watermark
+    ctx.fillStyle='rgba(0,255,65,0.06)';
+    ctx.font=`bold ${Math.min(W,H)*0.25}px VT323,monospace`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(DIM_NAMES[dimension],W/2,H/2);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BOOT
-// ─────────────────────────────────────────────────────────────────────────────
+// ── BOOT ──────────────────────────────────────────────────────────────────────
 resize();
-render();
+buildTable();
+loop();
 </script>
 </body>
 </html>
