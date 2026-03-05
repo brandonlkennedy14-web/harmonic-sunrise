@@ -4,388 +4,910 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Harmonic Sunrise</title>
-<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-:root{--g:#00ff41;--d:#00661a;--bg:#000300;--p:#010a01;--glow:0 0 8px #00ff41,0 0 20px rgba(0,255,65,.5);--f:'VT323','Courier New',monospace}
-*{box-sizing:border-box;font-family:var(--f)!important;letter-spacing:1px!important}
-body{margin:0;padding:0;background:var(--bg)!important;color:var(--g)!important;overflow:hidden;touch-action:manipulation}
-canvas{display:block;width:100vw;height:100vh;position:absolute;top:0;left:0;image-rendering:pixelated}
-#c-stars{z-index:1}#c-ruliad{z-index:2}#c-main{z-index:3;background:transparent}#c-munker{z-index:4;pointer-events:none}
-#ui{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;display:flex;flex-direction:column;justify-content:space-between;padding:100px 14px 14px;pointer-events:none}
-.hud{display:flex;justify-content:space-between;width:100%;pointer-events:auto}
-.title{font-size:22px;color:var(--g)!important;text-shadow:var(--glow)!important;letter-spacing:4px!important}
-.sub{color:#00cc33!important;font-size:12px;margin-top:3px}
-.rb{padding:3px 8px;border-left:3px solid var(--g);margin-bottom:3px;background:var(--p);color:var(--g)!important;text-shadow:var(--glow)!important;font-size:13px;transition:border-color .3s}
-.sc{font-size:34px;color:var(--g)!important;text-shadow:var(--glow)!important;text-align:right}
-.ctrls{display:flex;pointer-events:auto;margin-bottom:12px;flex-wrap:wrap;gap:7px}
-btn,button{background:var(--p)!important;border:1px solid var(--g)!important;color:var(--g)!important;text-shadow:var(--glow)!important;padding:8px 13px;font-size:14px;cursor:pointer;text-transform:uppercase;letter-spacing:2px!important;border-radius:0!important}
-#hard-cfg{background:var(--p);border:1px solid var(--d);padding:8px 12px;margin-top:5px;display:none;font-size:13px}
-#hard-cfg label{color:#00cc33!important;min-width:55px;display:inline-block;font-size:11px}
-#hard-cfg input,#hard-cfg select{background:#000!important;border:1px solid var(--g)!important;color:var(--g)!important;width:52px;padding:1px 3px;font-size:13px;font-family:var(--f)!important}
-#go{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:none;z-index:20;pointer-events:auto;background:#000500!important;padding:32px 44px;border:1px solid var(--g)!important;box-shadow:0 0 40px rgba(0,255,65,.25)}
-#go h1{color:var(--g)!important;text-shadow:var(--glow)!important;margin:0 0 8px;font-size:26px;letter-spacing:4px}
-#go p{color:#00cc33!important;font-size:15px}
-#pa{position:absolute;top:0;left:0;width:100%;height:3px;z-index:15;pointer-events:none;transition:background .5s;opacity:.7}
-#nav{position:absolute;top:0;left:0;width:100%;z-index:100;display:flex;justify-content:center;gap:8px;padding:11px 4px;background:rgba(0,3,0,.95);border-bottom:1px solid #003311;pointer-events:auto;box-sizing:border-box;flex-wrap:wrap;font-size:12px}
-#nav a{color:var(--g)!important;text-decoration:none;text-shadow:var(--glow)!important}#nav span{color:#003311}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;overflow:hidden;touch-action:manipulation;font-family:'VT323','Courier New',monospace}
+canvas{display:block;position:absolute;top:0;left:0;width:100vw;height:100vh;image-rendering:pixelated}
+#c-bg{z-index:1}#c-game{z-index:2;background:transparent}#c-munker{z-index:3;pointer-events:none}
+
+#nav{position:absolute;top:0;left:0;width:100%;z-index:100;display:flex;justify-content:center;gap:8px;padding:11px 4px;background:rgba(0,0,0,.95);border-bottom:2px solid #111;pointer-events:auto;flex-wrap:wrap;font-size:12px;letter-spacing:1px}
+#nav a{text-decoration:none;font-weight:bold}#nav span{color:#333}
+
+/* Mode tabs */
+#tabs{position:absolute;top:44px;left:0;width:100%;z-index:90;display:flex;border-bottom:1px solid #222;pointer-events:auto}
+.tab{flex:1;text-align:center;padding:7px 2px;font-size:13px;letter-spacing:2px;cursor:pointer;border:none;background:rgba(0,0,0,.85);color:#444;transition:color .2s,background .2s}
+.tab.active{color:#0ff;background:rgba(0,255,255,.08);border-bottom:2px solid #0ff}
+
+/* HUD */
+.hud{position:absolute;top:95px;left:0;width:100%;z-index:50;display:flex;justify-content:space-between;padding:5px 10px;pointer-events:none;font-size:12px;letter-spacing:1px;text-shadow:2px 2px 0 #000}
+.hbox{background:rgba(0,0,0,.75);padding:5px 9px;border:1px solid #0ff;width:fit-content;color:#0ff}
+.sc{font-size:32px;text-align:right}
+.ctrls{position:absolute;bottom:0;left:0;width:100%;z-index:50;display:flex;gap:8px;padding:8px 10px;flex-wrap:wrap;background:rgba(0,0,0,.7);pointer-events:auto;padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+button{background:rgba(0,0,0,.8);border:1px solid #0ff;color:#0ff;padding:7px 11px;font-size:13px;cursor:pointer;letter-spacing:2px;font-family:'VT323',monospace;text-transform:uppercase}
+
+#go{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:none;z-index:200;pointer-events:auto;background:#000;padding:28px 38px;border:2px solid #0ff;box-shadow:0 0 40px rgba(0,255,255,.2);font-family:'VT323',monospace}
+#go h1{font-size:24px;letter-spacing:4px;margin-bottom:8px;color:#0ff}
+#go p{font-size:15px;color:#0f0;margin-bottom:4px}
+
+/* Lane orbit labels */
+#lane-labels{position:absolute;left:0;top:0;width:100%;height:100%;z-index:8;pointer-events:none}
 </style>
 </head>
 <body>
+
 <div id="nav">
-<a href="index.html">[1]SUNRISE</a><span>|</span><a href="flappy.html">[2]FLAPPY</a><span>|</span><a href="billiards.html">[3]WINDING</a><span>|</span><a href="invaders.html">[4]INVADERS</a><span>|</span><a href="weaver.html">[5]WEAVER</a><span>|</span><a href="simon.html">[6]SIMON</a>
+  <a href="index.html"  style="color:#ff8c00">[1]SUNRISE</a><span>|</span>
+  <a href="flappy.html" style="color:#00ffcc">[2]FLAPPY</a><span>|</span>
+  <a href="billiards.html" style="color:#ff00ff">[3]WINDING</a><span>|</span>
+  <a href="invaders.html" style="color:#ff0055">[4]INVADERS</a><span>|</span>
+  <a href="weaver.html" style="color:#b366ff">[5]WEAVER</a><span>|</span>
+  <a href="simon.html"  style="color:#fff">[6]SIMON</a>
 </div>
-<div id="pa"></div>
-<canvas id="c-stars"></canvas><canvas id="c-ruliad"></canvas><canvas id="c-main"></canvas><canvas id="c-munker"></canvas>
-<div id="ui">
-  <div class="hud">
-    <div>
-      <div class="title">HARMONIC SUNRISE</div>
-      <div class="sub" id="st">AWAITING AUDIO…</div>
-      <div style="margin-top:8px">
-        <div class="rb" id="hn">NOTE: --</div>
-        <div class="rb" id="hr">P5 RISE → --</div>
-        <div class="rb" id="hd">P4/TT DIVE → --</div>
-        <div class="rb" id="hv">SPD: -- | VEL: --</div>
-        <div class="rb" id="hb" style="display:none">BEAT: --</div>
-      </div>
-      <div id="hard-cfg">
-        <div style="color:var(--g);margin-bottom:5px;font-size:13px">── HARD MODE ──</div>
-        <label>BPM</label><input type="number" id="ibpm" value="120" min="40" max="240">&nbsp;
-        <label>METER</label><select id="imeter"><option value="4">4/4</option><option value="3">3/4</option><option value="5">5/4</option></select>&nbsp;
-        <label>SWING%</label><input type="number" id="iswing" value="50" min="50" max="75" step="5">
-      </div>
-    </div>
-    <div>
-      <div class="sub" style="text-align:right">BEST: <span id="hs">0</span></div>
-      <div class="sub" style="text-align:right;margin-top:5px">DAYS</div>
-      <div class="sc" id="sc">0</div>
+
+<div id="tabs">
+  <div class="tab active" id="tab-orbit"   onclick="switchMode('ORBIT')">  ORBIT</div>
+  <div class="tab"        id="tab-survival" onclick="switchMode('SURVIVAL')">SURVIVAL</div>
+  <div class="tab"        id="tab-eclipse"  onclick="switchMode('ECLIPSE')"> ECLIPSE</div>
+</div>
+
+<canvas id="c-bg"></canvas>
+<canvas id="c-game"></canvas>
+<canvas id="c-munker"></canvas>
+<div id="lane-labels"></div>
+
+<div class="hud">
+  <div>
+    <div id="h-title" style="font-size:18px;letter-spacing:4px;color:#0ff;text-shadow:0 0 8px #0ff">HARMONIC ORBIT</div>
+    <div class="hbox" id="h-box" style="margin-top:4px">
+      <div id="h-note">NOTE: --</div>
+      <div id="h-info">SING TO ORBIT</div>
+      <div id="h-hint" style="color:#ff8c00"></div>
+      <div id="h-phase" style="color:#aaa"></div>
     </div>
   </div>
-  <div class="ctrls">
-    <button id="bmic">START MIC</button>
-    <button id="bhard">HARD: OFF</button>
+  <div>
+    <div style="font-size:10px;color:#aaa;text-align:right" id="h-scorelabel">DAYS</div>
+    <div class="sc" id="h-score" style="color:#0ff">0</div>
+    <div style="font-size:10px;color:#555;text-align:right">BEST <span id="h-best">0</span></div>
   </div>
 </div>
+
+<div class="ctrls">
+  <button id="b-mic">START MIC</button>
+</div>
+
 <div id="go">
-  <h1 id="gr">CRASHED!</h1>
-  <p>Days: <span id="gf" style="font-size:20px;color:var(--g)!important">0</span></p>
-  <p id="ghp" style="display:none"></p>
-  <button id="brst" style="margin-top:14px">RELAUNCH</button>
+  <h1 id="go-title">CRASHED!</h1>
+  <p id="go-score"></p>
+  <p id="go-extra" style="color:#aaa;font-size:12px"></p>
+  <button onclick="resetGame()" style="margin-top:12px;border-color:#0ff;color:#0ff">RELAUNCH</button>
 </div>
+
 <script>
-// ── CONSTANTS ────────────────────────────────────────────────────────────────
+// ── SHARED CONSTANTS ──────────────────────────────────────────────────────────
 const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const HUE=[0,30,55,80,110,145,175,200,230,265,295,330];
-function pc(hz){if(hz<=0)return -1;let h=Math.round(12*Math.log2(hz/16.35));return((h%12)+12)%12}
-function lh(a,b,t){let d=b-a;if(d>180)d-=360;if(d<-180)d+=360;return(a+d*t+360)%360}
+const PALETTES=[
+  [[0,255,255],[255,0,255],[255,255,0],[0,0,255]],
+  [[0,255,0],[128,0,128],[0,128,255],[255,165,0]],
+  [[255,0,100],[0,255,100],[100,0,255],[255,255,255]],
+  [[255,50,0],[0,255,200],[200,0,255],[255,255,0]]
+];
+const MUNKER_PAIRS=[['#00FFFF','#FF00FF'],['#800080','#00FF00'],['#0000FF','#FFFF00'],['#FF0000','#0000FF']];
+const BG_RULES=[30,90,110,150,105,73,22,126];
+const CA_PX=12, B_CA=48;  // larger pixels = fewer cells = no freeze
+const NOTE_HOLD=3, SIL_RST=28;
 
-// ── AUDIO ────────────────────────────────────────────────────────────────────
-class Mic{
-  constructor(){this.ctx=null;this.an=null;this.isRunning=false;this.buf=null}
-  async start(){
-    try{
-      this.ctx=new(window.AudioContext||window.webkitAudioContext)();
-      const s=await navigator.mediaDevices.getUserMedia({audio:true});
-      const src=this.ctx.createMediaStreamSource(s);
-      this.an=this.ctx.createAnalyser();
-      this.an.fftSize=8192;this.an.smoothingTimeConstant=0.82;
-      src.connect(this.an);this.buf=new Uint8Array(this.an.frequencyBinCount);
-      this.isRunning=true;return true;
-    }catch(e){return false}
+// ── CANVAS / RENDERER ─────────────────────────────────────────────────────────
+const cBg  =document.getElementById('c-bg'),   ctxBg=cBg.getContext('2d');
+const cGame=document.getElementById('c-game'),  ctx  =cGame.getContext('2d');
+const cMk  =document.getElementById('c-munker'),ctxMk=cMk.getContext('2d');
+const rulCv=document.createElement('canvas'),   rCtx =rulCv.getContext('2d');
+
+let W,H,CX,CY,frame=0;
+let CA_W=1,CA_H=1,caData,bgRowColors;
+let curPalette=PALETTES[0],curMunker=MUNKER_PAIRS[0];
+let bgPalShift=0,bgRule=30,curRule=0,impactRips=[];
+
+function initCA(){
+  CA_W=Math.max(1,Math.ceil(W/CA_PX));
+  CA_H=Math.max(1,Math.ceil(H/CA_PX));
+  rulCv.width=CA_W; rulCv.height=CA_H;
+  caData=new Uint8Array(CA_W*CA_H);
+  bgRowColors=new Uint8Array(CA_H);
+  caData[Math.floor(CA_W/2)]=1;
+}
+
+function updateBgCA(hue){
+  if(CA_W<=0||CA_H<=0)return;
+  let prev=new Uint8Array(CA_W);
+  for(let x=0;x<CA_W;x++) prev[x]=caData[(CA_H>1?1:0)*CA_W+x];
+  for(let y=CA_H-1;y>0;y--){
+    for(let x=0;x<CA_W;x++) caData[y*CA_W+x]=caData[(y-1)*CA_W+x];
+    bgRowColors[y]=bgRowColors[y-1];
   }
-  // Returns pitch class or -1. High threshold + requires 80-2000 Hz.
-  read(thr=110){
-    if(!this.isRunning)return -1;
-    this.an.getByteFrequencyData(this.buf);
-    const bHz=this.ctx.sampleRate/this.an.fftSize;
-    const lo=Math.floor(80/bHz),hi=Math.min(Math.floor(2000/bHz),this.buf.length-1);
-    let mx=0,mi=-1;
-    for(let i=lo;i<=hi;i++)if(this.buf[i]>mx){mx=this.buf[i];mi=i}
-    return mx>thr?pc(mi*bHz):-1;
+  bgRowColors[0]=bgPalShift;
+  for(let x=0;x<CA_W;x++){
+    const l=prev[x===0?CA_W-1:x-1]?4:0,c=prev[x]?2:0,r=prev[x===CA_W-1?0:x+1]?1:0;
+    caData[x]=(bgRule&(1<<(l+c+r)))?1:0;
   }
-}
-const mic=new Mic();
-
-// ── CANVAS ───────────────────────────────────────────────────────────────────
-const cS=document.getElementById('c-stars'),xS=cS.getContext('2d');
-const cR=document.getElementById('c-ruliad'),xR=cR.getContext('2d');
-const cG=document.getElementById('c-main'),ctx=cG.getContext('2d');
-const cM=document.getElementById('c-munker'),xM=cM.getContext('2d');
-let W,H,cx,cy;
-
-// ── STATE ─────────────────────────────────────────────────────────────────────
-let state='IDLE',days=0,frames=0;
-let hi=0;try{hi=parseInt(localStorage.getItem('sunriseHi')||'0')}catch(e){}
-document.getElementById('hs').innerText=hi;
-
-// note gate: require NOTE_HOLD frames stable before commit
-let lastNote=-1,cand=-1,candF=0,silF=0;
-const NOTE_HOLD=4,SIL_RST=30;
-let tRise=-1,tDive1=-1,tDive2=-1;
-let consecutiveP5=0; // track power chord (two P5s in a row = velocity burst)
-
-// physics
-const ER=30,SR=18;
-let oR=150,rV=0,oA=0,oSpd=0.0045,grav=0.004;
-const G0=0.004,DAMP=0.995,TUP=2.8,TDOWN=2.8,MHIT=5;
-const VGAIN=0.001,VLOSE=0.0007,VMAX=0.016,VMIN=0.002;
-let minR,maxR,sX=0,sY=0;
-
-// hard mode
-let hard=false,bpm=120,meter=4;
-let bi=0,bt=0,bwin=0,bcount=0,bstreak=0,bhp=0,bflash=0;
-function setBeat(){bpm=+document.getElementById('ibpm').value||120;meter=+document.getElementById('imeter').value||4;bi=Math.round(60/bpm*60);bwin=Math.max(5,Math.round(bi*.18));bt=0;bcount=0;bstreak=0;bhp=0}
-
-// wave grid
-const CL=14;let gC,gR,w1,w2;
-// ruliad
-const RC=10;let rCl,rNx,rco,rro;
-// visuals
-let stars=[],meteors=[],ripples=[];
-let mh1=0,mh2=200,mt1=0,mt2=200,sHue=0;
-
-// ── RESIZE ───────────────────────────────────────────────────────────────────
-function resize(){
-  W=window.innerWidth;H=window.innerHeight;
-  [cS,cR,cG,cM].forEach(c=>{c.width=W;c.height=H});
-  cx=W/2;cy=H/2;minR=ER+SR+8;maxR=Math.min(W,H)/2-30;
-  if(oR<minR)oR=(minR+maxR)/2;
-  gC=Math.ceil(W/CL)+1;gR=Math.ceil(H/CL)+1;w1=new Float32Array(gC*gR);w2=new Float32Array(gC*gR);
-  rco=Math.ceil(W/RC)+1;rro=Math.ceil(H/RC)+1;
-  rCl=new Uint8Array(rco*rro);rNx=new Uint8Array(rco*rro);
-  for(let i=0;i<rCl.length;i++)rCl[i]=Math.random()<.35?1:0;
-  stars=[];for(let i=0;i<280;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<.15?2:1,b:.2+Math.random()*.8,tw:Math.random()*Math.PI*2});
-}
-window.addEventListener('resize',resize);
-
-// ── STARFIELD ────────────────────────────────────────────────────────────────
-function drawStars(p){
-  xS.fillStyle='#000';xS.fillRect(0,0,W,H);
-  stars.forEach(s=>{const tw=.6+.4*Math.sin(s.tw+frames*.02);xS.fillStyle=p>=0?`hsla(${HUE[p]},60%,80%,${s.b*tw*.9})`:`rgba(255,255,255,${s.b*tw*.9})`;xS.fillRect(s.x,s.y,s.r,s.r)});
-}
-
-// ── RULIAD ───────────────────────────────────────────────────────────────────
-function stepRuliad(){
-  for(let y=0;y<rro;y++)for(let x=0;x<rco;x++){
-    const i=y*rco+x;let n=0;
-    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;n+=rCl[((y+dy+rro)%rro)*rco+(x+dx+rco)%rco]}
-    const a=rCl[i];rNx[i]=a?((n===2||n===3)?1:0):((n===3||n===6)?1:0);
+  const img=rCtx.createImageData(CA_W,CA_H);
+  for(let y=0;y<CA_H;y++){
+    const rs=bgRowColors[y]||0,bg=curPalette[(0+rs)%4],fg=curPalette[(2+rs)%4];
+    for(let x=0;x<CA_W;x++){
+      const i=y*CA_W+x,idx=i*4;
+      if(caData[i]){img.data[idx]=fg[0];img.data[idx+1]=fg[1];img.data[idx+2]=fg[2];img.data[idx+3]=255;}
+      else{img.data[idx]=Math.floor(bg[0]*.12);img.data[idx+1]=Math.floor(bg[1]*.12);img.data[idx+2]=Math.floor(bg[2]*.12);img.data[idx+3]=255;}
+    }
   }
-  let t=rCl;rCl=rNx;rNx=t;
-}
-function drawRuliad(p){
-  xR.clearRect(0,0,W,H);const h=p>=0?HUE[p]:180;
-  for(let y=0;y<rro;y++)for(let x=0;x<rco;x++){if(rCl[y*rco+x]){xR.fillStyle=`hsla(${h},70%,55%,.18)`;xR.fillRect(x*RC,y*RC,RC-1,RC-1)}}
+  rCtx.putImageData(img,0,0);
 }
 
-// ── MUNKER ───────────────────────────────────────────────────────────────────
-function drawMunker(h1,h2,op){
-  xM.clearRect(0,0,W,H);const S=16;
-  for(let y=0;y<H;y++){const m=y%S;
-    if(m<2){xM.fillStyle=`hsla(${h1},100%,58%,${op})`;xM.fillRect(0,y,W,1)}
-    else if(m>=S/2&&m<S/2+2){xM.fillStyle=`hsla(${h2},100%,58%,${op})`;xM.fillRect(0,y,W,1)}
-    else if(m===3||m===S/2-1){xM.fillStyle='rgba(0,0,0,.6)';xM.fillRect(0,y,W,1)}
-  }
-}
-
-// ── WAVES ────────────────────────────────────────────────────────────────────
-function stepWave(){
-  for(let y=1;y<gR-1;y++)for(let x=1;x<gC-1;x++){
-    const i=x+y*gC;if(Math.hypot(x*CL-cx,y*CL-cy)<ER){w2[i]=0;continue}
-    w2[i]=(w1[i-1]+w1[i+1]+w1[i-gC]+w1[i+gC])/2-w2[i];w2[i]*=.97;
-  }
-  let t=w1;w1=w2;w2=t;
-}
-function splash(wx,wy,e){
-  const bx=Math.floor(wx/CL),by=Math.floor(wy/CL);
-  for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const px=bx+dx,py=by+dy;if(px>0&&px<gC-1&&py>0&&py<gR-1)w1[py*gC+px]=e*(1-Math.hypot(dx,dy)/5)}
-}
-function drawWave(){
-  stepWave();const wh=lastNote>=0?HUE[lastNote]:200;
-  for(let y=0;y<gR;y++)for(let x=0;x<gC;x++){const v=w1[x+y*gC];if(Math.abs(v)>1.5){ctx.fillStyle=`hsla(${wh},90%,65%,${Math.min(1,Math.abs(v)/35)*.75})`;ctx.fillRect(x*CL,y*CL,CL,CL)}}
-}
-
-// ── RIPPLES ──────────────────────────────────────────────────────────────────
-function ripple(x,y,hue){ripples.push({x,y,r:SR,maxR:SR*6,hue,a:.8})}
 function drawRipples(){
-  for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.r+=3.5;r.a-=.022;if(r.a<=0||r.r>r.maxR){ripples.splice(i,1);continue}
-    ctx.strokeStyle=`hsla(${r.hue},100%,65%,${r.a})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.stroke()}
-}
-
-// ── PLANET ───────────────────────────────────────────────────────────────────
-function planet(c,x,y,r,base,hi,px=4){
-  for(let py=-r;py<=r;py+=px)for(let ppx=-r;ppx<=r;ppx+=px){if(ppx*ppx+py*py<=r*r){c.fillStyle=(ppx<0&&py<0)?hi:base;c.fillRect(Math.round(x+ppx),Math.round(y+py),px,px)}}
-}
-
-// ── TRAJECTORY PREVIEW ───────────────────────────────────────────────────────
-function drawTrajectory(){
-  if(state!=='ORBITING'||lastNote<0)return;
-  let sr=oR,sv=rV,sa=oA;
-  ctx.save();ctx.setLineDash([4,7]);ctx.lineWidth=1.5;
-  let px=sX,py=sY;
-  for(let i=0;i<40;i++){
-    sv-=grav;sv*=DAMP;sr+=sv;sa+=oSpd;
-    const tx=cx+Math.cos(sa)*sr,ty=cy+Math.sin(sa)*sr;
-    const alpha=(1-i/40)*.5;
-    ctx.strokeStyle=`hsla(${sHue},100%,65%,${alpha})`;
-    ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(tx,ty);ctx.stroke();
-    px=tx;py=ty;
+  if(impactRips.length>6)impactRips.length=6;
+  ctx.save();ctx.globalCompositeOperation='color-dodge';
+  for(let i=impactRips.length-1;i>=0;i--){
+    const r=impactRips[i];r.rad+=10;
+    const c=curPalette[(2+r.cs)%4];
+    const alpha=Math.max(0,1-(r.rad/(Math.max(W,H)*0.7)));
+    ctx.beginPath();ctx.arc(r.x,r.y,r.rad,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},${alpha*0.7})`;
+    ctx.lineWidth=20;ctx.stroke();
+    if(alpha<=0)impactRips.splice(i,1);
   }
-  ctx.setLineDash([]);ctx.restore();
-  // note hint labels near sun
-  if(tRise>=0){
-    ctx.save();ctx.font='bold 13px VT323,monospace';ctx.textBaseline='middle';
-    ctx.fillStyle=`hsl(${HUE[tRise]},100%,65%)`;ctx.shadowBlur=6;ctx.shadowColor=ctx.fillStyle;
-    ctx.textAlign='left';ctx.fillText(`P5↑ ${NOTE[tRise]}`,sX+SR+6,sY-12);
-    ctx.fillStyle=`hsl(${HUE[tDive1]},100%,65%)`;ctx.shadowColor=ctx.fillStyle;
-    ctx.fillText(`P4↓ ${NOTE[tDive1]}`,sX+SR+6,sY+4);
-    ctx.restore();
+  ctx.restore();
+}
+
+function drawConcentricRings(cx2,cy2,tint){
+  const maxR=Math.max(W,H)*0.65,numR=10;
+  ctx.save();
+  for(let i=0;i<numR;i++){
+    const t=((frame*0.4+i*(maxR/numR))%maxR);
+    const alpha=0.1+0.12*(1-t/maxR);
+    const c=curPalette[i%4];
+    ctx.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},${alpha})`;
+    ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx2,cy2+H*0.35,t,0,Math.PI*2);ctx.stroke();
   }
+  ctx.restore();
 }
 
-// ── BEAT METER ───────────────────────────────────────────────────────────────
-function drawBeat(){
-  if(!hard)return;
-  const bw=26,gap=4,sx=cx-(meter*(bw+gap))/2;
-  for(let i=0;i<meter;i++){ctx.fillStyle=i===bcount%meter?`hsl(${sHue},100%,65%)`:'rgba(0,255,65,.12)';ctx.fillRect(sx+i*(bw+gap),cy+maxR+16,bw,8)}
-  if(bflash>0){ctx.fillStyle=`rgba(0,255,65,${bflash/20*.25})`;ctx.fillRect(0,0,W,H);bflash--}
+// Munker stripe offscreen canvas — rebuilt only when palette/size changes
+let munkerCV=null,munkerDirty=true,munkerW=0,munkerH=0,munkerPair=['',''];
+function rebuildMunker(){
+  if(!munkerCV)munkerCV=document.createElement('canvas');
+  munkerCV.width=4; munkerCV.height=12; // tile
+  const mc=munkerCV.getContext('2d');
+  // Parse hex colour to rgba
+  function hexToRgba(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
+  mc.clearRect(0,0,4,12);
+  mc.fillStyle=hexToRgba(curMunker[0],0.32); mc.fillRect(0,0,4,2);
+  mc.fillStyle=hexToRgba(curMunker[1],0.32); mc.fillRect(0,6,4,2);
+  munkerPair=[...curMunker]; munkerDirty=false;
+}
+function drawFullMunker(){
+  if(munkerDirty||munkerPair[0]!==curMunker[0]||munkerPair[1]!==curMunker[1]) rebuildMunker();
+  const pat=ctxMk.createPattern(munkerCV,'repeat');
+  ctxMk.clearRect(0,0,W,H);
+  ctxMk.fillStyle=pat;
+  ctxMk.fillRect(0,0,W,H);
 }
 
-// ── METEORS ──────────────────────────────────────────────────────────────────
-function spawnMeteor(){
-  const a=Math.random()*Math.PI*2,d=maxR+120,mx=cx+Math.cos(a)*d,my=cy+Math.sin(a)*d;
-  const aim=a+Math.PI+(Math.random()-.5)*.8,spd=1.2+Math.random()*1.5;
-  meteors.push({x:mx,y:my,vx:Math.cos(aim)*spd,vy:Math.sin(aim)*spd,sz:(Math.floor(Math.random()*3)+1)*4+6,tr:[]});
-}
-function drawMeteors(){
-  for(let i=meteors.length-1;i>=0;i--){
-    const m=meteors[i];m.tr.unshift({x:m.x,y:m.y});if(m.tr.length>10)m.tr.pop();
-    m.x+=m.vx;m.y+=m.vy;
-    m.tr.forEach((pt,ti)=>{const a=(1-ti/m.tr.length)*.7;ctx.fillStyle=`rgba(200,200,200,${a})`;const s=Math.max(1,m.sz*.3*(1-ti/m.tr.length));ctx.fillRect(pt.x,pt.y,s,s)});
-    planet(ctx,m.x,m.y,m.sz,'#b0b0b0','#e0e0e0',3);
-    if(state==='ORBITING'&&Math.hypot(m.x-sX,m.y-sY)<SR+m.sz){rV-=MHIT;splash(sX,sY,500);meteors.splice(i,1);continue}
-    if(Math.hypot(m.x-cx,m.y-cy)>maxR+400)meteors.splice(i,1);
-  }
+// Pixel planet
+function pixPlanet(c2,x,y,r,base,hi2,px=3){
+  for(let py=-r;py<=r;py+=px) for(let ppx=-r;ppx<=r;ppx+=px)
+    if(ppx*ppx+py*py<=r*r){c2.fillStyle=(ppx<0&&py<0)?hi2:base;c2.fillRect(Math.round(x+ppx),Math.round(y+py),px,px);}
 }
 
-// ── GAME OVER / RESET ────────────────────────────────────────────────────────
-function die(reason){
-  state='DEAD';
-  if(days>hi){hi=days;try{localStorage.setItem('sunriseHi',hi)}catch(e){}document.getElementById('hs').innerText=hi}
-  document.getElementById('gr').innerText=reason;
-  document.getElementById('gf').innerText=days;
-  const ghp=document.getElementById('ghp');
-  if(hard){ghp.style.display='block';ghp.innerText=`BEAT PTS: ${bhp} | STREAK: ${bstreak}`}else ghp.style.display='none';
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+let audioCtx,analyser,dataArray,micOn=false,audioLevel=0;
+let lastPC=-1,cand=-1,candF=0,silF=0;
+
+async function startMic(){
+  try{
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    analyser=audioCtx.createAnalyser();
+    analyser.fftSize=8192; analyser.smoothingTimeConstant=0.78;
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    dataArray=new Uint8Array(analyser.frequencyBinCount);
+    micOn=true; return true;
+  }catch(e){return false;}
+}
+
+function readPitch(thr=105){
+  if(!micOn||!dataArray)return -1;
+  analyser.getByteFrequencyData(dataArray);
+  const bHz=audioCtx.sampleRate/analyser.fftSize;
+  const lo=Math.floor(80/bHz),hi=Math.min(Math.floor(2500/bHz),dataArray.length-1);
+  let mx=0,mi=-1;
+  for(let i=lo;i<=hi;i++) if(dataArray[i]>mx){mx=dataArray[i];mi=i;}
+  let s=0; for(let i=0;i<64;i++) s+=dataArray[i];
+  audioLevel=s/(64*255)*100;
+  if(mx<thr||mi<0)return -1;
+  let h=Math.round(12*Math.log2((mi*bHz)/16.35));
+  return((h%12)+12)%12;
+}
+
+// ── SHARED GAME STATE ─────────────────────────────────────────────────────────
+let currentMode='ORBIT';
+let gameState='IDLE'; // IDLE PLAYING DEAD
+let score=0,bestScore=0;
+const bestKey='sunriseBest3';
+try{bestScore=parseInt(localStorage.getItem(bestKey)||'0');}catch(e){}
+document.getElementById('h-best').innerText=bestScore;
+
+function setScore(s){
+  score=s; document.getElementById('h-score').innerText=s;
+  if(s>bestScore){bestScore=s;try{localStorage.setItem(bestKey,s);}catch(e){}document.getElementById('h-best').innerText=s;}
+}
+
+function die(reason,extra=''){
+  gameState='DEAD';
+  document.getElementById('go-title').innerText=reason;
+  document.getElementById('go-score').innerText=`Score: ${score}`;
+  document.getElementById('go-extra').innerText=extra;
   document.getElementById('go').style.display='block';
 }
-function reset(){
-  oR=(minR+maxR)/2;rV=0;oA=0;grav=G0;oSpd=0.0045;days=0;frames=0;
-  lastNote=-1;cand=-1;candF=0;silF=0;tRise=-1;tDive1=-1;tDive2=-1;consecutiveP5=0;
-  state='IDLE';
-  document.getElementById('go').style.display='none';
-  document.getElementById('sc').innerText='0';
-  document.getElementById('st').innerText='PLAY A NOTE TO START';
-  w1.fill(0);w2.fill(0);meteors=[];ripples=[];sHue=0;mh1=0;mh2=200;mt1=0;mt2=200;
-  if(hard)setBeat();
-}
-document.getElementById('brst').addEventListener('click',reset);
-document.getElementById('bmic').addEventListener('click',async()=>{if(await mic.start()){document.getElementById('bmic').style.display='none';reset()}});
-document.getElementById('bhard').addEventListener('click',()=>{
-  hard=!hard;document.getElementById('bhard').innerText=`HARD: ${hard?'ON':'OFF'}`;
-  document.getElementById('hard-cfg').style.display=hard?'block':'none';
-  document.getElementById('hb').style.display=hard?'block':'none';
-  if(hard)setBeat();
-});
 
-// ── ON NEW NOTE COMMITTED ────────────────────────────────────────────────────
-function onNote(note){
-  if(state==='IDLE'){state='ORBITING';document.getElementById('st').innerText='MAINTAIN HABITABLE ORBIT'}
-  else if(lastNote>=0){
-    const diff=(note-lastNote+12)%12;
-    if(diff===7){
-      rV+=TUP;
-      consecutiveP5++;
-      if(consecutiveP5>=2){oSpd=Math.min(VMAX,oSpd+VGAIN*2);consecutiveP5=0} // power chord = two P5s = velocity burst
-      else oSpd=Math.min(VMAX,oSpd+VGAIN);
-    } else if(diff===6){
-      rV-=TDOWN;oSpd=Math.max(VMIN,oSpd-VLOSE);consecutiveP5=0; // tritone = dive + lose speed
-    } else if(diff===5){
-      rV-=TDOWN;consecutiveP5=0;
-    } else consecutiveP5=0;
-  }
-  lastNote=note;tRise=(note+7)%12;tDive1=(note+5)%12;tDive2=(note+6)%12;
-  mt1=HUE[note];mt2=HUE[(note+7)%12];
-  document.getElementById('pa').style.background=`linear-gradient(90deg,hsl(${mt1},100%,55%),hsl(${mt2},100%,55%))`;
-  document.querySelectorAll('.rb').forEach(b=>b.style.borderColor=`hsl(${mt1},80%,55%)`);
-  ripple(sX,sY,HUE[note]);splash(sX,sY,350);
-  document.getElementById('hn').innerText=`NOTE: ${NOTE[note]}`;
-  document.getElementById('hr').innerText=`P5 RISE → ${NOTE[tRise]}`;
-  document.getElementById('hd').innerText=`P4↓ ${NOTE[tDive1]} | TT↓ ${NOTE[tDive2]}`;
-  // hard mode beat check
-  if(hard){
-    const inWin=bt<=bwin||bt>=bi-bwin;
-    if(inWin){bstreak++;bhp+=bstreak;bflash=14;document.getElementById('hb').innerText=`BEAT ✓ +${bstreak}`}
-    else{bstreak=0;document.getElementById('hb').innerText='MISSED BEAT'}
-    bt=0;
-  }
+// ── ORBIT MODE ────────────────────────────────────────────────────────────────
+// Always orbiting Earth. Notes assigned radially to 12 lanes.
+// Asteroids come in on specific note lanes. Switch lanes by singing that note.
+// Speed increases over time. Dodge = survive. Miss = knocked inward/outward.
+
+const ORBIT_LANES    = 12;   // one per note
+const ORBIT_EARTH_R  = 28;   // earth radius
+const ORBIT_SAT_R    = 14;   // satellite radius (player)
+const ORBIT_BASE_SPD = 0.028;// angular speed
+const ORBIT_LANE_R_MIN = 0;  // offset from base orbit radius per lane
+
+let orb = {
+  angle: 0,
+  speed: ORBIT_BASE_SPD,
+  lane: 5,        // current lane (0=innermost 12=outermost)
+  r: 0,           // computed from lane
+  days: 0,
+  asteroids: [],
+  particles: [],
+  orbMunkerPhase: 0,
+};
+
+function orbitLaneR(lane){
+  // Lanes spread from minR to maxR
+  const minR = ORBIT_EARTH_R + ORBIT_SAT_R + 12;
+  const maxR = Math.min(CX,CY) - ORBIT_SAT_R - 20;
+  return minR + (lane/(ORBIT_LANES-1))*(maxR-minR);
 }
 
-// ── MAIN LOOP ────────────────────────────────────────────────────────────────
-function loop(){
-  requestAnimationFrame(loop);frames++;
+function orbitNoteForLane(lane){
+  return (lane*1+3)%12; // each lane = a different note
+}
 
-  // Audio: stable gate
-  const raw=mic.read();
-  if(raw>=0){silF=0;if(raw===cand){candF++;if(candF>=NOTE_HOLD&&raw!==lastNote&&state!=='DEAD')onNote(raw)}else{cand=raw;candF=1}}
-  else{silF++;if(silF>SIL_RST){lastNote=-1;cand=-1;candF=0}}
+function orbitLaneForNote(note){
+  // Reverse lookup
+  for(let i=0;i<ORBIT_LANES;i++) if(orbitNoteForLane(i)===note) return i;
+  return -1;
+}
 
-  // Hard mode beat
-  if(hard&&state==='ORBITING'){bt++;if(bt>=bi){bcount++;bt=0;oSpd=Math.max(VMIN,oSpd*.9985)}}
+function spawnAsteroid(){
+  // Pick a lane that is NOT the player's current lane
+  let lane;
+  do{ lane=Math.floor(Math.random()*ORBIT_LANES); }while(lane===orb.lane);
+  const r=orbitLaneR(lane);
+  const angle=orb.angle+Math.PI*(0.5+Math.random()*0.8)*(Math.random()<.5?1:-1);
+  const sz=8+Math.floor(Math.random()*3)*4;
+  orb.asteroids.push({lane,r,angle,sz,speed:orb.speed*(0.3+Math.random()*0.4),dead:false});
+}
 
-  // Munker lerp
-  mh1=lh(mh1,mt1,.04);mh2=lh(mh2,mt2,.04);sHue=lh(sHue,lastNote>=0?HUE[lastNote]:sHue,.06);
+function resetOrbit(){
+  orb.angle=0; orb.speed=ORBIT_BASE_SPD; orb.lane=5;
+  orb.r=orbitLaneR(5); orb.days=0; orb.asteroids=[]; orb.particles=[];
+  orb.orbMunkerPhase=0;
+  curPalette=PALETTES[0]; curMunker=MUNKER_PAIRS[0]; bgPalShift=0; bgRule=30;
+  document.getElementById('h-scorelabel').innerText='DAYS';
+  document.getElementById('h-title').innerText='HARMONIC ORBIT';
+  document.getElementById('h-title').style.color='#0ff';
+  document.getElementById('h-info').innerText='SING A NOTE TO SWITCH LANE';
+  document.getElementById('h-hint').innerText=`LANE NOTE: ${NOTE[orbitNoteForLane(orb.lane)]}`;
+}
 
-  ctx.clearRect(0,0,W,H);
-  if(frames%4===0)stepRuliad();drawRuliad(lastNote);
-  if(frames%3===0)drawStars(lastNote);
-  drawWave();
+function tickOrbit(){
+  // Speed ramp
+  orb.speed = ORBIT_BASE_SPD + orb.days * 0.0004;
+  orb.angle += orb.speed;
 
-  // Boundary rings
-  ctx.strokeStyle='rgba(0,255,65,.1)';ctx.lineWidth=1;ctx.setLineDash([4,8]);
-  ctx.beginPath();ctx.arc(cx,cy,minR+10,0,Math.PI*2);ctx.stroke();
-  ctx.beginPath();ctx.arc(cx,cy,maxR-10,0,Math.PI*2);ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Sun position
-  sX=cx+Math.cos(oA)*oR;sY=cy+Math.sin(oA)*oR;
-
-  if(state==='ORBITING'&&frames%150===0)spawnMeteor();
-  drawMeteors();
-
-  // Physics
-  if(state==='ORBITING'){
-    rV-=grav;rV*=DAMP;oR+=rV;
-    const prev=oA;oA+=oSpd;
-    if(Math.floor(prev/(Math.PI*2))<Math.floor(oA/(Math.PI*2))){days++;document.getElementById('sc').innerText=days;oSpd+=.0003;grav+=.0008}
-    if(oR<=minR)die('CRASHED INTO EARTH!');if(oR>=maxR)die('LOST IN DEEP SPACE!');
+  // Day counter
+  const prevDays=orb.days;
+  orb.days = Math.floor(orb.angle/(Math.PI*2));
+  if(orb.days>prevDays){
+    setScore(orb.days);
+    bgRule=BG_RULES[orb.days%BG_RULES.length];
+    curPalette=PALETTES[Math.floor(orb.days/3)%PALETTES.length];
+    curMunker=MUNKER_PAIRS[orb.days%MUNKER_PAIRS.length];
   }
 
-  // Velocity HUD
-  document.getElementById('hv').innerText=`SPD:${oSpd.toFixed(4)} VEL:${rV.toFixed(2)}`;
+  // Spawn asteroids more frequently as days increase
+  const spawnRate=Math.max(80,220-orb.days*6);
+  if(frame%spawnRate===0) spawnAsteroid();
+
+  // Target lane for current note
+  orb.r += (orbitLaneR(orb.lane)-orb.r)*0.18; // smooth lane switch
+
+  const satX=CX+Math.cos(orb.angle)*orb.r;
+  const satY=CY+Math.sin(orb.angle)*orb.r;
+
+  // Update asteroids — they orbit at their own speed
+  for(let i=orb.asteroids.length-1;i>=0;i--){
+    const a=orb.asteroids[i];
+    a.angle+=a.speed;
+    const ax=CX+Math.cos(a.angle)*a.r;
+    const ay=CY+Math.sin(a.angle)*a.r;
+    // Collision with satellite
+    if(Math.hypot(ax-satX,ay-satY)<ORBIT_SAT_R+a.sz){
+      // Knock player — push toward inner lane
+      orb.lane=Math.max(0,orb.lane-2);
+      impactRips.push({x:satX,y:satY,rad:ORBIT_SAT_R,cs:bgPalShift});
+      bgPalShift=(bgPalShift+1)%4;
+      // Spawn particles
+      for(let p=0;p<8;p++) orb.particles.push({x:ax,y:ay,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4,life:40,hue:HUE[orb.days%12]});
+      orb.asteroids.splice(i,1);
+      if(orb.lane<0||orb.lane>=ORBIT_LANES) die('KNOCKED OUT OF ORBIT!',`Survived ${orb.days} days`);
+      continue;
+    }
+    // Despawn if lapped
+    if(a.angle>orb.angle+Math.PI*3) orb.asteroids.splice(i,1);
+  }
+
+  // Particles
+  for(let i=orb.particles.length-1;i>=0;i--){
+    const p=orb.particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--;
+    if(p.life<=0) orb.particles.splice(i,1);
+  }
+
+  // HUD
+  document.getElementById('h-hint').innerText=`LANE NOTE: ${NOTE[orbitNoteForLane(orb.lane)]} | SPD: ${orb.speed.toFixed(3)}`;
+}
+
+function drawOrbit(){
+  const satX=CX+Math.cos(orb.angle)*orb.r;
+  const satY=CY+Math.sin(orb.angle)*orb.r;
+  const hue=lastPC>=0?HUE[lastPC]:175;
+
+  // Draw lane rings
+  for(let l=0;l<ORBIT_LANES;l++){
+    const r=orbitLaneR(l);
+    const note=orbitNoteForLane(l);
+    const isActive=l===orb.lane;
+    ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);
+    ctx.strokeStyle=isActive?`hsl(${HUE[note]},100%,55%)`:`hsl(${HUE[note]},40%,25%)`;
+    ctx.lineWidth=isActive?2.5:1;
+    if(isActive){ctx.shadowBlur=8;ctx.shadowColor=`hsl(${HUE[note]},100%,55%)`;}
+    ctx.stroke();ctx.shadowBlur=0;
+    // Note label on ring
+    const lx=CX+Math.cos(-Math.PI/6*l)*r;
+    const ly=CY+Math.sin(-Math.PI/6*l)*r;
+    ctx.fillStyle=isActive?`hsl(${HUE[note]},100%,70%)`:`hsl(${HUE[note]},40%,40%)`;
+    ctx.font=`${isActive?13:10}px VT323,monospace`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(NOTE[note],lx,ly);
+  }
 
   // Orbit trail
-  if(state==='ORBITING'){for(let i=1;i<=5;i++){const ta=oA-i*.07,tx=cx+Math.cos(ta)*oR,ty=cy+Math.sin(ta)*oR;ctx.fillStyle=`hsla(${sHue},90%,65%,${.55/i})`;ctx.fillRect(tx-2,ty-2,4-i,4-i)}}
+  for(let i=1;i<=8;i++){
+    const ta=orb.angle-i*orb.speed*2;
+    const tx=CX+Math.cos(ta)*orb.r,ty=CY+Math.sin(ta)*orb.r;
+    ctx.fillStyle=`hsla(${hue},90%,65%,${0.5/i})`;
+    ctx.fillRect(tx-2,ty-2,4-Math.floor(i/3),4-Math.floor(i/3));
+  }
 
-  drawTrajectory();
-  drawRipples();
-  planet(ctx,cx,cy,ER,'#606060','#909090',4);
-  planet(ctx,sX,sY,SR,`hsl(${sHue},70%,60%)`,`hsl(${sHue},90%,80%)`,3);
-  drawBeat();
-  if(frames%2===0)drawMunker(mh1,mh2,.52);
+  // Earth
+  pixPlanet(ctx,CX,CY,ORBIT_EARTH_R,'#336633','#66aa66',4);
+  ctx.fillStyle='rgba(100,150,255,0.3)';ctx.beginPath();ctx.arc(CX,CY,ORBIT_EARTH_R,0,Math.PI*2);ctx.fill();
+
+  // Asteroids
+  orb.asteroids.forEach(a=>{
+    const ax=CX+Math.cos(a.angle)*a.r;
+    const ay=CY+Math.sin(a.angle)*a.r;
+    const lane=a.lane;
+    const danger=Math.abs(lane-orb.lane)<=1;
+    pixPlanet(ctx,ax,ay,a.sz,'#a0a0a0',danger?'#ff4444':'#dddddd',3);
+    if(danger){
+      ctx.strokeStyle=`rgba(255,60,60,${0.4+0.3*Math.sin(frame*0.2)})`;
+      ctx.lineWidth=2;ctx.beginPath();ctx.arc(ax,ay,a.sz+4,0,Math.PI*2);ctx.stroke();
+    }
+  });
+
+  // Particles
+  orb.particles.forEach(p=>{
+    ctx.fillStyle=`hsla(${p.hue},100%,65%,${p.life/40})`;
+    ctx.fillRect(p.x-2,p.y-2,4,4);
+  });
+
+  // Satellite (player)
+  pixPlanet(ctx,satX,satY,ORBIT_SAT_R,`hsl(${hue},70%,60%)`,`hsl(${hue},90%,80%)`,3);
+
+  // Boundary rings
+  ctx.save();ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;ctx.setLineDash([4,8]);
+  ctx.beginPath();ctx.arc(CX,CY,orbitLaneR(0)-4,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(CX,CY,orbitLaneR(ORBIT_LANES-1)+4,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
 }
 
-resize();loop();
+function onNoteOrbit(note){
+  const lane=orbitLaneForNote(note);
+  if(lane>=0){
+    orb.lane=lane;
+    impactRips.push({x:CX+Math.cos(orb.angle)*orb.r,y:CY+Math.sin(orb.angle)*orb.r,rad:ORBIT_SAT_R,cs:bgPalShift});
+    bgPalShift=(bgPalShift+1)%4;
+  }
+}
+
+// ── SURVIVAL MODE ─────────────────────────────────────────────────────────────
+// Orbit a planet. Complete orbit = advance to bigger planet, harder gravity.
+// P5 rises (interval=7) push outward, P4 (5) dive, tritone (6) heavy dive.
+// Too close = crash. Too far = lost in space. Bigger planets = stronger gravity.
+
+let surv={
+  level:1, days:0, oR:0, rV:0, oA:0, oSpd:0.0042,
+  grav:0.004, minR:0, maxR:0, satR:16,
+  planetR:28, planetHue:120,
+  meteors:[], ripples:[],
+  prevDays:0,
+};
+
+function survMinR(){ return surv.planetR+surv.satR+10; }
+function survMaxR(){ return Math.min(CX,CY)-surv.satR-18; }
+
+function resetSurv(){
+  surv.level=1; surv.days=0; surv.rV=0; surv.oA=0; surv.oSpd=0.0042; surv.grav=0.004;
+  surv.planetR=28; surv.planetHue=120; surv.meteors=[]; surv.ripples=[];
+  surv.oR=(survMinR()+survMaxR())/2;
+  curPalette=PALETTES[0]; curMunker=MUNKER_PAIRS[0]; bgPalShift=0; bgRule=30;
+  document.getElementById('h-scorelabel').innerText='DAYS';
+  document.getElementById('h-title').innerText='HARMONIC SURVIVAL';
+  document.getElementById('h-title').style.color='#0f0';
+  document.getElementById('h-info').innerText='P5↑ RISE | P4/TT↓ DIVE';
+}
+
+function advanceLevel(){
+  surv.level++;
+  surv.planetR=Math.min(60,28+surv.level*8); // planet grows
+  surv.grav=0.004+surv.level*0.0018;          // gravity increases
+  surv.oSpd+=0.0004;                           // orbit speeds up
+  surv.planetHue=(surv.planetHue+40)%360;
+  surv.oR=(survMinR()+survMaxR())/2;
+  surv.rV=0;
+  // CA visual shift
+  bgRule=BG_RULES[surv.level%BG_RULES.length];
+  curPalette=PALETTES[surv.level%PALETTES.length];
+  curMunker=MUNKER_PAIRS[surv.level%MUNKER_PAIRS.length];
+  bgPalShift=(bgPalShift+1)%4;
+  impactRips.push({x:CX,y:CY,rad:surv.planetR,cs:bgPalShift});
+  document.getElementById('h-info').innerText=`LVL ${surv.level} — GRAVITY: ${surv.grav.toFixed(3)}`;
+}
+
+function spawnSurvMeteor(){
+  const a=Math.random()*Math.PI*2,d=survMaxR()+100;
+  const mx=CX+Math.cos(a)*d, my=CY+Math.sin(a)*d;
+  const aim=a+Math.PI+(Math.random()-.5)*0.8;
+  const spd=1.0+Math.random()*1.2+surv.level*0.2;
+  surv.meteors.push({x:mx,y:my,vx:Math.cos(aim)*spd,vy:Math.sin(aim)*spd,sz:6+Math.floor(Math.random()*3)*4,tr:[]});
+}
+
+function tickSurv(){
+  surv.rV-=surv.grav; surv.rV*=0.995; surv.oR+=surv.rV;
+  const prevA=surv.oA; surv.oA+=surv.oSpd;
+  // Complete orbit = advance level
+  if(Math.floor(prevA/(Math.PI*2))<Math.floor(surv.oA/(Math.PI*2))){
+    surv.days++;setScore(surv.days);
+    advanceLevel();
+  }
+
+  // Meteors
+  if(frame%(Math.max(60,140-surv.level*12))===0) spawnSurvMeteor();
+
+  const satX=CX+Math.cos(surv.oA)*surv.oR;
+  const satY=CY+Math.sin(surv.oA)*surv.oR;
+
+  for(let i=surv.meteors.length-1;i>=0;i--){
+    const m=surv.meteors[i];
+    m.tr.unshift({x:m.x,y:m.y}); if(m.tr.length>8)m.tr.pop();
+    m.x+=m.vx; m.y+=m.vy;
+    if(Math.hypot(m.x-satX,m.y-satY)<surv.satR+m.sz){
+      surv.rV-=4+surv.level; // knocked inward harder at higher levels
+      impactRips.push({x:satX,y:satY,rad:surv.satR,cs:bgPalShift});
+      bgPalShift=(bgPalShift+1)%4;
+      surv.meteors.splice(i,1); continue;
+    }
+    if(Math.hypot(m.x-CX,m.y-CY)>survMaxR()+350) surv.meteors.splice(i,1);
+  }
+
+  // Boundaries
+  const mn=survMinR(), mx2=survMaxR();
+  if(surv.oR<=mn) die('CRASHED INTO PLANET!',`Level ${surv.level} | ${surv.days} orbits`);
+  if(surv.oR>=mx2) die('LOST IN DEEP SPACE!',`Level ${surv.level} | ${surv.days} orbits`);
+
+  document.getElementById('h-hint').innerText=`LVL ${surv.level} | RADIUS: ${Math.round(surv.oR)}`;
+  document.getElementById('h-phase').innerText=`GRAV: ${surv.grav.toFixed(3)} | VEL: ${surv.rV.toFixed(2)}`;
+}
+
+function drawSurv(){
+  const hue=lastPC>=0?HUE[lastPC]:surv.planetHue;
+  const satX=CX+Math.cos(surv.oA)*surv.oR;
+  const satY=CY+Math.sin(surv.oA)*surv.oR;
+
+  // Orbit trail
+  for(let i=1;i<=6;i++){
+    const ta=surv.oA-i*0.08;
+    const tx=CX+Math.cos(ta)*surv.oR,ty=CY+Math.sin(ta)*surv.oR;
+    ctx.fillStyle=`hsla(${hue},90%,65%,${0.55/i})`;ctx.fillRect(tx-2,ty-2,4-Math.floor(i/3),4-Math.floor(i/3));
+  }
+
+  // Meteors
+  surv.meteors.forEach(m=>{
+    m.tr.forEach((pt,ti)=>{const a=(1-ti/m.tr.length)*0.7;ctx.fillStyle=`rgba(200,200,200,${a})`;const s=Math.max(1,m.sz*.3*(1-ti/m.tr.length));ctx.fillRect(pt.x,pt.y,s,s);});
+    pixPlanet(ctx,m.x,m.y,m.sz,'#a0a0a0','#e0e0e0',3);
+  });
+
+  // Boundary rings
+  ctx.save();ctx.strokeStyle='rgba(0,255,65,.08)';ctx.lineWidth=1;ctx.setLineDash([4,8]);
+  ctx.beginPath();ctx.arc(CX,CY,survMinR()+8,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(CX,CY,survMaxR()-8,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+
+  // Planet — gets bigger with level
+  pixPlanet(ctx,CX,CY,surv.planetR,`hsl(${surv.planetHue},50%,35%)`,`hsl(${surv.planetHue},70%,55%)`,4);
+
+  // Satellite
+  pixPlanet(ctx,satX,satY,surv.satR,`hsl(${hue},70%,60%)`,`hsl(${hue},90%,80%)`,3);
+
+  // P5 hint labels near planet
+  if(lastPC>=0){
+    const riseNote=(lastPC+7)%12, diveNote=(lastPC+5)%12;
+    ctx.font='13px VT323,monospace';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillStyle=`hsl(${HUE[riseNote]},100%,65%)`;ctx.fillText(`P5↑ ${NOTE[riseNote]}`,CX+surv.planetR+6,CY-12);
+    ctx.fillStyle=`hsl(${HUE[diveNote]},100%,65%)`;ctx.fillText(`P4↓ ${NOTE[diveNote]}`,CX+surv.planetR+6,CY+4);
+  }
+
+  // Trajectory preview
+  ctx.save();ctx.setLineDash([3,6]);ctx.lineWidth=1.5;
+  let sr=surv.oR,sv=surv.rV,sa=surv.oA,px2=satX,py2=satY;
+  for(let i=0;i<35;i++){
+    sv-=surv.grav;sv*=0.995;sr+=sv;sa+=surv.oSpd;
+    const tx=CX+Math.cos(sa)*sr,ty=CY+Math.sin(sa)*sr;
+    ctx.strokeStyle=`hsla(${hue},100%,65%,${(1-i/35)*0.45})`;
+    ctx.beginPath();ctx.moveTo(px2,py2);ctx.lineTo(tx,ty);ctx.stroke();
+    px2=tx;py2=ty;
+  }
+  ctx.setLineDash([]);ctx.restore();
+}
+
+function onNoteSurv(note){
+  if(gameState==='IDLE') gameState='PLAYING';
+  if(lastPC>=0){
+    const diff=(note-lastPC+12)%12;
+    if(diff===7){surv.rV+=2.6;surv.oSpd=Math.min(0.016,surv.oSpd+0.0008);}
+    else if(diff===5){surv.rV-=2.6;}
+    else if(diff===6){surv.rV-=3.2;surv.oSpd=Math.max(0.002,surv.oSpd-0.0005);}
+  }
+  impactRips.push({x:CX+Math.cos(surv.oA)*surv.oR,y:CY+Math.sin(surv.oA)*surv.oR,rad:surv.satR,cs:bgPalShift});
+  bgPalShift=(bgPalShift+1)%4;
+}
+
+// ── ECLIPSE MODE ──────────────────────────────────────────────────────────────
+// Day/night cycle splits each orbit. 
+// NIGHT: P5 intervals are FORBIDDEN (they break orbit) — controls invert.
+//        The planet is dark, lanes shift, survival requires P4 instead.
+// DAY:   Standard — P5 rises, P4 dives. Normal controls.
+// Orbit splits into 8 phases: alternating day/night segments.
+// Night gets longer as you survive.
+
+let ecl={
+  angle:0, oR:0, rV:0, oSpd:0.0038, grav:0.0035,
+  days:0, phase:0,   // 0=day 1=night
+  phaseAngle:0,      // angle within current phase
+  phaseLen:Math.PI,  // starts at PI (half orbit each), night grows
+  nightFrac:0.5,     // fraction of orbit that is night
+  ctrlsInverted:false,
+  asteroids:[], particles:[],
+  forbidden5:false,
+  sunAngle:0,        // sun position angle (stays fixed as planet orbits)
+};
+
+function eclMinR(){ return 30+14+10; }
+function eclMaxR(){ return Math.min(CX,CY)-14-18; }
+function eclIsNight(angle){
+  // Night = when satellite is in shadow (behind planet relative to sun)
+  const diff=((angle-ecl.sunAngle)+Math.PI*2)%(Math.PI*2);
+  return diff>Math.PI*(1-ecl.nightFrac) && diff<Math.PI;
+}
+
+function resetEcl(){
+  ecl.angle=0; ecl.oR=(eclMinR()+eclMaxR())/2; ecl.rV=0; ecl.oSpd=0.0038; ecl.grav=0.0035;
+  ecl.days=0; ecl.phaseAngle=0; ecl.nightFrac=0.4; ecl.ctrlsInverted=false;
+  ecl.asteroids=[]; ecl.particles=[]; ecl.sunAngle=Math.PI*0.25;
+  curPalette=PALETTES[0]; curMunker=MUNKER_PAIRS[0]; bgPalShift=0; bgRule=30;
+  document.getElementById('h-scorelabel').innerText='DAYS';
+  document.getElementById('h-title').innerText='HARMONIC ECLIPSE';
+  document.getElementById('h-title').style.color='#ff8c00';
+  document.getElementById('h-info').innerText='DAY: P5 RISE | NIGHT: P4 RISE (INVERTED)';
+}
+
+function tickEcl(){
+  const prevAngle=ecl.angle;
+  ecl.angle+=ecl.oSpd;
+  const isNight=eclIsNight(ecl.angle);
+  ecl.ctrlsInverted=isNight;
+
+  // Physics — gravity direction inverts at night (in a sense — inward pull becomes push)
+  const gravDir=isNight?-0.7:1.0; // night: weak repulsion creates instability
+  ecl.rV-=ecl.grav*gravDir;
+  ecl.rV*=0.995;
+  ecl.oR+=ecl.rV;
+
+  // Day counter
+  if(Math.floor(prevAngle/(Math.PI*2))<Math.floor(ecl.angle/(Math.PI*2))){
+    ecl.days++;setScore(ecl.days);
+    // Night grows longer
+    ecl.nightFrac=Math.min(0.75, 0.4+ecl.days*0.02);
+    ecl.oSpd=Math.min(0.012,ecl.oSpd+0.0003);
+    ecl.grav=Math.min(0.012,ecl.grav+0.0005);
+    bgRule=BG_RULES[ecl.days%BG_RULES.length];
+    curPalette=PALETTES[Math.floor(ecl.days/4)%PALETTES.length];
+    curMunker=MUNKER_PAIRS[ecl.days%MUNKER_PAIRS.length];
+  }
+
+  // Asteroid spawning — more in night
+  const rate=isNight?90:160;
+  if(frame%rate===0){
+    const r=eclMinR()+Math.random()*(eclMaxR()-eclMinR());
+    const a=ecl.angle+Math.PI*(0.4+Math.random()*0.6)*(Math.random()<.5?1:-1);
+    ecl.asteroids.push({r,angle:a,speed:ecl.oSpd*(0.4+Math.random()*0.5),sz:6+Math.floor(Math.random()*4)*3});
+  }
+
+  const satX=CX+Math.cos(ecl.angle)*ecl.oR;
+  const satY=CY+Math.sin(ecl.angle)*ecl.oR;
+
+  for(let i=ecl.asteroids.length-1;i>=0;i--){
+    const a=ecl.asteroids[i]; a.angle+=a.speed;
+    const ax=CX+Math.cos(a.angle)*a.r, ay=CY+Math.sin(a.angle)*a.r;
+    if(Math.hypot(ax-satX,ay-satY)<14+a.sz){
+      ecl.rV+=(isNight?-5:5)*(Math.random()<.5?1:-1);
+      impactRips.push({x:satX,y:satY,rad:14,cs:bgPalShift});
+      bgPalShift=(bgPalShift+1)%4;
+      ecl.asteroids.splice(i,1); continue;
+    }
+    if(a.angle>ecl.angle+Math.PI*3) ecl.asteroids.splice(i,1);
+  }
+
+  const mn=eclMinR(), mx=eclMaxR();
+  if(ecl.oR<=mn) die('ECLIPSE CRASH!',`${ecl.days} days | Night fraction: ${Math.round(ecl.nightFrac*100)}%`);
+  if(ecl.oR>=mx) die('FLUNG INTO VOID!',`${ecl.days} days | Night fraction: ${Math.round(ecl.nightFrac*100)}%`);
+
+  const phaseStr=isNight?'🌑 NIGHT':'☀ DAY';
+  document.getElementById('h-phase').innerText=`${phaseStr} | NIGHT: ${Math.round(ecl.nightFrac*100)}%`;
+  document.getElementById('h-hint').innerText=ecl.ctrlsInverted?'⚠ INVERTED — P4=RISE, P5=CRASH!':'P5=RISE | P4=DIVE';
+  document.getElementById('h-hint').style.color=ecl.ctrlsInverted?'#ff4444':'#ff8c00';
+}
+
+function drawEcl(){
+  const isNight=eclIsNight(ecl.angle);
+  const hue=lastPC>=0?HUE[lastPC]:30;
+  const satX=CX+Math.cos(ecl.angle)*ecl.oR;
+  const satY=CY+Math.sin(ecl.angle)*ecl.oR;
+
+  // Night shadow hemisphere
+  if(isNight){
+    ctx.save();
+    const shadowAngle=ecl.sunAngle+Math.PI;
+    const grad=ctx.createRadialGradient(CX,CY,0,CX,CY,eclMaxR()+30);
+    grad.addColorStop(0,'rgba(0,0,0,0)');
+    grad.addColorStop(0.5,'rgba(0,0,30,0.55)');
+    grad.addColorStop(1,'rgba(0,0,60,0.75)');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+    // Night-side arc
+    ctx.beginPath();ctx.arc(CX,CY,eclMaxR()+10,shadowAngle-Math.PI*ecl.nightFrac,shadowAngle+Math.PI*ecl.nightFrac);
+    ctx.arc(CX,CY,0,shadowAngle+Math.PI*ecl.nightFrac,shadowAngle-Math.PI*ecl.nightFrac,true);
+    ctx.fillStyle='rgba(0,0,30,0.4)';ctx.fill();
+    ctx.restore();
+  }
+
+  // Sun position indicator
+  const sunX=CX+Math.cos(ecl.sunAngle)*(eclMaxR()+40);
+  const sunY=CY+Math.sin(ecl.sunAngle)*(eclMaxR()+40);
+  ctx.fillStyle=isNight?'rgba(255,200,0,0.2)':'rgba(255,200,0,0.8)';
+  for(let a=0;a<Math.PI*2;a+=Math.PI/5){ctx.beginPath();ctx.moveTo(sunX+Math.cos(a)*10,sunY+Math.sin(a)*10);ctx.lineTo(sunX+Math.cos(a-.2)*17,sunY+Math.sin(a-.2)*17);ctx.lineTo(sunX+Math.cos(a+.2)*17,sunY+Math.sin(a+.2)*17);ctx.fill();}
+  ctx.fillStyle=isNight?'rgba(255,180,0,0.3)':'rgba(255,220,50,0.9)';
+  ctx.beginPath();ctx.arc(sunX,sunY,10,0,Math.PI*2);ctx.fill();
+
+  // Orbit trail — red at night
+  for(let i=1;i<=6;i++){
+    const ta=ecl.angle-i*ecl.oSpd*2;
+    const tx=CX+Math.cos(ta)*ecl.oR, ty=CY+Math.sin(ta)*ecl.oR;
+    const trailHue=eclIsNight(ta)?0:hue;
+    ctx.fillStyle=`hsla(${trailHue},90%,65%,${0.5/i})`;ctx.fillRect(tx-2,ty-2,4-Math.floor(i/3),4-Math.floor(i/3));
+  }
+
+  // Asteroids
+  ecl.asteroids.forEach(a=>{
+    const ax=CX+Math.cos(a.angle)*a.r, ay=CY+Math.sin(a.angle)*a.r;
+    const aIsNight=eclIsNight(a.angle);
+    pixPlanet(ctx,ax,ay,a.sz,aIsNight?'#440000':'#a0a0a0',aIsNight?'#ff2222':'#dddddd',3);
+  });
+
+  // Boundary rings
+  ctx.save();ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;ctx.setLineDash([4,8]);
+  ctx.beginPath();ctx.arc(CX,CY,eclMinR()+6,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(CX,CY,eclMaxR()-6,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+
+  // Planet — half lit half dark
+  pixPlanet(ctx,CX,CY,30,'#404060','#8080aa',4);
+  // Day side highlight
+  ctx.save();ctx.beginPath();ctx.arc(CX,CY,30,ecl.sunAngle-Math.PI/2,ecl.sunAngle+Math.PI/2);
+  ctx.arc(CX,CY,0,ecl.sunAngle+Math.PI/2,ecl.sunAngle-Math.PI/2,true);
+  ctx.fillStyle='rgba(255,220,100,0.25)';ctx.fill();ctx.restore();
+
+  // Satellite — red tint at night
+  const sc=isNight?`hsl(0,80%,55%)`:`hsl(${hue},70%,60%)`;
+  const sh=isNight?`hsl(0,100%,75%)`:`hsl(${hue},90%,80%)`;
+  pixPlanet(ctx,satX,satY,14,sc,sh,3);
+
+  // Warning flash in night
+  if(isNight&&Math.sin(frame*0.25)>0.6){
+    ctx.save();ctx.globalAlpha=0.06;ctx.fillStyle='#ff0000';ctx.fillRect(0,0,W,H);ctx.restore();
+  }
+
+  // Interval hints
+  if(lastPC>=0){
+    const riseNote=ecl.ctrlsInverted?(lastPC+5)%12:(lastPC+7)%12;
+    const diveNote=ecl.ctrlsInverted?(lastPC+7)%12:(lastPC+5)%12;
+    ctx.font='13px VT323,monospace';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillStyle=`hsl(${HUE[riseNote]},100%,65%)`;
+    ctx.fillText(`RISE→ ${NOTE[riseNote]}`,CX+32,CY-14);
+    ctx.fillStyle=`hsl(${HUE[diveNote]},100%,65%)`;
+    ctx.fillText(`DIVE→ ${NOTE[diveNote]}`,CX+32,CY+4);
+    if(ecl.ctrlsInverted){
+      ctx.fillStyle='#ff4444';ctx.font='bold 14px VT323,monospace';
+      ctx.textAlign='center';ctx.fillText('⚠ P5 = CRASH ⚠',CX,CY-50);
+    }
+  }
+}
+
+function onNoteEcl(note){
+  if(gameState==='IDLE') gameState='PLAYING';
+  if(lastPC<0){return;}
+  const diff=(note-lastPC+12)%12;
+  // Night: controls inverted — P5 is forbidden (sends player inward hard), P4 rises
+  if(ecl.ctrlsInverted){
+    if(diff===7){ecl.rV-=5; impactRips.push({x:CX,y:CY,rad:30,cs:bgPalShift});} // P5 punished!
+    else if(diff===5){ecl.rV+=2.4;} // P4 rises at night
+    else if(diff===6){ecl.rV-=1.5;}
+  } else {
+    if(diff===7){ecl.rV+=2.4;}
+    else if(diff===5){ecl.rV-=2.4;}
+    else if(diff===6){ecl.rV-=3.0;}
+  }
+  impactRips.push({x:CX+Math.cos(ecl.angle)*ecl.oR,y:CY+Math.sin(ecl.angle)*ecl.oR,rad:14,cs:bgPalShift});
+  bgPalShift=(bgPalShift+1)%4;
+}
+
+// ── MODE SWITCHING ────────────────────────────────────────────────────────────
+function switchMode(m){
+  currentMode=m;
+  ['orbit','survival','eclipse'].forEach(id=>{
+    document.getElementById('tab-'+id).classList.toggle('active',id.toUpperCase()===m||(id==='survival'&&m==='SURVIVAL'));
+  });
+  resetGame();
+}
+
+function resetGame(){
+  gameState='IDLE';score=0;lastPC=-1;cand=-1;candF=0;silF=0;
+  impactRips=[];bgPalShift=0;bgRule=30;
+  document.getElementById('go').style.display='none';
+  document.getElementById('h-score').innerText='0';
+  document.getElementById('h-note').innerText='NOTE: --';
+  document.getElementById('h-phase').innerText='';
+  document.getElementById('h-hint').innerText='';
+  if(currentMode==='ORBIT') resetOrbit();
+  else if(currentMode==='SURVIVAL') resetSurv();
+  else resetEcl();
+}
+
+// ── BUTTONS ───────────────────────────────────────────────────────────────────
+document.getElementById('b-mic').addEventListener('click',async e=>{
+  const ok=await startMic();
+  if(ok){e.target.innerText='MIC ON';e.target.style.borderColor='#0ff';e.target.style.color='#0ff';resetGame();if(!loopRunning)loop();}
+});
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
+let loopRunning=false;
+function loop(){
+  loopRunning=true;
+  requestAnimationFrame(loop);
+  frame++;
+
+  // ── Audio gate ─────────────────────────────────────────────────────────
+  const raw=readPitch();
+  if(raw>=0){
+    silF=0;
+    if(raw===cand){candF++;if(candF>=NOTE_HOLD&&raw!==lastPC&&gameState!=='DEAD'){
+      // Commit note
+      document.getElementById('h-note').innerText=`NOTE: ${NOTE[raw]}`;
+      const fg=curPalette[(2+bgPalShift)%4];
+      const col=`rgb(${fg[0]},${fg[1]},${fg[2]})`;
+      document.getElementById('h-box').style.borderColor=col;
+      document.getElementById('h-box').style.color=col;
+      document.getElementById('h-score').style.color=col;
+      // Mode-specific note handler
+      if(currentMode==='ORBIT') onNoteOrbit(raw);
+      else if(currentMode==='SURVIVAL') onNoteSurv(raw);
+      else onNoteEcl(raw);
+      // Start game on first note
+      if(gameState==='IDLE') gameState='PLAYING';
+      lastPC=raw;
+    }}
+    else{cand=raw;candF=1;}
+  } else {
+    silF++;if(silF>SIL_RST){lastPC=-1;cand=-1;candF=0;}
+  }
+
+  // ── Tick ───────────────────────────────────────────────────────────────
+  if(gameState==='PLAYING'){
+    if(currentMode==='ORBIT') tickOrbit();
+    else if(currentMode==='SURVIVAL') tickSurv();
+    else tickEcl();
+  }
+
+  // ── CA background ──────────────────────────────────────────────────────
+  if(frame%6===0) updateBgCA(lastPC>=0?HUE[lastPC]:180);
+
+  // ── Draw BG ────────────────────────────────────────────────────────────
+  ctxBg.fillStyle='#000';ctxBg.fillRect(0,0,W,H);
+  ctxBg.imageSmoothingEnabled=false;
+  if(rulCv.width>0&&rulCv.height>0) ctxBg.drawImage(rulCv,0,0,W,H);
+
+  // ── Draw game ──────────────────────────────────────────────────────────
+  ctx.clearRect(0,0,W,H);
+  drawConcentricRings(CX,CY,lastPC>=0?HUE[lastPC]:175);
+  drawRipples();
+
+  if(currentMode==='ORBIT') drawOrbit();
+  else if(currentMode==='SURVIVAL') drawSurv();
+  else drawEcl();
+
+  // Ghost note watermark
+  if(lastPC>=0){
+    ctx.save();ctx.globalAlpha=0.08;
+    ctx.font=`bold ${Math.min(W*0.3,160)}px VT323,monospace`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    const fg=curPalette[(2+bgPalShift)%4];
+    ctx.fillStyle=`rgb(${fg[0]},${fg[1]},${fg[2]})`;
+    ctx.fillText(NOTE[lastPC],W/2,H/2);
+    ctx.globalAlpha=1;ctx.restore();
+  }
+
+  // IDLE instruction
+  if(gameState==='IDLE'&&micOn){
+    ctx.save();ctx.globalAlpha=0.7+0.3*Math.sin(frame*0.05);
+    ctx.font='bold 20px VT323,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='#0ff';ctx.fillText('SING ANY NOTE TO START',W/2,H*0.8);
+    ctx.globalAlpha=1;ctx.restore();
+  }
+
+  // Munker overlay
+  if(frame%2===0) drawFullMunker();
+}
+
+// ── RESIZE ────────────────────────────────────────────────────────────────────
+function resize(){
+  W=window.innerWidth;H=window.innerHeight;CX=W/2;CY=H/2;
+  [cBg,cGame,cMk].forEach(c=>{c.width=W;c.height=H;});
+  initCA();
+  resetGame();
+}
+window.addEventListener('resize',resize);
+resize();
 </script>
 </body>
 </html>
